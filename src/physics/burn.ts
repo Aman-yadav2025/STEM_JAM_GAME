@@ -46,7 +46,7 @@ function getBurnDirectionVector(ship: Spacecraft, bodies: CelestialBody[], direc
 }
 
 
-export function fuelCostForDeltaV(deltaV: number): number {         // we can have a thrust bar slider that determines deltaV
+export function fuelCostForDeltaV(deltaV: number): number {         // we can have a thrust bar slider in HUD that determines deltaV
     return Math.abs(deltaV) * FUEL_BURN_RATE;                     //   not using rocket equation as mass wont matter in space. Implement in future if lauching and landing are added.
 }
 
