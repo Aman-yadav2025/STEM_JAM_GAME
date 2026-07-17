@@ -1,4 +1,5 @@
-import { Vector3, type CelestialBody, type Spacecraft } from "./constants"
+import {type CelestialBody, type Spacecraft } from "./constants"
+import { Vector3 } from "./vector3"
 import { GravityCalculation } from "./gravity"; // Adjust path if needed
 
 export function totalAcceleration(ship: Spacecraft, bodies: CelestialBody[]): Vector3 {

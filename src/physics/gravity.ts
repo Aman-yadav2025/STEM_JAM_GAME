@@ -1,4 +1,5 @@
-import { Vector3,  G, type CelestialBody, type Spacecraft } from "./constants";
+import { G, type CelestialBody, type Spacecraft } from "./constants";
+import { Vector3 } from "./vector3";
 
 export function GravityCalculation(ship: Spacecraft, body: CelestialBody): Vector3 {
     const dx = body.position.x - ship.position.x;
