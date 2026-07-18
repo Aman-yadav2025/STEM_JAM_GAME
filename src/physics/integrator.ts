@@ -1,6 +1,6 @@
-import { type CelestialBody, type Spacecraft } from "./constants"
-import { Vector3 } from "./vector3"
-import { GravityCalculation } from "./gravity";
+import { type CelestialBody, type Spacecraft } from "./constants.ts"
+import { Vector3 } from "./vector3.ts"
+import { GravityCalculation } from "./gravity.ts";
 
 export function totalAcceleration(ship: Spacecraft, bodies: CelestialBody[]): Vector3 {
     

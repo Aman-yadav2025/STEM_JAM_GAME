@@ -1,5 +1,5 @@
-import { Vector3 } from "./vector3";
-import { type CelestialBody } from "./constants";
+import { Vector3 } from "./vector3.ts";
+import { type CelestialBody } from "./constants.ts";
 
 
 export interface OrbitPath {

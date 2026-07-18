@@ -1,7 +1,7 @@
-import { Vector3 } from './vector3';
-import { type CelestialBody, type Spacecraft, G } from './constants';
-import { getCurrentSOIBody } from './gravity';
-import {type OrbitalElements, computeOrbitalElements} from './orbitalElements';
+import { Vector3 } from './vector3.ts';
+import { type CelestialBody, type Spacecraft, G } from './constants.ts';
+import { getCurrentSOIBody } from './gravity.ts';
+import { computeOrbitalElements} from './orbitalElements.ts';
 
 /**
  * Patched-conic trajectory predictor.

@@ -1,6 +1,6 @@
-import { type CelestialBody, type Spacecraft } from "./constants";
-import { Vector3 } from "./vector3";
-import { getCurrentSOIBody } from "./gravity";
+import { type CelestialBody, type Spacecraft } from "./constants.ts";
+import { Vector3 } from "./vector3.ts";
+import { getCurrentSOIBody } from "./gravity.ts";
 
 export type BurnDirection = "prograde" | "retrograde" | "radial-in" | "radial-out" | "normal" | "antinormal";
 const FUEL_BURN_RATE = 1; // kg of fuel per unit of deltaV — tune this later
