@@ -7,27 +7,7 @@
     <title>stem-jam-game</title>
   </head>
   <body>
-    <script src="https://cdn.jsdelivr.net/npm/@idevgames/keys-js/src/keys.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@idevgames/gravity-js/src/gravity.js"></script>
-
-<!-- Container with Keys.js watching WASD keys -->
-<div data-keys
-     data-keys-watch="w,a,s,d"
-     data-keys-prevent="w,a,s,d"
-     data-keys-var="true">
-
-    <!-- Player controlled by keyboard - ZERO JavaScript needed! -->
-    <div id="player"
-         data-gravity
-         data-gravity-type="dynamic"
-         data-gravity-fixed-rotation="true"
-         data-gravity-force-right="--key-d, --key-right"
-         data-gravity-force-left="--key-a, --key-left"
-         data-gravity-force-down="--key-s, --key-down"
-         data-gravity-force-up="--key-w, --key-up"
-         data-gravity-force-multiplier="80" style="color:aqua; width: 200px;">
-         Come on
-    </div>
-</div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -1,5 +1,5 @@
 import { Vector3 } from "./vector3";
-import { G, type CelestialBody } from "./constants";
+import { G, type CelestialBody } from "./constants.ts";
 
 
 // ---------------------------------------------------------------------------
@@ -14,6 +14,7 @@ export interface OrbitalElements {
     mu: number;        // gravitational parameter of the central body (G * mass)
     pHat: Vector3;      // unit vector toward periapsis (perifocal x-axis)
     qHat: Vector3;      // unit vector 90deg ahead in the orbital plane (perifocal y-axis)
+    peroid: number;
 }
 
 /**
@@ -45,5 +46,14 @@ export function computeOrbitalElements(relPos: Vector3, relVel: Vector3, mu: num
     const wHat = hVec.normalize(); // orbit normal
     const qHat = wHat.cross(pHat);
 
-    return { a, e, eVec, hVec, mu, pHat, qHat };
+    const peroid =
+    specificEnergy < 0
+      ? 2 * Math.PI * Math.sqrt(Math.pow(a, 3) / mu)
+      : Infinity;
+
+    return { a, e, eVec, hVec, mu, pHat, qHat, peroid};
+}
+
+export function isCircular(elements: OrbitalElements, threshold: number): boolean {
+  return elements.e < threshold;
 }
