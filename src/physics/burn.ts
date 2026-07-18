@@ -1,35 +1,22 @@
-import { type CelestialBody, type Spacecraft } from "./constants";
-import { Vector3 } from "./vector3";
-
-export type BurnDirection = "prograde" | "retrograde" | "radial-in" | "radial-out" | "normal" | "antinormal";
-const FUEL_BURN_RATE = 1; // kg of fuel per unit of deltaV — tune this later
-
+import { type CelestialBody, type Spacecraft, type BurnDirection, totalMass , DefaultEngine} from "./constants";
+import { Vector3} from "./vector3";
+import { getCurrentSOIBody } from "./gravity";
+import { type EngineSpec, propellantForDeltaV, maxDeltaVForPropellant } from "./Rocketequation";
 
 
-function getCurrentSOIBody(ship: Spacecraft, bodies: CelestialBody[]): CelestialBody{
-    let closestBody = bodies[0];
-    let inSOI = false;
-
-    for(const body of bodies){
-        const distance = ship.position.distanceTo(body.position);
-        if(distance < body.soiRadius){
-            closestBody = body;
-            inSOI = true;
-            break;                  // It breaks when the first SOI matches , so for multiple SOI we will have the innermost (like moon) in front. keep in mind when making World.ts
-        }
-    }
-
-    return inSOI ? closestBody : bodies[0];   // if none found, default to the sun.
+export interface BurnResult{
+    success: Boolean;
+    reason?: string;
+    propellantUsed?: number;
 }
 
-
-function getBurnDirectionVector(ship: Spacecraft, bodies: CelestialBody[], direction: BurnDirection): Vector3 {
+export function getBurnDirectionVector(ship: Spacecraft, bodies: CelestialBody[], direction: BurnDirection): Vector3 {
     
     switch (direction) {
         case "prograde":
-            return ship.velocity.normalize();
+            return ship.velocity.clone().normalize();
         case "retrograde":
-            return ship.velocity.normalize().scale(-1);
+            return ship.velocity.clone().normalize().scale(-1);
         case "radial-out": {
             const referenceBody = getCurrentSOIBody(ship, bodies);
             return ship.position.subtract(referenceBody.position).normalize();
@@ -38,6 +25,14 @@ function getBurnDirectionVector(ship: Spacecraft, bodies: CelestialBody[], direc
             const referenceBody = getCurrentSOIBody(ship, bodies);
             return ship.position.subtract(referenceBody.position).normalize().scale(-1);
         }
+        case "normal" : {
+            const referenceBody = getCurrentSOIBody(ship, bodies);
+            return ship.velocity.cross(referenceBody.position.subtract(ship.position)).normalize();
+        }
+        case "antinormal": {
+            const referenceBody = getCurrentSOIBody(ship, bodies);
+            return ship.velocity.cross(referenceBody.position.subtract(ship.position)).normalize().scale(-1);
+        }
         default:
             throw new Error(`Unhandled burn direction: ${direction}`);
 
@@ -45,24 +40,62 @@ function getBurnDirectionVector(ship: Spacecraft, bodies: CelestialBody[], direc
 
 }
 
-
-export function fuelCostForDeltaV(deltaV: number): number {         // we can have a thrust bar slider in HUD that determines deltaV
-    return Math.abs(deltaV) * FUEL_BURN_RATE;                     //   not using rocket equation as mass wont matter in space. Implement in future if lauching and landing are added.
+export function applyBurn(
+  ship: Spacecraft,
+  direction: BurnDirection,
+  deltaV: number,
+  engine: EngineSpec = DefaultEngine,
+  bodies : CelestialBody[]
+): BurnResult {
+  const speed = ship.velocity.magnitude();
+  if (speed === 0) {
+    return { success: false, reason: 'cannot determine prograde direction at zero velocity' };
+  }
+ 
+  const massBefore = totalMass(ship);
+  const propellantNeeded = propellantForDeltaV(deltaV, massBefore, engine);
+ 
+  if (propellantNeeded > ship.fuel) {
+    return { success: false, reason: 'insufficient fuel' };
+  }
+ 
+  const burnUnit = getBurnDirectionVector(ship, bodies,direction);
+  ship.velocity = ship.velocity.add(burnUnit.scale(deltaV));
+  ship.fuel -= propellantNeeded;
+ 
+  return { success: true, propellantUsed: propellantNeeded };
 }
 
+//result of burn for UID
+export function previewBurn(
+  ship: Spacecraft,
+  direction: BurnDirection,
+  deltaV: number,
+  engine: EngineSpec = DefaultEngine,
+  bodies: CelestialBody[]
+) {
+  const speed = ship.velocity.magnitude();
+  if (speed === 0) {
+    return { velocity: ship.velocity, propellantUsed: 0, affordable: false };
+  }
+ 
+  const massBefore = totalMass(ship);
+  const propellantNeeded = propellantForDeltaV(deltaV, massBefore, engine);
+  const burnUnit = getBurnDirectionVector(ship, bodies, direction);
+  const velocity = ship.velocity.add(burnUnit.scale(deltaV));
+ 
+  return {
+    velocity,
+    propellantUsed: propellantNeeded,
+    affordable: propellantNeeded <= ship.fuel,
+  };
+}
 
-
-
-export function applyBurn( ship: Spacecraft, bodies: CelestialBody[], direction: BurnDirection, deltaV: number ): Spacecraft {
-    
-    const directionVector = getBurnDirectionVector(ship, bodies, direction);
-    const requestedFuelCost = fuelCostForDeltaV(deltaV);
-
-    
-    const affordableFuel = Math.min(requestedFuelCost, ship.fuel);       // clamp deltaV if there isn't enough fuel. have to clamp for HUD in BurnControls.tsx as well.
-    const actualDeltaV = affordableFuel / FUEL_BURN_RATE;
-
-    const newVelocity = ship.velocity.add(directionVector.scale(actualDeltaV));
-
-    return {...ship,velocity: newVelocity,fuel: ship.fuel - affordableFuel};   // we will return a new spaceCraft object instead of mutating for simplicity.
+//return max deltaV
+export function maxAvailableDeltaV(
+  ship: Spacecraft,
+  engine: EngineSpec = DefaultEngine
+): number {
+  const massBefore = totalMass(ship);
+  return maxDeltaVForPropellant(ship.fuel, massBefore, engine);
 }

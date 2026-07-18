@@ -1,3 +1,5 @@
+//for planets
+
 import { Vector3 } from "./vector3";
 import { type CelestialBody } from "./constants";
 

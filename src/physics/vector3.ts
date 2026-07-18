@@ -63,7 +63,20 @@ export class Vector3 {
         return new Vector3(0, 0, 0);
     }
 
+    lengthsq(): number {
+        return (this.x * this.x + this.y * this.y + this.z * this.z);
+    }
 
+    clone() : Vector3 {
+        return new Vector3(this.x, this.y, this.z);
+    }
 
+    Rotation(angle: number): Vector3 {
+        return new Vector3(
+            this.x*Math.cos(angle) - this.y*Math.sin(angle),
+            this.x*Math.sin(angle) + this.y*Math.cos(angle),
+            this.z
+        )
+    }
 
 }
