@@ -1,5 +1,4 @@
-import { Vector3 } from "./vector3";
-import { G, type CelestialBody } from "./constants.ts";
+import { Vector3 } from "./vector3";;
 
 
 // ---------------------------------------------------------------------------
