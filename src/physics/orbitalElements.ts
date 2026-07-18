@@ -1,55 +1,49 @@
 import { Vector3 } from "./vector3";
 import { G, type CelestialBody } from "./constants";
 
-export interface OrbitalElements {            // may need to add true anomaly
-    semiMajorAxis: number;
-    eccentricity: number;
-    inclination: number; // if we extend to 3D
-    apoapsis: number;
-    periapsis: number;
-    orbitalPeriod: number | null; // null if e >= 1
-    specificAngularMomentum: Vector3;
-    specificEnergy: number;
+
+// ---------------------------------------------------------------------------
+// Orbital elements
+// ---------------------------------------------------------------------------
+
+export interface OrbitalElements {
+    a: number;       // semi-major axis (m). Negative for hyperbolic orbits.
+    e: number;        // eccentricity
+    eVec: Vector3;     // eccentricity vector, points toward periapsis
+    hVec: Vector3;     // specific angular momentum vector, orbit normal
+    mu: number;        // gravitational parameter of the central body (G * mass)
+    pHat: Vector3;      // unit vector toward periapsis (perifocal x-axis)
+    qHat: Vector3;      // unit vector 90deg ahead in the orbital plane (perifocal y-axis)
 }
 
-export function standardGravitationalParameter(body: CelestialBody): number {
-    return G * body.mass;
-}
+/**
+ * Computes classical orbital elements from a relative state vector
+ * (position/velocity of the ship relative to the central body it's orbiting).
+ */
 
-function specificOrbitalEnergy(r: Vector3, v: Vector3, mu: number): number {
-    const speedSquared = v.dot(v);
-    const distance = r.magnitude();
-    return speedSquared / 2 - mu / distance;
-}
+export function computeOrbitalElements(relPos: Vector3, relVel: Vector3, mu: number): OrbitalElements {
+    const r = relPos.magnitude();
+    const v = relVel.magnitude();
 
-function eccentricityVector(r: Vector3, v: Vector3, mu: number): Vector3 {
+    const hVec = relPos.cross(relVel);
 
-    const term1 = r.scale(v.dot(v) - mu / r.magnitude());
-    const term2 = v.scale(r.dot(v));
+    // e_vec = [(v^2 - mu/r) * r_vec - (r_vec . v_vec) * v_vec] / mu
+    const eVec = relPos
+        .scale(v * v - mu / r)
+        .subtract(relVel.scale(relPos.dot(relVel)))
+        .scale(1 / mu);
+    const e = eVec.magnitude();
 
-    return term1.subtract(term2).scale(1 / mu);                   
-}
+    const specificEnergy = (v * v) / 2 - mu / r;
+    const a = -mu / (2 * specificEnergy);
 
+    // Perifocal basis: pHat toward periapsis, qHat 90deg ahead in-plane.
+    // For near-circular orbits (e ~ 0) eVec is degenerate, so fall back to
+    // using the current radius direction as the reference "periapsis" axis -
+    // any in-plane axis works for a circle, this just keeps continuity.
+    const pHat = e > 1e-8 ? eVec.normalize() : relPos.normalize();
+    const wHat = hVec.normalize(); // orbit normal
+    const qHat = wHat.cross(pHat);
 
-export function computeOrbitalElements(shipPosition: Vector3, shipVelocity: Vector3, referenceBody: CelestialBody ): OrbitalElements {   
-    const mu = standardGravitationalParameter(referenceBody);
-
-    const r = shipPosition.subtract(referenceBody.position);
-    const v = shipVelocity.subtract(referenceBody.velocity);
-
-    const h = r.cross(v);
-    const energy = specificOrbitalEnergy(r, v, mu);
-    const eVec = eccentricityVector(r, v, mu);
-    const eccentricity = eVec.magnitude();
-
-    const semiMajorAxis = energy !== 0 ? -mu / (2 * energy) : Infinity;
-
-    const inclination = Math.acos(h.z / h.magnitude());    
-
-    const apoapsis = eccentricity < 1 ? semiMajorAxis * (1 + eccentricity) : Infinity;
-    const periapsis = semiMajorAxis * (1 - eccentricity);
-
-    const orbitalPeriod = eccentricity < 1 ? 2 * Math.PI * Math.sqrt(Math.pow(semiMajorAxis, 3) / mu) : null;
-
-    return { semiMajorAxis, eccentricity, inclination, apoapsis, periapsis, orbitalPeriod, specificAngularMomentum: h, specificEnergy: energy };
+    return { a, e, eVec, hVec, mu, pHat, qHat };
 }
