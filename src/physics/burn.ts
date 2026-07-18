@@ -1,89 +1,106 @@
-import { type CelestialBody, type Spacecraft, type BurnDirection, totalMass , DefaultEngine} from "./constants";
-import { Vector3} from "./vector3";
-import { getCurrentSOIBody } from "./gravity";
-import { type EngineSpec, propellantForDeltaV, maxDeltaVForPropellant } from "./Rocketequation";
+// physics/burn.ts
+//
+// Two things live here:
+//
+// 1. getBurnDirectionVector() — shared by BOTH burn styles (instant and
+//    continuous). Prograde/retrograde are relative to the ship's own
+//    velocity. Radial in/out are relative to the DOMINANT BODY's position
+//    (the true physical definition — the line connecting ship and central
+//    body), not just "perpendicular to velocity". Those only coincide for a
+//    perfectly circular orbit; for anything elliptical they diverge, so
+//    this needs `bodies` to look up the current dominant body.
+//
+// 2. applyBurn()/previewBurn() — INSTANT delta-v burns via the rocket
+//    equation. NOT the primary player-facing mechanism anymore (see
+//    rocketMotion.ts for the continuous-thrust primary integrator) — kept
+//    for scripted/NPC burns or a future "auto-circularize" button.
 
+import type { BurnDirection, Spacecraft, CelestialBody } from './constants';
+import { totalMass } from './constants';
+import { getDominantBody } from './gravity';
+import type { EngineSpec } from './rocketEquation';
+import { DEFAULT_ENGINE, propellantForDeltaV, maxDeltaVForPropellant } from './rocketEquation';
+import { Vector3 } from './vector3';
 
-export interface BurnResult{
-    success: Boolean;
-    reason?: string;
-    propellantUsed?: number;
+export interface BurnResult {
+  success: boolean;
+  reason?: string;
+  propellantUsed?: number;
 }
 
-export function getBurnDirectionVector(ship: Spacecraft, bodies: CelestialBody[], direction: BurnDirection): Vector3 {
-    
-    switch (direction) {
-        case "prograde":
-            return ship.velocity.clone().normalize();
-        case "retrograde":
-            return ship.velocity.clone().normalize().scale(-1);
-        case "radial-out": {
-            const referenceBody = getCurrentSOIBody(ship, bodies);
-            return ship.position.subtract(referenceBody.position).normalize();
-        }
-        case "radial-in": {
-            const referenceBody = getCurrentSOIBody(ship, bodies);
-            return ship.position.subtract(referenceBody.position).normalize().scale(-1);
-        }
-        case "normal" : {
-            const referenceBody = getCurrentSOIBody(ship, bodies);
-            return ship.velocity.cross(referenceBody.position.subtract(ship.position)).normalize();
-        }
-        case "antinormal": {
-            const referenceBody = getCurrentSOIBody(ship, bodies);
-            return ship.velocity.cross(referenceBody.position.subtract(ship.position)).normalize().scale(-1);
-        }
-        default:
-            throw new Error(`Unhandled burn direction: ${direction}`);
-
+/**
+ * Unit vector for a given burn direction. Prograde/retrograde use the
+ * ship's own velocity; radial in/out use the line to the current dominant
+ * body, which is the physically correct definition of "radial".
+ */
+export function getBurnDirectionVector(
+  ship: Spacecraft,
+  bodies: CelestialBody[],
+  direction: BurnDirection
+): Vector3 {
+  switch (direction) {
+    case 'prograde':
+      return ship.velocity.normalize();
+    case 'retrograde':
+      return ship.velocity.normalize().scale(-1);
+    case 'radialOut': {
+      const body = getDominantBody(ship.position, bodies);
+      return ship.position.subtract(body.position).normalize();
     }
-
+    case 'radialIn': {
+      const body = getDominantBody(ship.position, bodies);
+      return body.position.subtract(ship.position).normalize();
+    }
+  }
 }
 
+/**
+ * Applies an instantaneous delta-v burn to the ship, via the rocket
+ * equation. Returns a NEW Spacecraft object rather than mutating — keep
+ * this pattern everywhere so state updates stay predictable.
+ */
 export function applyBurn(
   ship: Spacecraft,
+  bodies: CelestialBody[],
   direction: BurnDirection,
   deltaV: number,
-  engine: EngineSpec = DefaultEngine,
-  bodies : CelestialBody[]
-): BurnResult {
+  engine: EngineSpec = DEFAULT_ENGINE
+): BurnResult & { ship: Spacecraft } {
   const speed = ship.velocity.magnitude();
-  if (speed === 0) {
-    return { success: false, reason: 'cannot determine prograde direction at zero velocity' };
+  if (speed === 0 && direction !== 'radialIn' && direction !== 'radialOut') {
+    return { success: false, reason: 'cannot determine prograde direction at zero velocity', ship };
   }
- 
+
   const massBefore = totalMass(ship);
   const propellantNeeded = propellantForDeltaV(deltaV, massBefore, engine);
- 
+
   if (propellantNeeded > ship.fuel) {
-    return { success: false, reason: 'insufficient fuel' };
+    return { success: false, reason: 'insufficient fuel', ship };
   }
- 
-  const burnUnit = getBurnDirectionVector(ship, bodies,direction);
-  ship.velocity = ship.velocity.add(burnUnit.scale(deltaV));
-  ship.fuel -= propellantNeeded;
- 
-  return { success: true, propellantUsed: propellantNeeded };
+
+  const burnUnit = getBurnDirectionVector(ship, bodies, direction);
+  const updatedShip: Spacecraft = {
+    ...ship,
+    velocity: ship.velocity.add(burnUnit.scale(deltaV)),
+    fuel: ship.fuel - propellantNeeded,
+  };
+
+  return { success: true, propellantUsed: propellantNeeded, ship: updatedShip };
 }
 
-//result of burn for UID
+/** Non-mutating preview — same math as applyBurn, without spending fuel. */
 export function previewBurn(
   ship: Spacecraft,
+  bodies: CelestialBody[],
   direction: BurnDirection,
   deltaV: number,
-  engine: EngineSpec = DefaultEngine,
-  bodies: CelestialBody[]
+  engine: EngineSpec = DEFAULT_ENGINE
 ) {
-  const speed = ship.velocity.magnitude();
-  if (speed === 0) {
-    return { velocity: ship.velocity, propellantUsed: 0, affordable: false };
-  }
- 
   const massBefore = totalMass(ship);
   const propellantNeeded = propellantForDeltaV(deltaV, massBefore, engine);
   const burnUnit = getBurnDirectionVector(ship, bodies, direction);
   const velocity = ship.velocity.add(burnUnit.scale(deltaV));
- 
+
   return {
     velocity,
     propellantUsed: propellantNeeded,
@@ -91,10 +108,10 @@ export function previewBurn(
   };
 }
 
-//return max deltaV
+/** Maximum Δv the ship could still achieve with its remaining fuel. */
 export function maxAvailableDeltaV(
   ship: Spacecraft,
-  engine: EngineSpec = DefaultEngine
+  engine: EngineSpec = DEFAULT_ENGINE
 ): number {
   const massBefore = totalMass(ship);
   return maxDeltaVForPropellant(ship.fuel, massBefore, engine);
