@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Vector3 } from '../physics/vector3.ts';
 import { type CelestialBody, type Spacecraft, G } from '../physics/constants.ts';
 import { step } from '../physics/integrator.ts';
@@ -9,11 +9,11 @@ import { computeOrbitalElements } from '../physics/orbitalElements.ts';
 const CANVAS_SIZE = 1000;
 const TRAIL_LENGTH = 100;
 const SIM_DT = 1e-2 * 50;
-const SUBSTEPS_PER_FRAME = 1;
 const BURN_DELTA_V = 100; // m/s applied per button click
 const PREDICTION_SAMPLES = 150; // points along the long-range patched-conic prediction
 const PREDICTION_FALLBACK_DURATION = 20000; // seconds to look ahead on escape (non-periodic) trajectories
 const NEAR_TERM_STEPS = 3000; // how many real dt steps the red line looks ahead
+const FAST_FORWARD_MULTIPLIER = 5; // substeps/frame while fast-forward is active
 
 /** True if `position` is inside any body's solid radius. */
 function findCollision(position: Vector3, bodies: CelestialBody[]): CelestialBody | null {
@@ -77,6 +77,12 @@ export default function OrbitView() {
     const bodiesRef = useRef<CelestialBody[]>([]);
     const crashedRef = useRef<CelestialBody | null>(null);
 
+    // Fast-forward is read inside the render loop via a ref (not just React
+    // state) so toggling it takes effect on the very next frame without
+    // needing to re-run the whole useEffect setup.
+    const fastForwardRef = useRef(false);
+    const [fastForward, setFastForward] = useState(false);
+
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -124,7 +130,10 @@ export default function OrbitView() {
             mass: 1000,
             fuel: 1e23,
         };
-        bodiesRef.current = [planet, planet2];
+        // planet3 now included, so the ship can both fall under its gravity
+        // and collide with it - previously it was drawn but had no physical
+        // presence in the sim.
+        bodiesRef.current = [planet, planet2, planet3];
         crashedRef.current = null;
 
         const worldToPixelScale = CANVAS_SIZE / 6 / (orbitRadius * 1.6);
@@ -144,8 +153,10 @@ export default function OrbitView() {
             const bodies = bodiesRef.current;
             if (!ship) return;
 
+            const substeps = fastForwardRef.current ? FAST_FORWARD_MULTIPLIER : 1;
+
             if (!crashedRef.current) {
-                for (let i = 0; i < SUBSTEPS_PER_FRAME; i++) {
+                for (let i = 0; i < substeps; i++) {
                     // Advance by exactly one full SIM_DT using the analytic
                     // patched-conic propagator. timeStep === duration means
                     // predictTrajectory returns exactly 2 points: [0]=start,
@@ -157,12 +168,17 @@ export default function OrbitView() {
                     });
                     ship.position = new Vector3(next.position.x, next.position.y, 0);
                     ship.velocity = new Vector3(next.velocity.x, next.velocity.y, 0);
-                }
 
-                const hit = findCollision(ship.position, bodies);
-                if (hit) {
-                    crashedRef.current = hit;
-                    shipRef.current = { ...ship, velocity: Vector3.zero() };
+                    // Check collision after every substep, not just once at
+                    // the end - at high fast-forward multipliers, a full
+                    // batch of substeps could otherwise jump clean over a
+                    // planet within a single frame.
+                    const hitMidLoop = findCollision(ship.position, bodies);
+                    if (hitMidLoop) {
+                        crashedRef.current = hitMidLoop;
+                        shipRef.current = { ...ship, velocity: Vector3.zero() };
+                        break;
+                    }
                 }
             }
 
@@ -217,10 +233,6 @@ export default function OrbitView() {
                     if (i === 0) ctx.moveTo(screen.x, screen.y);
                     else ctx.lineTo(screen.x, screen.y);
                 });
-                ctx.setLineDash([6, 4]);
-                ctx.strokeStyle = 'rgba(255, 220, 120, 0.7)';
-                ctx.lineWidth = 2;
-                ctx.stroke();
             }
 
             const planetScreen = worldToCanvas(planet.position);
@@ -256,11 +268,14 @@ export default function OrbitView() {
             ctx.fillText(`radius: ${(radius / 1000).toFixed(1)} km`, 12, 20);
             ctx.fillText(`speed:  ${speed.toFixed(1)} m/s`, 12, 36);
             ctx.fillText(`fuel:   ${ship.fuel.toFixed(0)} kg`, 12, 52);
+            if (fastForwardRef.current) {
+                ctx.fillText(`speed x${FAST_FORWARD_MULTIPLIER}`, 12, 68);
+            }
 
             if (crashedRef.current) {
                 ctx.fillStyle = '#ff5555';
                 ctx.font = '14px monospace';
-                ctx.fillText(`CRASHED into ${crashedRef.current.name}`, 12, 76);
+                ctx.fillText(`CRASHED into ${crashedRef.current.name}`, 12, 84);
             }
 
             animationFrameId = requestAnimationFrame(render);
@@ -276,6 +291,11 @@ export default function OrbitView() {
         shipRef.current = applyBurn(shipRef.current, bodiesRef.current, direction, BURN_DELTA_V);
     };
 
+    const toggleFastForward = () => {
+        fastForwardRef.current = !fastForwardRef.current;
+        setFastForward(fastForwardRef.current); // only used to re-render the button label
+    };
+
     return (
         <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
             <canvas
@@ -289,6 +309,9 @@ export default function OrbitView() {
                 <button onClick={() => burn('retrograde')}>Accelerate Retrograde</button>
                 <button onClick={() => burn('radial-out')}>Accelerate Radially Outward</button>
                 <button onClick={() => burn('radial-in')}>Accelerate Radially Inward</button>
+                <button onClick={toggleFastForward}>
+                    {fastForward ? `Fast Forward: ON (x${FAST_FORWARD_MULTIPLIER})` : 'Fast Forward: OFF'}
+                </button>
             </div>
         </div>
     );
