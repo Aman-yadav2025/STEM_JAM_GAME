@@ -1,26 +1,9 @@
 import { type CelestialBody, type Spacecraft } from "./constants";
 import { Vector3 } from "./vector3";
+import { getCurrentSOIBody } from "./gravity";
 
 export type BurnDirection = "prograde" | "retrograde" | "radial-in" | "radial-out" | "normal" | "antinormal";
 const FUEL_BURN_RATE = 1; // kg of fuel per unit of deltaV — tune this later
-
-
-
-function getCurrentSOIBody(ship: Spacecraft, bodies: CelestialBody[]): CelestialBody{
-    let closestBody = bodies[0];
-    let inSOI = false;
-
-    for(const body of bodies){
-        const distance = ship.position.distanceTo(body.position);
-        if(distance < body.soiRadius){
-            closestBody = body;
-            inSOI = true;
-            break;                  // It breaks when the first SOI matches , so for multiple SOI we will have the innermost (like moon) in front. keep in mind when making World.ts
-        }
-    }
-
-    return inSOI ? closestBody : bodies[0];   // if none found, default to the sun.
-}
 
 
 function getBurnDirectionVector(ship: Spacecraft, bodies: CelestialBody[], direction: BurnDirection): Vector3 {
