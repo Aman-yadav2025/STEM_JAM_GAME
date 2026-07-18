@@ -13,7 +13,7 @@ const BURN_DELTA_V = 100; // m/s applied per button click
 const PREDICTION_SAMPLES = 150; // points along the long-range patched-conic prediction
 const PREDICTION_FALLBACK_DURATION = 20000; // seconds to look ahead on escape (non-periodic) trajectories
 const NEAR_TERM_STEPS = 3000; // how many real dt steps the red line looks ahead
-const FAST_FORWARD_MULTIPLIER = 5; // substeps/frame while fast-forward is active
+const FAST_FORWARD_MULTIPLIER = 2; // substeps/frame while fast-forward is active
 
 /** True if `position` is inside any body's solid radius. */
 function findCollision(position: Vector3, bodies: CelestialBody[]): CelestialBody | null {
