@@ -1,23 +1,18 @@
-//This file is the single source of truth. It holds the simulation state and the player's inputs, keeping them accessible to both the React UI and the R3F canvas.
-
 import { create } from 'zustand';
-import type { Spacecraft, BurnDirection } from '../physics/constants'; //[cite: 1]
+import type { Spacecraft, BurnDirection } from '../physics/constants';
 import type { MovingBody } from '../physics/orbitPath';
 import { type EngineSpec, DEFAULT_ENGINE } from '../physics/Rocketequation.ts';
-import { Vector3 } from '../physics/vector3'; //[cite: 1]
+import { Vector3 } from '../physics/vector3';
 
 interface GameState {
-  // Physics State
   ship: Spacecraft;
   bodies: MovingBody[];
   engine: EngineSpec;
   time: number;
 
-  // Player Controls
-  activeBurnDirection: BurnDirection | null; //[cite: 1]
+  activeBurnDirection: BurnDirection | null;
   throttle: number;
 
-  // Actions
   setShip: (ship: Spacecraft) => void;
   setBodies: (bodies: MovingBody[]) => void;
   setControls: (direction: BurnDirection | null, throttle: number) => void;
@@ -34,49 +29,137 @@ export const useStore = create<GameState>((set) => {
     color: 'yellow',
   };
 
+  const mercury: MovingBody = {
+    name: 'Mercury',
+    mass: 3000,
+    radius: 10,
+    position: new Vector3(150, 0, 0),
+    soiRadius: 25,
+    color: '#dd0a0a',
+    orbit: {
+      parentBody: sun,
+      orbitalRadius: 150,
+      orbitalPeriod: 12,
+      initialAngle: 0,
+    },
+  };
+
+  const venus: MovingBody = {
+    name: 'Venus',
+    mass: 8000,
+    radius: 22,
+    position: new Vector3(0, 220, 0),
+    soiRadius: 45,
+    color: '#e0b070',
+    orbit: {
+      parentBody: sun,
+      orbitalRadius: 220,
+      orbitalPeriod: 20,
+      initialAngle: Math.PI / 4,
+    },
+  };
+
   const earth: MovingBody = {
     name: 'Earth',
     mass: 10000,
     radius: 35,
-    position: new Vector3(300, 0, 0),
+    position: new Vector3(320, 0, 0),
     soiRadius: 80,
     color: 'blue',
     orbit: {
       parentBody: sun,
-      orbitalRadius: 300,
+      orbitalRadius: 320,
       orbitalPeriod: 30,
       initialAngle: 0,
     },
   };
-
 
   const moon: MovingBody = {
     name: 'Moon',
     mass: 1000,
-    radius: 15,
-    position: new Vector3(350, 0, 0),
-    soiRadius: 40,
-    color: 'blue',
+    radius: 10,
+    position: new Vector3(370, 0, 0),
+    soiRadius: 20,
+    color: '#cccccc',
     orbit: {
       parentBody: earth,
-      orbitalRadius: 300,
-      orbitalPeriod: 30,
+      orbitalRadius: 50, // distance FROM Earth, not from Sun
+      orbitalPeriod: 6,
       initialAngle: 0,
     },
   };
 
+  const mars: MovingBody = {
+    name: 'Mars',
+    mass: 6000,
+    radius: 28,
+    position: new Vector3(0, 480, 0),
+    soiRadius: 60,
+    color: '#c1440e',
+    orbit: {
+      parentBody: sun,
+      orbitalRadius: 480,
+      orbitalPeriod: 45,
+      initialAngle: Math.PI / 2,
+    },
+  };
+
+  const jupiter: MovingBody = {
+    name: 'Jupiter',
+    mass: 30000,
+    radius: 55,
+    position: new Vector3(0, 750, 0),
+    soiRadius: 150,
+    color: '#d2a679',
+    orbit: {
+      parentBody: sun,
+      orbitalRadius: 750,
+      orbitalPeriod: 90,
+      initialAngle: Math.PI / 3,
+    },
+  };
+
+  const uranus: MovingBody = {
+    name: 'Uranus',
+    mass: 15000,
+    radius: 42,
+    position: new Vector3(0, -950, 0),
+    soiRadius: 110,
+    color: '#7fdbdb',
+    orbit: {
+      parentBody: sun,
+      orbitalRadius: 950,
+      orbitalPeriod: 150,
+      initialAngle: (5 * Math.PI) / 4,
+    },
+  };
+
+  const neptune: MovingBody = {
+    name: 'Neptune',
+    mass: 15000,
+    radius: 40,
+    position: new Vector3(0, -1200, 0),
+    soiRadius: 110,
+    color: '#3f54ba',
+    orbit: {
+      parentBody: sun,
+      orbitalRadius: 1200,
+      orbitalPeriod: 200,
+      initialAngle: (3 * Math.PI) / 2,
+    },
+  };
 
   return {
     ship: {
-      position: new Vector3(0, 0, 100), //[cite: 1]
+      position: new Vector3(0, 0, 100),
       velocity: new Vector3(0, 125, 0),
       mass: 1000,
-      fuel: 500,
+      fuel: 1000,
       maxFuel: 500,
       heading: 0,
     },
-    bodies: [sun, earth , moon],
-    engine: DEFAULT_ENGINE, //[cite: 1]
+    bodies: [sun, mercury, venus, earth, moon, mars, jupiter, uranus, neptune],
+    engine: DEFAULT_ENGINE,
     time: 0,
     activeBurnDirection: null,
     throttle: 0,

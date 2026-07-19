@@ -12,6 +12,13 @@ const Simulation = () => {
   const earthTexture = useLoader(THREE.TextureLoader, '/textures/earth.jpg');
   const sunTexture = useLoader(THREE.TextureLoader, '/textures/sun.jpg');
   const moonTexture = useLoader(THREE.TextureLoader, '/textures/moon.jpg');
+  const mercuryTexture = useLoader(THREE.TextureLoader, '/textures/mercury.jpg');
+  const venusTexture = useLoader(THREE.TextureLoader, '/textures/venus.jpg');
+  const marsTexture = useLoader(THREE.TextureLoader, '/textures/mars.jpg');
+  const jupiterTexture = useLoader(THREE.TextureLoader, '/textures/jupiter.jpg');
+  const uranusTexture = useLoader(THREE.TextureLoader, '/textures/uranus.jpg');
+  const neptuneTexture = useLoader(THREE.TextureLoader, '/textures/neptune.jpg');
+
   return (
     <>
       <SpacecraftMesh />
@@ -24,9 +31,13 @@ const Simulation = () => {
   
   body.name === 'Earth' ? ( <meshStandardMaterial map={earthTexture} roughness={1} metalness={0} /> ) 
   : body.name === 'Sun' ? (<meshStandardMaterial map={sunTexture} emissive="#ffff88" emissiveMap={sunTexture} emissiveIntensity={1.5}/>) 
- : body.name === 'Moon' ? ( <meshStandardMaterial map={moonTexture} roughness={1} metalness={0} /> )
-  
-  
+  : body.name === 'Moon' ? ( <meshStandardMaterial map={moonTexture} roughness={1} metalness={0} /> )
+  : body.name === 'Mars' ? ( <meshStandardMaterial map={marsTexture} roughness={1} metalness={0} /> ) 
+  : body.name === 'Jupiter' ? ( <meshStandardMaterial map={jupiterTexture} roughness={1} metalness={0} /> )
+  : body.name === 'Uranus' ? ( <meshStandardMaterial map={uranusTexture} roughness={1} metalness={0} /> )
+  : body.name === 'Neptune' ? ( <meshStandardMaterial map={neptuneTexture} roughness={1} metalness={0} /> )
+  : body.name === 'Mercury' ? ( <meshStandardMaterial map={mercuryTexture} roughness={1} metalness={0} /> )
+  : body.name === 'Venus' ? ( <meshStandardMaterial map={venusTexture}  /> )
   : ( <meshStandardMaterial color={body.color} />)}
   
   
@@ -70,10 +81,10 @@ const CameraRig = () => {
 
 export const SceneManager = () => {
   return (
-    <Canvas camera={{ position: [0, 30, 140], fov: 60 }}>
+    <Canvas camera={{ position: [0, 30, 140], fov: 80 }}>
       <ambientLight intensity={0.4} />
       <pointLight position={[0, 0, 0]} intensity={2} />
-      <Stars radius={300} depth={50} count={5000} factor={4} />
+      <Stars radius={300} depth={50} count={4000} factor={4} />
       <Simulation />
       <CameraRig />
     </Canvas>
