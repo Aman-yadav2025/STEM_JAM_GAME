@@ -61,7 +61,6 @@ export function getDominantBody(shipPosition: Vector3, bodies: CelestialBody[]):
   // 4. Fallback safeguard: If something goes horribly wrong, return the first body
   return dominantBody || bodies[0];
 }
-
 /**
  * Total acceleration on the ship, using patched-conic dominant-body gravity.
  * This is the function every integrator (rocketMotion, trajectoryPredictor)
