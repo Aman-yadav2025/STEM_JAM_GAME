@@ -5,6 +5,7 @@ import { useRef } from 'react';
 import { SpacecraftMesh } from './Spacecraft';
 import { useGameLoop } from '../game/GameLoop';
 import { useStore } from '../state/store';
+import { TrajectoryLine } from './TrajectoryLine';
 
 const Simulation = () => {
   useGameLoop(); // Start the physics accumulator
@@ -14,6 +15,7 @@ const Simulation = () => {
   return (
     <>
       <SpacecraftMesh />
+      <TrajectoryLine />
       {bodies.map((body, i) => (
         <mesh key={i} position={[body.position.x, body.position.y, body.position.z]}>
           <sphereGeometry args={[body.radius, 32, 32]} />

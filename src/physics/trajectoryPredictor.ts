@@ -18,6 +18,41 @@ import { CONSTANT_DT } from './constants';
 import { Vector3 } from './vector3';
 import { DominantAccel } from './gravity';
 import { updateBodyPositions, type MovingBody } from './orbitPath';
+import { G } from './constants';
+import { getDominantBody } from './gravity';
+
+/**
+ * Number of physics ticks needed to complete exactly one orbit, based on
+ * the ship's CURRENT velocity (i.e. what its orbit would be if it stopped
+ * thrusting right now). Returns `maxSteps` for unbound (parabolic/
+ * hyperbolic) trajectories, since those have no finite period.
+ */
+export function estimateOrbitSteps(
+  position: Vector3,
+  velocity: Vector3,
+  bodies: MovingBody[],
+  maxSteps: number,
+  minSteps: number = 50
+): number {
+  const body = getDominantBody(position, bodies);
+  const r = position.distanceTo(body.position);
+  const v2 = velocity.lengthsq();
+  const mu = G * body.mass;
+
+  const specificEnergy = v2 / 2 - mu / r;
+
+  if (specificEnergy >= 0) {
+    // Unbound — no closed orbit to complete, show as much as the buffer allows.
+    return maxSteps;
+  }
+
+  const semiMajorAxis = -mu / (2 * specificEnergy);
+  const period = 2 * Math.PI * Math.sqrt(semiMajorAxis ** 3 / mu);
+  const steps = Math.ceil(period / CONSTANT_DT);
+
+  return Math.min(maxSteps, Math.max(minSteps, steps));
+}
+
 
 export function predictPath(
   startPosition: Vector3,

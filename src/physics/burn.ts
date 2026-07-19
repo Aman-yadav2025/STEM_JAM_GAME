@@ -38,6 +38,9 @@ export function getBurnDirectionVector(
   bodies: CelestialBody[],
   direction: BurnDirection
 ): Vector3 {
+
+
+
   switch (direction) {
     case 'prograde':
       return ship.velocity.normalize();
@@ -99,7 +102,7 @@ export function applyBurn(
     return { success: false, reason: 'cannot determine burn direction (no orbital plane defined)', ship };
   }
 
-  
+
   const updatedShip: Spacecraft = {
     ...ship,
     velocity: ship.velocity.add(burnUnit.scale(deltaV)),
