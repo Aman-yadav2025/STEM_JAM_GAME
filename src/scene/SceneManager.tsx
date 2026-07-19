@@ -10,16 +10,27 @@ const Simulation = () => {
   useGameLoop(); // Start the physics accumulator
   const bodies = useStore((state) => state.bodies);
   const earthTexture = useLoader(THREE.TextureLoader, '/textures/earth.jpg');
-
+  const sunTexture = useLoader(THREE.TextureLoader, '/textures/sun.jpg');
   return (
     <>
       <SpacecraftMesh />
-      {bodies.map((body, i) => (
-        <mesh key={i} position={[body.position.x, body.position.y, body.position.z]}>
-          <sphereGeometry args={[body.radius, 32, 32]} />
-          <meshStandardMaterial map={earthTexture} />
-        </mesh>
-      ))}
+{bodies.map((body, i) => (
+  <mesh key={i} position={[body.position.x, body.position.y, body.position.z]}>
+    <sphereGeometry args={[body.radius, 32, 32]} />
+    {body.name === 'Earth' ? (
+      <meshStandardMaterial map={earthTexture} />
+    ) : body.name === 'Sun' ? (
+      <meshStandardMaterial
+        map={sunTexture}
+        emissive="#ffff88"
+        emissiveMap={sunTexture}
+        emissiveIntensity={1.5}
+      />
+    ) : (
+      <meshStandardMaterial color={body.color} />
+    )}
+  </mesh>
+))}
     </>
   );
 };
