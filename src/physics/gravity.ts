@@ -12,6 +12,7 @@
 // reason: it's simpler, numerically stable, and predictable for players,
 // unlike full n-body simulation which is chaotic and hard to reason about.
 
+import { INFINITY } from 'three/tsl';
 import { G } from './constants';
 import type { CelestialBody } from './constants';
 import { Vector3 } from './vector3';

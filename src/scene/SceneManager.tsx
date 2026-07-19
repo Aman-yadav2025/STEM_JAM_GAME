@@ -6,6 +6,7 @@ import { SpacecraftMesh } from './Spacecraft';
 import { useGameLoop } from '../game/GameLoop';
 import { useStore } from '../state/store';
 import { TrajectoryLine } from './TrajectoryLine';
+// import { INFINITY } from 'three/tsl';
 
 const Simulation = () => {
   useGameLoop(); // Start the physics accumulator
@@ -60,7 +61,7 @@ const CameraRig = () => {
   const offset = new THREE.Vector3(0, 30, 140);
 
   useFrame(() => {
-    const target = new THREE.Vector3(ship.position.x, ship.position.y, ship.position.z);
+    const target = new THREE.Vector3(ship.position.x, ship.position.y, ship.position.z  );
 
     if (!previousTarget.current) {
       camera.position.copy(target.clone().add(offset));

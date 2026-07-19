@@ -19,11 +19,11 @@ interface GameState {
   setTime: (t: number) => void;
 }
 
-export const useStore = create<GameState>((set) => {
+ export const useStore = create<GameState>((set) => {
   const sun: MovingBody = {
     name: 'Sun',
-    mass: 20000,
-    radius: 70,
+    mass: 2000000,
+    radius: 120,
     position: Vector3.zero(),
     soiRadius: Infinity,
     color: 'yellow',
@@ -31,135 +31,152 @@ export const useStore = create<GameState>((set) => {
 
   const mercury: MovingBody = {
     name: 'Mercury',
-    mass: 3000,
-    radius: 10,
-    position: new Vector3(150, 0, 0),
-    soiRadius: 25,
-    color: '#dd0a0a',
+    mass: 15000,
+    radius: 18,
+    position: new Vector3(0, 350, 0),
+    soiRadius: 40,
+    color: 'gray',
     orbit: {
       parentBody: sun,
-      orbitalRadius: 150,
-      orbitalPeriod: 12,
+      orbitalRadius: 350,
+      orbitalPeriod: 25,
       initialAngle: 0,
     },
   };
 
   const venus: MovingBody = {
     name: 'Venus',
-    mass: 8000,
-    radius: 22,
-    position: new Vector3(0, 220, 0),
-    soiRadius: 45,
-    color: '#e0b070',
+    mass: 55000,
+    radius: 30,
+    position: new Vector3(0, 600, 0),
+    soiRadius: 130,
+    color: 'orange',
     orbit: {
       parentBody: sun,
-      orbitalRadius: 220,
-      orbitalPeriod: 20,
+      orbitalRadius: 600,
+      orbitalPeriod: 45,
       initialAngle: Math.PI / 4,
     },
   };
 
   const earth: MovingBody = {
     name: 'Earth',
-    mass: 10000,
+    mass: 65000,
     radius: 35,
-    position: new Vector3(320, 0, 0),
-    soiRadius: 80,
+    position: new Vector3(0, 900, 0),
+    soiRadius: 225,
     color: 'blue',
     orbit: {
       parentBody: sun,
-      orbitalRadius: 320,
-      orbitalPeriod: 30,
+      orbitalRadius: 900,
+      orbitalPeriod: 70,
       initialAngle: 0,
     },
   };
 
   const moon: MovingBody = {
     name: 'Moon',
-    mass: 1000,
-    radius: 10,
-    position: new Vector3(370, 0, 0),
+    mass: 2000,
+    radius: 8,
+    position: new Vector3(0, 975, 0),
     soiRadius: 20,
-    color: '#cccccc',
+    color: 'lightgray',
     orbit: {
       parentBody: earth,
-      orbitalRadius: 50, // distance FROM Earth, not from Sun
-      orbitalPeriod: 6,
+      orbitalRadius: 75,
+      orbitalPeriod: 8,
       initialAngle: 0,
     },
   };
 
   const mars: MovingBody = {
     name: 'Mars',
-    mass: 6000,
-    radius: 28,
-    position: new Vector3(0, 480, 0),
-    soiRadius: 60,
-    color: '#c1440e',
+    mass: 35000,
+    radius: 24,
+    position: new Vector3(0, 1300, 0),
+    soiRadius: 160,
+    color: 'red',
     orbit: {
       parentBody: sun,
-      orbitalRadius: 480,
-      orbitalPeriod: 45,
+      orbitalRadius: 1300,
+      orbitalPeriod: 110,
       initialAngle: Math.PI / 2,
     },
   };
 
   const jupiter: MovingBody = {
     name: 'Jupiter',
-    mass: 30000,
-    radius: 55,
-    position: new Vector3(0, 750, 0),
-    soiRadius: 150,
-    color: '#d2a679',
+    mass: 280000,
+    radius: 65,
+    position: new Vector3(0, 1900, 0),
+    soiRadius: 380,
+    color: 'brown',
     orbit: {
       parentBody: sun,
-      orbitalRadius: 750,
-      orbitalPeriod: 90,
-      initialAngle: Math.PI / 3,
+      orbitalRadius: 1900,
+      orbitalPeriod: 200,
+      initialAngle: Math.PI,
+    },
+  };
+
+  const saturn: MovingBody = {
+    name: 'Saturn',
+    mass: 180000,
+    radius: 52,
+    position: new Vector3(0, 2600, 0),
+    soiRadius: 320,
+    color: 'khaki',
+    orbit: {
+      parentBody: sun,
+      orbitalRadius: 2600,
+      orbitalPeriod: 320,
+      initialAngle: Math.PI * 1.2,
     },
   };
 
   const uranus: MovingBody = {
     name: 'Uranus',
-    mass: 15000,
-    radius: 42,
-    position: new Vector3(0, -950, 0),
-    soiRadius: 110,
-    color: '#7fdbdb',
+    mass: 90000,
+    radius: 40,
+    position: new Vector3(0, 3300, 0),
+    soiRadius: 260,
+    color: 'lightblue',
     orbit: {
       parentBody: sun,
-      orbitalRadius: 950,
-      orbitalPeriod: 150,
-      initialAngle: (5 * Math.PI) / 4,
+      orbitalRadius: 3300,
+      orbitalPeriod: 460,
+      initialAngle: Math.PI * 1.5,
     },
   };
 
   const neptune: MovingBody = {
     name: 'Neptune',
-    mass: 15000,
-    radius: 40,
-    position: new Vector3(0, -1200, 0),
-    soiRadius: 110,
-    color: '#3f54ba',
+    mass: 95000,
+    radius: 38,
+    position: new Vector3(0, 4000, 0),
+    soiRadius: 280,
+    color: 'darkblue',
     orbit: {
       parentBody: sun,
-      orbitalRadius: 1200,
-      orbitalPeriod: 200,
-      initialAngle: (3 * Math.PI) / 2,
+      orbitalRadius: 4000,
+      orbitalPeriod: 600,
+      initialAngle: Math.PI * 1.8,
     },
   };
 
+
+
   return {
     ship: {
-      position: new Vector3(0, 0, 100),
-      velocity: new Vector3(0, 125, 0),
+      position: new Vector3(0, 0, 1000), //[cite: 1]
+      velocity: new Vector3(Math.sqrt(60 * sun.mass / 1000), 0, 0),
       mass: 1000,
-      fuel: 1000,
+      fuel: 500,
       maxFuel: 500,
       heading: 0,
     },
-    bodies: [sun, mercury, venus, earth, moon, mars, jupiter, uranus, neptune],
-    engine: DEFAULT_ENGINE,
+    bodies: [sun, earth , moon, mercury, venus, mars, jupiter, saturn, uranus, neptune],
+    engine: DEFAULT_ENGINE, //[cite: 1]
     time: 0,
     activeBurnDirection: null,
     throttle: 0,
@@ -170,3 +187,4 @@ export const useStore = create<GameState>((set) => {
     setTime: (time) => set({ time }),
   };
 });
+
