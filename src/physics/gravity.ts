@@ -36,18 +36,30 @@ export function accelFromBody(position: Vector3, body: CelestialBody): Vector3 {
  * Falls back to the first body in the array (treated as primary) if the ship
  * is outside every defined SOI.
  */
-export function getDominantBody(
-  position: Vector3,
-  bodies: CelestialBody[]
-): CelestialBody {
+export function getDominantBody(shipPosition: Vector3, bodies: CelestialBody[]): CelestialBody {
+  let dominantBody: CelestialBody | null = null;
+  let smallestSOI = Infinity;
+
+  // 1. Loop through ALL bodies, regardless of their position in the array
   for (const body of bodies) {
-    if (position.distanceTo(body.position) < body.soiRadius) {
-      return body;
+    const distance = shipPosition.distanceTo(body.position);
+
+    // 2. Check if the ship is inside this body's sphere of influence
+    if (distance < body.soiRadius) {
+      
+      // 3. We want the most specific/nested gravity well.
+      // If a Planet (SOI = 200) and the Sun (SOI = Infinity) both contain the ship,
+      // the Planet wins because 200 < Infinity.
+      if (body.soiRadius < smallestSOI) {
+        smallestSOI = body.soiRadius;
+        dominantBody = body;
+      }
     }
   }
-  return bodies[0];
-}
 
+  // 4. Fallback safeguard: If something goes horribly wrong, return the first body
+  return dominantBody || bodies[0];
+}
 /**
  * Total acceleration on the ship, using patched-conic dominant-body gravity.
  * This is the function every integrator (rocketMotion, trajectoryPredictor)

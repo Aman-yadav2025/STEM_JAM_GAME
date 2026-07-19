@@ -11,26 +11,30 @@ const Simulation = () => {
   const bodies = useStore((state) => state.bodies);
   const earthTexture = useLoader(THREE.TextureLoader, '/textures/earth.jpg');
   const sunTexture = useLoader(THREE.TextureLoader, '/textures/sun.jpg');
+  // const marsTexture = useLoader(THREE.TextureLoader, '/textures/mars.jpg');
   return (
     <>
       <SpacecraftMesh />
 {bodies.map((body, i) => (
   <mesh key={i} position={[body.position.x, body.position.y, body.position.z]}>
+
+
     <sphereGeometry args={[body.radius, 32, 32]} />
-    {body.name === 'Earth' ? (
-      <meshStandardMaterial map={earthTexture} />
-    ) : body.name === 'Sun' ? (
-      <meshStandardMaterial
-        map={sunTexture}
-        emissive="#ffff88"
-        emissiveMap={sunTexture}
-        emissiveIntensity={1.5}
-      />
-    ) : (
-      <meshStandardMaterial color={body.color} />
-    )}
+  {
+  
+  body.name === 'Earth' ? ( <meshStandardMaterial map={earthTexture} roughness={1} metalness={0} /> ) 
+  : body.name === 'Sun' ? (<meshStandardMaterial map={sunTexture} emissive="#ffff88" emissiveMap={sunTexture} emissiveIntensity={1.5}/>) 
+  // : body.name === 'Mars' ? ( <meshStandardMaterial map={marsTexture} roughness={1} metalness={0} /> )
+  
+  
+  : ( <meshStandardMaterial color={body.color} />)}
+  
+  
   </mesh>
-))}
+)
+
+
+)}
     </>
   );
 };
