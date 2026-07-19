@@ -34,8 +34,8 @@ export const useStore = create<GameState>((set) => ({
     heading: 0,
   },
   bodies: [
-    { name: 'Sun', mass: 20000, radius: 70, position: new Vector3(0,0,0), soiRadius: Infinity, color: 'yellow' },
-    { name: 'Earth', mass: 10000, radius: 35, position: new Vector3(300, 0, 0), soiRadius: 80, color: 'blue' } //[cite: 1]
+    { name: 'Sun', mass: 2000000, radius: 120, position: new Vector3(0,0,0), soiRadius: Infinity, color: 'yellow' },
+    { name: 'Earth', mass: 65000, radius: 35, position: new Vector3(300, 0, 0), soiRadius: 225, color: 'blue' } //[cite: 1]
   ],
   engine: DEFAULT_ENGINE, //[cite: 1]
   time: 0,
