@@ -58,8 +58,15 @@ export function addFuel(ship: Spacecraft, amount: number): Spacecraft {
   return { ...ship, fuel: Math.min(ship.maxFuel, ship.fuel + amount) };
 }
 
-export type BurnDirection = 'prograde' | 'retrograde' | 'radialIn' | 'radialOut';
+export type BurnDirection = 
+  | 'prograde' 
+  | 'retrograde' 
+  | 'radialIn' 
+  | 'radialOut'
+  | 'normal'
+  | 'antinormal';
 
+  
 /**
  * Hill-sphere-style approximation of a sphere of influence radius.
  * d = distance between the two bodies, mPrimary = mass of the body being

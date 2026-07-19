@@ -13,12 +13,15 @@ export const SpacecraftMesh = () => {
     
     // Apply Vector3 (x, y, z) to the Three.js mesh[cite: 1]
     meshRef.current.position.set(ship.position.x, ship.position.y, ship.position.z);
-    meshRef.current.rotation.z = ship.heading; 
+    const speed = Math.hypot(ship.velocity.x, ship.velocity.y);
+    if (speed > 0.0001) {
+      meshRef.current.rotation.z = Math.atan2(ship.velocity.y, ship.velocity.x) - Math.PI/2;
+    }
   });
 
   return (
     <mesh ref={meshRef}>
-      <coneGeometry args= {[2, 6, 16]} />
+      <coneGeometry args= {[5, 12, 16]} />
       <meshStandardMaterial color="white" />
     </mesh>
   );

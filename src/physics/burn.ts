@@ -38,6 +38,9 @@ export function getBurnDirectionVector(
   bodies: CelestialBody[],
   direction: BurnDirection
 ): Vector3 {
+
+
+
   switch (direction) {
     case 'prograde':
       return ship.velocity.normalize();
@@ -50,6 +53,22 @@ export function getBurnDirectionVector(
     case 'radialIn': {
       const body = getDominantBody(ship.position, bodies);
       return body.position.subtract(ship.position).normalize();
+    }
+    case 'normal':
+    case 'antinormal': {
+      const body = getDominantBody(ship.position, bodies);
+      const relativePosition = ship.position.subtract(body.position);
+      const angularMomentum = relativePosition.cross(ship.velocity);
+
+      // Degenerate case: purely radial velocity (falling straight in/out,
+      // or sitting at periapsis/apoapsis of a zero-angular-momentum path)
+      // means there's no well-defined orbital plane to be normal to.
+      if (angularMomentum.magnitude() < 1e-9) {
+        return Vector3.zero();
+      }
+
+      const normalUnit = angularMomentum.normalize();
+      return direction === 'normal' ? normalUnit : normalUnit.scale(-1);
     }
   }
 }
@@ -79,6 +98,11 @@ export function applyBurn(
   }
 
   const burnUnit = getBurnDirectionVector(ship, bodies, direction);
+  if (burnUnit.magnitude() === 0) {
+    return { success: false, reason: 'cannot determine burn direction (no orbital plane defined)', ship };
+  }
+
+
   const updatedShip: Spacecraft = {
     ...ship,
     velocity: ship.velocity.add(burnUnit.scale(deltaV)),
