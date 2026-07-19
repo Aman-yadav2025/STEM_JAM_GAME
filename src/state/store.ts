@@ -26,15 +26,16 @@ interface GameState {
 
 export const useStore = create<GameState>((set) => ({
   ship: {
-    position: new Vector3(0, 100, 0), //[cite: 1]
-    velocity: new Vector3(Math.sqrt(G*10000/100), 0, 0),
+    position: new Vector3(340, 0, 0), //[cite: 1]
+    velocity: new Vector3(0, 125, 0),
     mass: 1000,
     fuel: 500,
     maxFuel: 500,
     heading: 0,
   },
   bodies: [
-    { name: 'Planet', mass: 10000, radius: 50, position: Vector3.zero(), soiRadius: Infinity, color: 'blue' } //[cite: 1]
+    { name: 'Sun', mass: 20000, radius: 70, position: new Vector3(0,0,0), soiRadius: Infinity, color: 'yellow' },
+    { name: 'Earth', mass: 10000, radius: 35, position: new Vector3(300, 0, 0), soiRadius: 80, color: 'blue' } //[cite: 1]
   ],
   engine: DEFAULT_ENGINE, //[cite: 1]
   time: 0,
