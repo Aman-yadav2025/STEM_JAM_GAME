@@ -49,6 +49,23 @@ export const useStore = create<GameState>((set) => {
     },
   };
 
+
+  const moon: MovingBody = {
+    name: 'Moon',
+    mass: 1000,
+    radius: 15,
+    position: new Vector3(350, 0, 0),
+    soiRadius: 40,
+    color: 'blue',
+    orbit: {
+      parentBody: earth,
+      orbitalRadius: 300,
+      orbitalPeriod: 30,
+      initialAngle: 0,
+    },
+  };
+
+
   return {
     ship: {
       position: new Vector3(0, 0, 100), //[cite: 1]
@@ -58,7 +75,7 @@ export const useStore = create<GameState>((set) => {
       maxFuel: 500,
       heading: 0,
     },
-    bodies: [sun, earth],
+    bodies: [sun, earth , moon],
     engine: DEFAULT_ENGINE, //[cite: 1]
     time: 0,
     activeBurnDirection: null,
