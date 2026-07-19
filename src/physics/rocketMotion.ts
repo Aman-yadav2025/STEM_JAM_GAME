@@ -14,7 +14,7 @@
 // used — just for HUD readouts now, not for computing this frame's motion.
 
 import { CONSTANT_DT, type CelestialBody, type Spacecraft, type BurnDirection } from "./constants";
-import { STANDARD_g, type EngineSpec } from "./rocketEquation";
+import { STANDARD_g, type EngineSpec } from "./Rocketequation";
 import { Vector3 } from "./vector3";
 import { DominantAccel } from "./gravity";
 import { updateBodyPositions, type OrbitPath } from "./orbitPath";
