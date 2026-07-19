@@ -44,14 +44,14 @@ export const useStore = create<GameState>((set) => {
     orbit: {
       parentBody: sun,
       orbitalRadius: 300,
-      orbitalPeriod: 120,
+      orbitalPeriod: 30,
       initialAngle: 0,
     },
   };
 
   return {
     ship: {
-      position: new Vector3(340, 0, 0), //[cite: 1]
+      position: new Vector3(0, 0, 100), //[cite: 1]
       velocity: new Vector3(0, 125, 0),
       mass: 1000,
       fuel: 500,
