@@ -57,7 +57,7 @@ interface GameState {
   setTime: (t: number) => void;
 }
 
- export const useStore = create<GameState>((set, get) => {
+export const useStore = create<GameState>((set, get) => {
   const sun: MovingBody = {
     name: 'Sun',
     mass: 2000000,
@@ -66,8 +66,6 @@ interface GameState {
     soiRadius: Infinity,
     color: 'yellow',
   };
-
-
 
   const mercury: MovingBody = {
     name: 'Mercury',
@@ -144,6 +142,37 @@ interface GameState {
     },
   };
 
+  // --- Mars' moons ---
+  const phobos: MovingBody = {
+    name: 'Phobos',
+    mass: 50,
+    radius: 3,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 5,
+    color: 'gray',
+    orbit: {
+      parentBody: mars,
+      orbitalRadius: 20,
+      orbitalPeriod: 3,
+      initialAngle: 0,
+    },
+  };
+
+  const deimos: MovingBody = {
+    name: 'Deimos',
+    mass: 30,
+    radius: 2,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 4,
+    color: 'gray',
+    orbit: {
+      parentBody: mars,
+      orbitalRadius: 35,
+      orbitalPeriod: 6,
+      initialAngle: 2.5,
+    },
+  };
+
   const jupiter: MovingBody = {
     name: 'Jupiter',
     mass: 280000,
@@ -157,6 +186,98 @@ interface GameState {
       orbitalPeriod: 200,
       initialAngle: Math.PI,
     },
+  };
+
+  // --- Jupiter's moons (10) ---
+  const io: MovingBody = {
+    name: 'Io',
+    mass: 800,
+    radius: 6,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 8,
+    color: 'yellow',
+    orbit: { parentBody: jupiter, orbitalRadius: 60, orbitalPeriod: 5, initialAngle: 0 },
+  };
+  const europa: MovingBody = {
+    name: 'Europa',
+    mass: 600,
+    radius: 5,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 7,
+    color: 'white',
+    orbit: { parentBody: jupiter, orbitalRadius: 90, orbitalPeriod: 8, initialAngle: Math.PI * 0.2 },
+  };
+  const ganymede: MovingBody = {
+    name: 'Ganymede',
+    mass: 1200,
+    radius: 8,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 10,
+    color: 'gray',
+    orbit: { parentBody: jupiter, orbitalRadius: 140, orbitalPeriod: 14, initialAngle: Math.PI * 0.4 },
+  };
+  const callisto: MovingBody = {
+    name: 'Callisto',
+    mass: 1000,
+    radius: 7,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 9,
+    color: 'darkgray',
+    orbit: { parentBody: jupiter, orbitalRadius: 200, orbitalPeriod: 22, initialAngle: Math.PI * 0.6 },
+  };
+  const amalthea: MovingBody = {
+    name: 'Amalthea',
+    mass: 50,
+    radius: 2,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 3,
+    color: 'red',
+    orbit: { parentBody: jupiter, orbitalRadius: 40, orbitalPeriod: 3, initialAngle: Math.PI * 0.8 },
+  };
+  const himalia: MovingBody = {
+    name: 'Himalia',
+    mass: 40,
+    radius: 2,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 3,
+    color: 'gray',
+    orbit: { parentBody: jupiter, orbitalRadius: 260, orbitalPeriod: 40, initialAngle: Math.PI * 1.0 },
+  };
+  const elara: MovingBody = {
+    name: 'Elara',
+    mass: 30,
+    radius: 2,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 3,
+    color: 'gray',
+    orbit: { parentBody: jupiter, orbitalRadius: 280, orbitalPeriod: 45, initialAngle: Math.PI * 1.2 },
+  };
+  const pasiphae: MovingBody = {
+    name: 'Pasiphae',
+    mass: 20,
+    radius: 1,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 2,
+    color: 'darkgray',
+    orbit: { parentBody: jupiter, orbitalRadius: 320, orbitalPeriod: 60, initialAngle: Math.PI * 1.4 },
+  };
+  const sinope: MovingBody = {
+    name: 'Sinope',
+    mass: 15,
+    radius: 1,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 2,
+    color: 'darkgray',
+    orbit: { parentBody: jupiter, orbitalRadius: 340, orbitalPeriod: 65, initialAngle: Math.PI * 1.6 },
+  };
+  const carme: MovingBody = {
+    name: 'Carme',
+    mass: 18,
+    radius: 1,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 2,
+    color: 'darkgray',
+    orbit: { parentBody: jupiter, orbitalRadius: 360, orbitalPeriod: 70, initialAngle: Math.PI * 1.8 },
   };
 
   const saturn: MovingBody = {
@@ -174,11 +295,148 @@ interface GameState {
     },
   };
 
+  // --- Saturn's moons (15) ---
+  const atlas: MovingBody = {
+    name: 'Atlas',
+    mass: 10,
+    radius: 1,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 2,
+    color: 'gray',
+    orbit: { parentBody: saturn, orbitalRadius: 30, orbitalPeriod: 4, initialAngle: 0 },
+  };
+  const janus: MovingBody = {
+    name: 'Janus',
+    mass: 20,
+    radius: 1,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 2,
+    color: 'gray',
+    orbit: { parentBody: saturn, orbitalRadius: 40, orbitalPeriod: 5, initialAngle: 0.42 },
+  };
+  const epimetheus: MovingBody = {
+    name: 'Epimetheus',
+    mass: 15,
+    radius: 1,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 2,
+    color: 'gray',
+    orbit: { parentBody: saturn, orbitalRadius: 42, orbitalPeriod: 5, initialAngle: 0.84 },
+  };
+  const mimas: MovingBody = {
+    name: 'Mimas',
+    mass: 80,
+    radius: 2,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 3,
+    color: 'lightgray',
+    orbit: { parentBody: saturn, orbitalRadius: 55, orbitalPeriod: 7, initialAngle: 1.26 },
+  };
+  const enceladus: MovingBody = {
+    name: 'Enceladus',
+    mass: 150,
+    radius: 3,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 4,
+    color: 'white',
+    orbit: { parentBody: saturn, orbitalRadius: 70, orbitalPeriod: 9, initialAngle: 1.68 },
+  };
+  const tethys: MovingBody = {
+    name: 'Tethys',
+    mass: 200,
+    radius: 3,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 4,
+    color: 'lightgray',
+    orbit: { parentBody: saturn, orbitalRadius: 85, orbitalPeriod: 11, initialAngle: 2.09 },
+  };
+  const telesto: MovingBody = {
+    name: 'Telesto',
+    mass: 5,
+    radius: 1,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 2,
+    color: 'gray',
+    orbit: { parentBody: saturn, orbitalRadius: 87, orbitalPeriod: 11, initialAngle: 2.51 },
+  };
+  const calypso: MovingBody = {
+    name: 'Calypso',
+    mass: 5,
+    radius: 1,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 2,
+    color: 'gray',
+    orbit: { parentBody: saturn, orbitalRadius: 89, orbitalPeriod: 11, initialAngle: 2.93 },
+  };
+  const dione: MovingBody = {
+    name: 'Dione',
+    mass: 250,
+    radius: 4,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 5,
+    color: 'lightgray',
+    orbit: { parentBody: saturn, orbitalRadius: 105, orbitalPeriod: 14, initialAngle: 3.35 },
+  };
+  const helene: MovingBody = {
+    name: 'Helene',
+    mass: 5,
+    radius: 1,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 2,
+    color: 'gray',
+    orbit: { parentBody: saturn, orbitalRadius: 107, orbitalPeriod: 14, initialAngle: 3.77 },
+  };
+  const rhea: MovingBody = {
+    name: 'Rhea',
+    mass: 400,
+    radius: 5,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 6,
+    color: 'lightgray',
+    orbit: { parentBody: saturn, orbitalRadius: 130, orbitalPeriod: 18, initialAngle: 4.19 },
+  };
+  const titan: MovingBody = {
+    name: 'Titan',
+    mass: 1500,
+    radius: 9,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 10,
+    color: 'orange',
+    orbit: { parentBody: saturn, orbitalRadius: 180, orbitalPeriod: 30, initialAngle: 4.6 },
+  };
+  const hyperion: MovingBody = {
+    name: 'Hyperion',
+    mass: 40,
+    radius: 2,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 3,
+    color: 'tan',
+    orbit: { parentBody: saturn, orbitalRadius: 200, orbitalPeriod: 35, initialAngle: 5.03 },
+  };
+  const iapetus: MovingBody = {
+    name: 'Iapetus',
+    mass: 300,
+    radius: 4,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 5,
+    color: 'brown',
+    orbit: { parentBody: saturn, orbitalRadius: 260, orbitalPeriod: 55, initialAngle: 5.44 },
+  };
+  const phoebe: MovingBody = {
+    name: 'Phoebe',
+    mass: 30,
+    radius: 2,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 3,
+    color: 'darkgray',
+    orbit: { parentBody: saturn, orbitalRadius: 300, orbitalPeriod: 90, initialAngle: 5.86 },
+  };
+
   const uranus: MovingBody = {
     name: 'Uranus',
     mass: 90000,
     radius: 40,
-    position: new Vector3(0, 0, 0),
+    position: new Vector3(0, 3300, 0), // Corrected position
     soiRadius: 260,
     color: 'lightblue',
     orbit: {
@@ -187,6 +445,53 @@ interface GameState {
       orbitalPeriod: 460,
       initialAngle: Math.PI * 1.5,
     },
+  };
+
+  // --- Uranus' moons (5) ---
+  const miranda: MovingBody = {
+    name: 'Miranda',
+    mass: 50,
+    radius: 2,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 3,
+    color: 'lightgray',
+    orbit: { parentBody: uranus, orbitalRadius: 50, orbitalPeriod: 6, initialAngle: 0 },
+  };
+  const ariel: MovingBody = {
+    name: 'Ariel',
+    mass: 150,
+    radius: 3,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 4,
+    color: 'lightblue',
+    orbit: { parentBody: uranus, orbitalRadius: 80, orbitalPeriod: 10, initialAngle: 1.2 },
+  };
+  const umbriel: MovingBody = {
+    name: 'Umbriel',
+    mass: 140,
+    radius: 3,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 4,
+    color: 'gray',
+    orbit: { parentBody: uranus, orbitalRadius: 110, orbitalPeriod: 14, initialAngle: 2.4 },
+  };
+  const titania: MovingBody = {
+    name: 'Titania',
+    mass: 300,
+    radius: 5,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 6,
+    color: 'tan',
+    orbit: { parentBody: uranus, orbitalRadius: 160, orbitalPeriod: 22, initialAngle: 3.6 },
+  };
+  const oberon: MovingBody = {
+    name: 'Oberon',
+    mass: 280,
+    radius: 5,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 6,
+    color: 'gray',
+    orbit: { parentBody: uranus, orbitalRadius: 210, orbitalPeriod: 30, initialAngle: 4.8 },
   };
 
   const neptune: MovingBody = {
@@ -201,6 +506,60 @@ interface GameState {
       orbitalRadius: 4000,
       orbitalPeriod: 600,
       initialAngle: Math.PI * 1.8,
+    },
+  };
+
+  // --- Neptune's moons (4) ---
+  const larissa: MovingBody = {
+    name: 'Larissa',
+    mass: 20,
+    radius: 2,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 2,
+    color: 'gray',
+    orbit: { parentBody: neptune, orbitalRadius: 50, orbitalPeriod: 5, initialAngle: 0 },
+  };
+  const proteus: MovingBody = {
+    name: 'Proteus',
+    mass: 60,
+    radius: 3,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 3,
+    color: 'darkgray',
+    orbit: { parentBody: neptune, orbitalRadius: 90, orbitalPeriod: 10, initialAngle: 1.5 },
+  };
+  const triton: MovingBody = {
+    name: 'Triton',
+    mass: 500,
+    radius: 6,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 7,
+    color: 'lightblue',
+    orbit: { parentBody: neptune, orbitalRadius: 150, orbitalPeriod: 20, initialAngle: 3.0 },
+  };
+  const nereid: MovingBody = {
+    name: 'Nereid',
+    mass: 30,
+    radius: 2,
+    position: new Vector3(0, 0, 0),
+    soiRadius: 3,
+    color: 'gray',
+    orbit: { parentBody: neptune, orbitalRadius: 240, orbitalPeriod: 45, initialAngle: 4.5 },
+  };
+
+  // --- Pluto ---
+  const pluto: MovingBody = {
+    name: 'Pluto',
+    mass: 500,
+    radius: 5,
+    position: new Vector3(0, 4600, 0),
+    soiRadius: 15,
+    color: 'tan',
+    orbit: {
+      parentBody: sun,
+      orbitalRadius: 4600,
+      orbitalPeriod: 740,
+      initialAngle: Math.PI * 0.6,
     },
   };
 
@@ -286,6 +645,15 @@ interface GameState {
       scanned: false,
       scanProgress: 0,
     },
+    {
+      id: 'Pluto',
+      title: 'Pluto — The Frozen Edge',
+      description:
+        'Pluto sits far beyond Neptune on a long, slow orbit. Its tiny SOI leaves almost no room for error on approach, but escape is cheap.',
+      unlocked: false,
+      scanned: false,
+      scanProgress: 0,
+    },
   ];
 
   const initialAchievements: Achievement[] = [
@@ -327,8 +695,56 @@ interface GameState {
       maxFuel: 500,
       heading: 0,
     },
-    bodies: [sun, earth , moon, mercury, venus, mars, jupiter, saturn, uranus, neptune],
-    engine: DEFAULT_ENGINE, //[cite: 1]
+    bodies: [
+      sun,
+      mercury,
+      venus,
+      earth,
+      moon,
+      mars,
+      phobos,
+      deimos,
+      jupiter,
+      io,
+      europa,
+      ganymede,
+      callisto,
+      amalthea,
+      himalia,
+      elara,
+      pasiphae,
+      sinope,
+      carme,
+      saturn,
+      atlas,
+      janus,
+      epimetheus,
+      mimas,
+      enceladus,
+      tethys,
+      telesto,
+      calypso,
+      dione,
+      helene,
+      rhea,
+      titan,
+      hyperion,
+      iapetus,
+      phoebe,
+      uranus,
+      miranda,
+      ariel,
+      umbriel,
+      titania,
+      oberon,
+      neptune,
+      larissa,
+      proteus,
+      triton,
+      nereid,
+      pluto,
+    ],
+    engine: DEFAULT_ENGINE,
     time: 0,
     activeBurnDirection: null,
     throttle: 0,
@@ -413,11 +829,10 @@ interface GameState {
         ),
       });
     },
-    
+
     setShip: (ship) => set({ ship }),
     setBodies: (bodies) => set({ bodies }),
     setControls: (direction, throttle) => set({ activeBurnDirection: direction, throttle }),
     setTime: (time) => set({ time }),
   };
 });
-

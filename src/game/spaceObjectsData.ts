@@ -1,7 +1,7 @@
 
-export const ASTEROID_BELT_COUNT = 600;
-export const ROAMING_COUNT = 100;
-export const COMET_COUNT = 50;
+export const ASTEROID_BELT_COUNT = 6000;
+export const ROAMING_COUNT = 1000;
+export const COMET_COUNT = 500;
 
 // 1. Static Asteroid Belt Configuration
 export const asteroidBeltData = Array.from({ length: ASTEROID_BELT_COUNT }, () => ({
