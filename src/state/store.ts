@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Spacecraft, BurnDirection } from '../physics/constants';
+import { type Spacecraft, type BurnDirection, G } from '../physics/constants';
 import type { MovingBody } from '../physics/orbitPath';
 import { type EngineSpec, DEFAULT_ENGINE } from '../physics/Rocketequation.ts';
 import { Vector3 } from '../physics/vector3';
@@ -168,8 +168,8 @@ interface GameState {
 
   return {
     ship: {
-      position: new Vector3(0, 0, 1000), //[cite: 1]
-      velocity: new Vector3(Math.sqrt(60 * sun.mass / 1000), 0, 0),
+      position: new Vector3(earth.position.x, earth.position.y+100,earth.position.z), //[cite: 1]
+      velocity: new Vector3(Math.sqrt(G * earth.mass / 100 ),0, 0),
       mass: 1000,
       fuel: 500,
       maxFuel: 500,

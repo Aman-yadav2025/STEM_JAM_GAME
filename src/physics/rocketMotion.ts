@@ -90,3 +90,23 @@ export function updateShipPhysics(
     t: t + dt,
   };
 }
+
+export function checkHazardCollisions(shipPos: Vector3, bodies: MovingBody[]) {
+  const distFromSun = shipPos.magnitude();
+  
+  // 1. Asteroid belt zone check
+  if (distFromSun >= 1500 && distFromSun <= 1700) {
+    // Ship is inside the asteroid field! 
+    // Trigger minor damage or apply random rotational turbulence vectors
+  }
+
+  // 2. Saturn Ring zone check
+  const saturn = bodies.find(b => b.name === 'Saturn');
+  if (saturn) {
+    const distToSaturn = shipPos.distanceTo(saturn.position);
+    if (distToSaturn >= 65 && distToSaturn <= 110) {
+      // Ship is clipping through Saturn's rings!
+      // Reduce ship speed due to particle drag friction
+    }
+  }
+}
