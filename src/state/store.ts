@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { type Spacecraft, type BurnDirection, G } from '../physics/constants';
+import { type Spacecraft, type BurnDirection } from '../physics/constants';
 import type { MovingBody } from '../physics/orbitPath';
 import { type EngineSpec, DEFAULT_ENGINE } from '../physics/Rocketequation.ts';
 import { Vector3 } from '../physics/vector3';
@@ -165,11 +165,10 @@ interface GameState {
       initialAngle: Math.PI * 1.8,
     },
   };
-
   return {
     ship: {
-      position: new Vector3(0, 0, earth.position.z+500),
-      velocity: new Vector3(100, 0, 100),
+      position: new Vector3(-2000, 0, 0),
+      velocity: new Vector3(50, 0, 50),
       mass: 1000,
       fuel: 500,
       maxFuel: 500,
@@ -180,7 +179,7 @@ interface GameState {
     time: 0,
     activeBurnDirection: null,
     throttle: 0,
-
+    
     setShip: (ship) => set({ ship }),
     setBodies: (bodies) => set({ bodies }),
     setControls: (direction, throttle) => set({ activeBurnDirection: direction, throttle }),
