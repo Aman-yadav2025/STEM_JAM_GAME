@@ -1,25 +1,31 @@
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { useStore } from '../state/store';
+
 export const SpacecraftMesh = () => {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
+  const { scene } = useGLTF('/ship.glb');
+  const shipModel = useMemo(() => scene.clone(true), [scene]);
 
   useFrame(() => {
-    if (!meshRef.current) return;
-    
-    // Read directly from state to avoid re-renders
+    if (!groupRef.current) return;
+
     const ship = useStore.getState().ship;
-    
-    // Apply Vector3 (x, y, z) to the Three.js mesh[cite: 1]
-    meshRef.current.position.set(ship.position.x, ship.position.y, ship.position.z);
-    meshRef.current.rotation.z = ship.heading; 
+    groupRef.current.position.set(ship.position.x, ship.position.y, ship.position.z);
+
+    const speed = Math.hypot(ship.velocity.x, ship.velocity.y);
+    if (speed > 0.0001) {
+      // groupRef.current.rotation.z = Math.atan2(ship.velocity.y, ship.velocity.x);
+      groupRef.current.lookAt(groupRef.current.position.clone().add(ship.velocity));
+      // groupRef.current.rotation.y = Math.atan2(ship.velocity.x, ship.velocity.z);
+    }
   });
 
   return (
-    <mesh ref={meshRef}>
-      <coneGeometry args= {[2, 6, 16]} />
-      <meshStandardMaterial color="white" />
-    </mesh>
+    <group ref={groupRef} scale={0.35}>
+      <primitive object={shipModel} />
+    </group>
   );
 };

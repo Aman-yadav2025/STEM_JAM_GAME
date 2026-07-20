@@ -12,10 +12,14 @@
 
 import type { Vector3 } from './vector3';
 
-export const G = 60; // tune this first when calibrating a new level
+export const G = 6; // tune this first when calibrating a new level
 
 // Fixed physics timestep (seconds). Runs independent of render framerate.
 export const CONSTANT_DT = 1 / 120;
+
+// Slow the simulation down so the ship feels more like a spacecraft
+// and less like a projectile flying around the planets.
+export const SIMULATION_TIME_SCALE = 0.4;
 
 // Below this eccentricity, an orbit is considered "circular" for win checks.
 export const CIRCULAR_ECCENTRICITY_THRESHOLD = 0.02;
@@ -58,8 +62,15 @@ export function addFuel(ship: Spacecraft, amount: number): Spacecraft {
   return { ...ship, fuel: Math.min(ship.maxFuel, ship.fuel + amount) };
 }
 
-export type BurnDirection = 'prograde' | 'retrograde' | 'radialIn' | 'radialOut';
+export type BurnDirection = 
+  | 'prograde' 
+  | 'retrograde' 
+  | 'radialIn' 
+  | 'radialOut'
+  | 'normal'
+  | 'antinormal';
 
+  
 /**
  * Hill-sphere-style approximation of a sphere of influence radius.
  * d = distance between the two bodies, mPrimary = mass of the body being

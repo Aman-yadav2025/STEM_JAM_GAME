@@ -1,9 +1,57 @@
+import { useEffect } from 'react';
 import { SceneManager } from '../scene/SceneManager';
 import { useStore } from '../state/store';
+import { StatusHUD } from './components/hud/StatusHUD';
+import { ExplorerCodex } from './components/hud/ExplorerCodex';
+import { CodexUnlocker } from './components/hud/CodexUnlocker';
+import { BurnControls } from './components/controls/BurnControls';
+import { PauseMenu } from './PauseMenu';
+import { CaptionBox, showGameCaption } from './hud/CaptionBox';
+import { Minimap } from './components/hud/Minimap';
 
 export default function App() {
-  const setControls = useStore((state) => state.setControls);
-  const fuel = useStore((state) => state.ship.fuel);
+  const togglePaused = useStore((state) => state.togglePaused);
+
+  useEffect(() => {
+    showGameCaption(
+      'System online. Tap a burn direction to begin steering, then hold throttle to ignite. Your first objective: escape low orbit and intercept the transfer window.',
+      'info',
+      [
+        {
+          label: 'Planet Hazards',
+          handler: () => showGameCaption(
+            'Venus is the Pressure Cooker: a deep-heat zone where sensors overheat and only shielded ships survive. Uranus is the Sideways Spinner: erratic gravitation can flip your controls mid-flight.',
+            'tip'
+          ),
+        },
+        {
+          label: 'Deep-Space Lore',
+          handler: () => showGameCaption(
+            'Brown dwarfs are failed stars in the cold dark. Perspective tricks make distant objects appear close, and micrometeoroids mean hull checks matter in every mission.',
+            'tip'
+          ),
+        },
+        {
+          label: 'Star Navigation',
+          handler: () => showGameCaption(
+            'Constellations are sky-region waypoints, not real clusters. Calibrate your nav-computer by star-hopping through known patterns and discover alien names for the same star fields.',
+            'tip'
+          ),
+        },
+      ]
+    );
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        togglePaused();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [togglePaused]);
 
   return (
     <div className="relative w-screen h-screen bg-black overflow-hidden">
@@ -12,35 +60,34 @@ export default function App() {
         <SceneManager />
       </div>
 
-      {/* Tailwind UI Overlay */}
-      <div className="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-6">
-        {/* Top HUD */}
-        <header className="flex justify-between items-start text-white font-mono drop-shadow-md">
-          <div>
-            <h1 className="text-2xl font-bold tracking-widest text-cyan-400">ORBITAL SIM</h1>
-            <p className="text-sm mt-1">PROPELLANT: {fuel.toFixed(1)} kg</p>
-          </div>
-        </header>
+      {/* UI Overlay */}
+      <div className="absolute inset-0 z-10 pointer-events-none p-6">
+        <div className="flex h-full gap-6">
+          <div className="flex flex-1 flex-col justify-between gap-4">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
+              <div className="pointer-events-auto">
+                <StatusHUD />
+              </div>
+              <div className="pointer-events-auto w-full xl:w-[min(420px,40vw)]">
+                <ExplorerCodex />
+              </div>
+            </div>
 
-        {/* Bottom Controls */}
-        <footer className="flex justify-center pb-8 pointer-events-auto">
-          <div className="flex gap-4 bg-gray-900/80 p-4 rounded-xl border border-gray-700 backdrop-blur-sm">
-            <button 
-              onMouseDown={() => setControls('prograde', 1.0)} //[cite: 1]
-              onMouseUp={() => setControls(null, 0)} //[cite: 1]
-              className="px-6 py-2 bg-green-600/80 hover:bg-green-500 rounded text-white font-bold transition-colors"
-            >
-              PROGRADE BURN
-            </button>
-            <button 
-              onMouseDown={() => setControls('retrograde', 1.0)} //[cite: 1]
-              onMouseUp={() => setControls(null, 0)} //[cite: 1]
-              className="px-6 py-2 bg-red-600/80 hover:bg-red-500 rounded text-white font-bold transition-colors"
-            >
-              RETROGRADE BURN
-            </button>
+            <div className="pointer-events-auto">
+              <CaptionBox />
+            </div>
           </div>
-        </footer>
+
+          <div className="pointer-events-auto w-full max-w-[320px] self-start">
+            <BurnControls />
+          </div>
+        </div>
+
+        <CodexUnlocker />
+        <PauseMenu />
+        <div className="absolute bottom-6 right-6 z-20 pointer-events-auto">
+          <Minimap />
+        </div>
       </div>
     </div>
   );

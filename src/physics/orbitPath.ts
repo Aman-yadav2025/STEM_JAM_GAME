@@ -35,13 +35,17 @@ export function bodyPositionAtTime(orbit: OrbitPath, time: number): Vector3 {
     return Vector3.zero();
   }
 
+  // Compute angle for this time step
   const angle = orbit.initialAngle + (2 * Math.PI * time) / orbit.orbitalPeriod;
   const parentPos = orbit.parentBody.position;
 
+  // Align orbits on the horizontal XZ plane (y is up). This places bodies
+  // around the parent using X (cos) and Z (sin) so all planets lie roughly
+  // on the same horizontal plane, like the ecliptic.
   return new Vector3(
     parentPos.x + orbit.orbitalRadius * Math.cos(angle),
-    parentPos.y + orbit.orbitalRadius * Math.sin(angle),
-    parentPos.z
+    parentPos.y,
+    parentPos.z + orbit.orbitalRadius * Math.sin(angle)
   );
 }
 
