@@ -12,7 +12,7 @@ const SpaceDebris = () => {
   const count = 150;
 
   const debrisField = useMemo(() => {
-    const list = [];
+    const list: Array<{ orbitalRadius: number; speed: number; angle: number; size: number; rotSpeedX: number; rotSpeedY: number }> = [];
     for (let i = 0; i < count; i++) {
       list.push({
         orbitalRadius: 55 + Math.random() * 90,
@@ -28,7 +28,7 @@ const SpaceDebris = () => {
 
   useFrame((state) => {
     if (!meshRef.current) return;
-    
+
     // Grab the current state once per frame
     const { bodies } = useStore.getState();
     const earth = bodies.find((b) => b.name === 'Earth');
@@ -63,20 +63,21 @@ const SpaceDebris = () => {
 const InstancedComets = () => {
   const coreRef = useRef<THREE.InstancedMesh>(null);
   const tailRef = useRef<THREE.InstancedMesh>(null);
-  const totalComets = 20; // Set a explicit base count for pool allocation
+  const totalComets = 20;
 
-  // FIX: Shifted assignment order to eliminate initialization hoisting crash
   const cometsData = useMemo(() => {
-    const list = [];
+    const list: Array<{ a: number; b: number; c: number; speed: number; phase: number; orbitRotation: number; size: number }> = [];
     for (let i = 0; i < totalComets; i++) {
-      const a = 800 + Math.random() * 3000;      
-      const b = 200 + Math.random() * 600;       
-      const c = Math.sqrt(a * a - b * b);        
+      const a = 800 + Math.random() * 3000;
+      const b = 200 + Math.random() * 600;
+      const c = Math.sqrt(a * a - b * b);
       list.push({
-        a, b, c,
+        a,
+        b,
+        c,
         speed: 0.03 + Math.random() * 0.07,
         phase: Math.random() * Math.PI * 2,
-        orbitRotation: Math.random() * Math.PI * 2, 
+        orbitRotation: Math.random() * Math.PI * 2,
         size: 2.0 + Math.random() * 3.5,
       });
     }
@@ -86,7 +87,6 @@ const InstancedComets = () => {
   useFrame((state) => {
     if (!coreRef.current || !tailRef.current) return;
     const t = state.clock.getElapsedTime();
-    
     const dummyCore = new THREE.Object3D();
     const dummyTail = new THREE.Object3D();
 
@@ -98,21 +98,18 @@ const InstancedComets = () => {
       const x = rawX * Math.cos(comet.orbitRotation) - rawY * Math.sin(comet.orbitRotation);
       const y = rawX * Math.sin(comet.orbitRotation) + rawY * Math.cos(comet.orbitRotation);
 
-      // 1. Core Position Configuration
       dummyCore.position.set(x, y, 0);
       dummyCore.scale.set(comet.size, comet.size, comet.size);
       dummyCore.updateMatrix();
       coreRef.current!.setMatrixAt(i, dummyCore.matrix);
 
-      // 2. Vector alignment pointing outwards away from solar center
       const sunDir = new THREE.Vector3(x, y, 0).normalize();
       dummyTail.position.set(x, y, 0);
       dummyTail.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), sunDir);
-      
+
       const tailLength = comet.size * 5;
       dummyTail.position.add(sunDir.clone().multiplyScalar(tailLength));
       dummyTail.scale.set(comet.size * 0.7, tailLength * 2, comet.size * 0.7);
-      
       dummyTail.updateMatrix();
       tailRef.current!.setMatrixAt(i, dummyTail.matrix);
     });
@@ -141,7 +138,7 @@ const AsteroidBelt = () => {
   const count = 600;
 
   const asteroids = useMemo(() => {
-    const list = [];
+    const list: Array<{ radius: number; speed: number; angle: number; size: number }> = [];
     for (let i = 0; i < count; i++) {
       list.push({
         radius: 1450 + Math.random() * 250,
@@ -185,7 +182,7 @@ const RoamingAsteroids = () => {
   const count = 100;
 
   const roamers = useMemo(() => {
-    const list = [];
+    const list: Array<{ radiusX: number; radiusY: number; speed: number; angle: number; tilt: number; size: number }> = [];
     for (let i = 0; i < count; i++) {
       list.push({
         radiusX: 200 + Math.random() * 4000,
@@ -208,7 +205,6 @@ const RoamingAsteroids = () => {
       const currentAngle = roam.angle + t * roam.speed * 0.2;
       const rawX = Math.cos(currentAngle) * roam.radiusX;
       const rawY = Math.sin(currentAngle) * roam.radiusY;
-
       const x = rawX * Math.cos(roam.tilt) - rawY * Math.sin(roam.tilt);
       const y = rawX * Math.sin(roam.tilt) + rawY * Math.cos(roam.tilt);
 
@@ -231,7 +227,7 @@ const RoamingAsteroids = () => {
 };
 
 const Simulation = () => {
-  useGameLoop(); 
+  useGameLoop();
   const bodies = useStore((state) => state.bodies);
 
   const textures = {
@@ -260,7 +256,7 @@ const Simulation = () => {
         return (
           <mesh key={i} position={[body.position.x, body.position.y, body.position.z]}>
             <sphereGeometry args={[body.radius, 32, 32]} />
-            <meshStandardMaterial 
+            <meshStandardMaterial
               map={mapTexture || null}
               color={!mapTexture ? body.color : '#ffffff'}
               emissive={isSun ? '#ffff88' : '#000000'}
@@ -270,16 +266,15 @@ const Simulation = () => {
               metalness={0}
             />
 
-            {/* ENHANCEMENT: Added structural tilt handling to Saturn's ring system */}
             {body.name === 'Saturn' && (
               <mesh rotation={[Math.PI / 3, 0, 0]}>
                 <ringGeometry args={[body.radius * 1.4, body.radius * 2.3, 64]} />
-                <meshStandardMaterial 
-                  color="#e2d4a8" 
-                  side={THREE.DoubleSide} 
-                  transparent 
-                  opacity={0.7} 
-                  roughness={0.8} 
+                <meshStandardMaterial
+                  color="#e2d4a8"
+                  side={THREE.DoubleSide}
+                  transparent
+                  opacity={0.7}
+                  roughness={0.8}
                 />
               </mesh>
             )}
