@@ -17,7 +17,9 @@ export const SpacecraftMesh = () => {
 
     const speed = Math.hypot(ship.velocity.x, ship.velocity.y);
     if (speed > 0.0001) {
-      groupRef.current.rotation.z = Math.atan2(ship.velocity.y, ship.velocity.x) - Math.PI / 2;
+      // groupRef.current.rotation.z = Math.atan2(ship.velocity.y, ship.velocity.x);
+      groupRef.current.lookAt(groupRef.current.position.clone().add(ship.velocity));
+      // groupRef.current.rotation.y = Math.atan2(ship.velocity.x, ship.velocity.z);
     }
   });
 

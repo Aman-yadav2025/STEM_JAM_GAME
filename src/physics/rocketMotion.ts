@@ -40,9 +40,10 @@ export function updateShipPhysics(
   engine: EngineSpec,
   activeBurnDirection: BurnDirection | null,
   throttle: number = 1.0,
-  t: number
+  t: number,
+  dt: number = CONSTANT_DT
 ): RocketMotionResult {
-  const dt = CONSTANT_DT;
+  const stepDt = dt;
 
   // 1. Move celestial bodies to their position at time t first — gravity
   //    this frame must be evaluated against where planets/moons ARE now,
@@ -65,7 +66,7 @@ export function updateShipPhysics(
     // Mass flow rate: dm/dt = Thrust / ExhaustVelocity
     const vE = engine.specificImpulse * STANDARD_g;
     const massFlowRate = currentThrustForce / vE; // kg/s
-    fuelBurnedThisFrame = Math.min(ship.fuel, massFlowRate * dt);
+    fuelBurnedThisFrame = Math.min(ship.fuel, massFlowRate * stepDt);
   }
 
   // 3. Gravity — always active, dominant-body patched-conic.
@@ -81,13 +82,13 @@ export function updateShipPhysics(
   //    player might change direction adds cost without much benefit.
   //    Semi-implicit Euler is standard for player-controlled thrust and
   //    is what most arcade-precision space games use.)
-  const newVelocity = ship.velocity.add(totalAcceleration.scale(dt));
-  const newPosition = ship.position.add(newVelocity.scale(dt));
+  const newVelocity = ship.velocity.add(totalAcceleration.scale(stepDt));
+  const newPosition = ship.position.add(newVelocity.scale(stepDt));
   const newFuel = Math.max(0, ship.fuel - fuelBurnedThisFrame);
 
   return {
     ship: { ...ship, position: newPosition, velocity: newVelocity, fuel: newFuel },
-    t: t + dt,
+    t: t + stepDt,
   };
 }
 

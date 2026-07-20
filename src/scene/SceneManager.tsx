@@ -254,31 +254,45 @@ const Simulation = () => {
         const isSun = body.name === 'Sun';
 
         return (
-          <mesh key={i} position={[body.position.x, body.position.y, body.position.z]}>
-            <sphereGeometry args={[body.radius, 32, 32]} />
-            <meshStandardMaterial
-              map={mapTexture || null}
-              color={!mapTexture ? body.color : '#ffffff'}
-              emissive={isSun ? '#ffff88' : '#000000'}
-              emissiveMap={isSun ? mapTexture : null}
-              emissiveIntensity={isSun ? 1.5 : 0}
-              roughness={isSun ? 0.2 : 1}
-              metalness={0}
-            />
+          <group key={i}>
+            <mesh position={[body.position.x, body.position.y, body.position.z]}>
+              <sphereGeometry args={[body.radius, 32, 32]} />
+              <meshStandardMaterial 
+                map={mapTexture || null}
+                color={!mapTexture ? body.color : '#ffffff'}
+                emissive={isSun ? '#ffff88' : '#000000'}
+                emissiveMap={isSun ? mapTexture : null}
+                emissiveIntensity={isSun ? 1.5 : 0}
+                roughness={isSun ? 0.2 : 1}
+                metalness={0}
+              />
 
-            {body.name === 'Saturn' && (
-              <mesh rotation={[Math.PI / 3, 0, 0]}>
-                <ringGeometry args={[body.radius * 1.4, body.radius * 2.3, 64]} />
-                <meshStandardMaterial
-                  color="#e2d4a8"
-                  side={THREE.DoubleSide}
+              {body.name === 'Saturn' && (
+                <mesh rotation={[Math.PI / 3, 0, 0]}>
+                  <ringGeometry args={[body.radius * 1.4, body.radius * 2.3, 64]} />
+                  <meshStandardMaterial 
+                    color="#e2d4a8" 
+                    side={THREE.DoubleSide} 
+                    transparent 
+                    opacity={0.7} 
+                    roughness={0.8} 
+                  />
+                </mesh>
+              )}
+            </mesh>
+
+            {body.soiRadius < Infinity && (
+              <mesh position={[body.position.x, body.position.y, body.position.z]}>
+                <sphereGeometry args={[body.soiRadius, 32, 32]} />
+                <meshBasicMaterial
+                  color={body.color}
                   transparent
-                  opacity={0.7}
-                  roughness={0.8}
+                  opacity={0.06}
+                  depthWrite={false}
                 />
               </mesh>
             )}
-          </mesh>
+          </group>
         );
       })}
       <TrajectoryLine />
