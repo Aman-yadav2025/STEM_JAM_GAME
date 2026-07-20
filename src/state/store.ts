@@ -1,8 +1,15 @@
 import { create } from 'zustand';
-import type { Spacecraft, BurnDirection } from '../physics/constants';
+import { type Spacecraft, type BurnDirection, G } from '../physics/constants';
 import type { MovingBody } from '../physics/orbitPath';
 import { type EngineSpec, DEFAULT_ENGINE } from '../physics/Rocketequation.ts';
 import { Vector3 } from '../physics/vector3';
+
+export type CodexEntry = {
+  id: string;
+  title: string;
+  description: string;
+  unlocked: boolean;
+};
 
 interface GameState {
   ship: Spacecraft;
@@ -13,13 +20,20 @@ interface GameState {
   activeBurnDirection: BurnDirection | null;
   throttle: number;
 
+  isPaused: boolean;
+  setPaused: (paused: boolean) => void;
+  togglePaused: () => void;
+
+  codexEntries: CodexEntry[];
+  unlockCodexEntry: (id: string) => boolean;
+
   setShip: (ship: Spacecraft) => void;
   setBodies: (bodies: MovingBody[]) => void;
   setControls: (direction: BurnDirection | null, throttle: number) => void;
   setTime: (t: number) => void;
 }
 
- export const useStore = create<GameState>((set) => {
+ export const useStore = create<GameState>((set, get) => {
   const sun: MovingBody = {
     name: 'Sun',
     mass: 2000000,
@@ -164,12 +178,76 @@ interface GameState {
     },
   };
 
-
+  const initialCodexEntries: CodexEntry[] = [
+    {
+      id: 'Earth',
+      title: 'Earth — The Blue Beacon',
+      description:
+        'Low Earth orbit is your home field. Learn to time burns against the planet and exploit its gravity well for efficient transfer windows.',
+      unlocked: true,
+    },
+    {
+      id: 'Moon',
+      title: 'Moon — Silent Sentinel',
+      description:
+        'The Moon is tidally locked to Earth. Its quiet gravity makes it an ideal staging ground for refueling and precise orbital insertions.',
+      unlocked: false,
+    },
+    {
+      id: 'Mercury',
+      title: 'Mercury — Cratered Messenger',
+      description:
+        'Mercury orbits fast and close to the Sun. Short transfer windows mean burns must be sharp, but low gravity makes capture cheaper.',
+      unlocked: false,
+    },
+    {
+      id: 'Venus',
+      title: 'Venus — Pressure Cooker',
+      description:
+        'Venus is dominated by dense atmosphere and heat. Avoid low passes unless you are prepared for strong aerodynamic drag and sensor stress.',
+      unlocked: false,
+    },
+    {
+      id: 'Mars',
+      title: 'Mars — Red Frontier',
+      description:
+        'Mars has a thinner atmosphere and gentler gravity. Capturing there is forgiving, but accurate phase angles are essential for rendezvous.',
+      unlocked: false,
+    },
+    {
+      id: 'Jupiter',
+      title: 'Jupiter — Gas Giant',
+      description:
+        'Jupiter offers powerful gravity assists at the cost of intense radiation and debris. Use its pull to boost your trajectory and conserve fuel.',
+      unlocked: false,
+    },
+    {
+      id: 'Saturn',
+      title: 'Saturn — Ringed Giant',
+      description:
+        'Saturn’s rings are beautiful and dangerous. The system’s wide SOI makes long-distance planning important for safe entry and exit.',
+      unlocked: false,
+    },
+    {
+      id: 'Uranus',
+      title: 'Uranus — Tilted Ice World',
+      description:
+        'Uranus rotates on its side. Orbital paths through its system feel skewed, and navigation relies on steady, patient burns.',
+      unlocked: false,
+    },
+    {
+      id: 'Neptune',
+      title: 'Neptune — Deep Blue',
+      description:
+        'Neptune is a distant ice giant. Its remote SOI rewards accurate planning, and sunlight is weak once you drift into the outer system.',
+      unlocked: false,
+    },
+  ];
 
   return {
     ship: {
-      position: new Vector3(0, 0, 1000), //[cite: 1]
-      velocity: new Vector3(Math.sqrt(60 * sun.mass / 1000), 0, 0),
+      position: new Vector3(earth.position.x, earth.position.y+100,earth.position.z), //[cite: 1]
+      velocity: new Vector3(Math.sqrt(G * earth.mass / 100 ),0, 0),
       mass: 1000,
       fuel: 500,
       maxFuel: 500,
@@ -181,6 +259,24 @@ interface GameState {
     activeBurnDirection: null,
     throttle: 0,
 
+    isPaused: false,
+    setPaused: (paused) => set({ isPaused: paused }),
+    togglePaused: () => set((state) => ({ isPaused: !state.isPaused })),
+    codexEntries: initialCodexEntries,
+    unlockCodexEntry: (id) => {
+      const state = get();
+      const entry = state.codexEntries.find((codex) => codex.id === id);
+      if (!entry || entry.unlocked) {
+        return false;
+      }
+
+      set({
+        codexEntries: state.codexEntries.map((codex) =>
+          codex.id === id ? { ...codex, unlocked: true } : codex
+        ),
+      });
+      return true;
+    },
     setShip: (ship) => set({ ship }),
     setBodies: (bodies) => set({ bodies }),
     setControls: (direction, throttle) => set({ activeBurnDirection: direction, throttle }),
