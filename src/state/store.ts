@@ -43,6 +43,8 @@ interface GameState {
     color: 'yellow',
   };
 
+
+
   const mercury: MovingBody = {
     name: 'Mercury',
     mass: 15000,

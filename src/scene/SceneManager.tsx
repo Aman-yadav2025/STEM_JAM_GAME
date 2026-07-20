@@ -1,13 +1,12 @@
 import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
 import * as THREE from 'three';
-import { useRef, useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { SpacecraftMesh } from './Spacecraft';
 import { useGameLoop } from '../game/GameLoop';
 import { useStore } from '../state/store';
 import { TrajectoryLine } from './TrajectoryLine';
 
-// --- GPU-ACCELERATED SPACE DEBRIS CLUSTER (ORBITING EARTH) ---
 const SpaceDebris = () => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const count = 150;
@@ -29,7 +28,10 @@ const SpaceDebris = () => {
 
   useFrame((state) => {
     if (!meshRef.current) return;
-    const earth = useStore.getState().bodies.find((b) => b.name === 'Earth');
+
+    // Grab the current state once per frame
+    const { bodies } = useStore.getState();
+    const earth = bodies.find((b) => b.name === 'Earth');
     if (!earth) return;
 
     const t = state.clock.getElapsedTime();
@@ -51,22 +53,21 @@ const SpaceDebris = () => {
   });
 
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
+    <instancedMesh ref={meshRef} args={[null as any, null as any, count]}>
       <boxGeometry args={[1, 1, 1]} />
       <meshStandardMaterial color="#8395a7" roughness={0.6} metalness={0.8} />
     </instancedMesh>
   );
 };
 
-// --- NEW: 50 HIGH-PERFORMANCE INSTANCED COMETS ---
 const InstancedComets = () => {
   const coreRef = useRef<THREE.InstancedMesh>(null);
   const tailRef = useRef<THREE.InstancedMesh>(null);
-  const count = 50;
+  const totalComets = 20;
 
   const cometsData = useMemo(() => {
     const list: Array<{ a: number; b: number; c: number; speed: number; phase: number; orbitRotation: number; size: number }> = [];
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < totalComets; i++) {
       const a = 800 + Math.random() * 3000;
       const b = 200 + Math.random() * 600;
       const c = Math.sqrt(a * a - b * b);
@@ -81,7 +82,7 @@ const InstancedComets = () => {
       });
     }
     return list;
-  }, []);
+  }, [totalComets]);
 
   useFrame((state) => {
     if (!coreRef.current || !tailRef.current) return;
@@ -105,6 +106,7 @@ const InstancedComets = () => {
       const sunDir = new THREE.Vector3(x, y, 0).normalize();
       dummyTail.position.set(x, y, 0);
       dummyTail.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), sunDir);
+
       const tailLength = comet.size * 5;
       dummyTail.position.add(sunDir.clone().multiplyScalar(tailLength));
       dummyTail.scale.set(comet.size * 0.7, tailLength * 2, comet.size * 0.7);
@@ -118,12 +120,12 @@ const InstancedComets = () => {
 
   return (
     <>
-      <instancedMesh ref={coreRef} args={[undefined, undefined, count]}>
+      <instancedMesh ref={coreRef} args={[null as any, null as any, totalComets]}>
         <sphereGeometry args={[1, 8, 8]} />
         <meshStandardMaterial color="#a5f3fc" emissive="#22d3ee" emissiveIntensity={1.2} />
       </instancedMesh>
 
-      <instancedMesh ref={tailRef} args={[undefined, undefined, count]}>
+      <instancedMesh ref={tailRef} args={[null as any, null as any, totalComets]}>
         <coneGeometry args={[1, 1, 8, 1, true]} />
         <meshBasicMaterial color="#e0f7fa" transparent opacity={0.35} side={THREE.DoubleSide} />
       </instancedMesh>
@@ -131,7 +133,6 @@ const InstancedComets = () => {
   );
 };
 
-// --- GPU-ACCELERATED INSTANCED FIXED ASTEROID BELT ---
 const AsteroidBelt = () => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const count = 600;
@@ -169,14 +170,13 @@ const AsteroidBelt = () => {
   });
 
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
+    <instancedMesh ref={meshRef} args={[null as any, null as any, count]}>
       <sphereGeometry args={[1, 4, 4]} />
       <meshStandardMaterial color="#576574" roughness={0.9} />
     </instancedMesh>
   );
 };
 
-// --- NEW: 100 HIGH-PERFORMANCE ROAMING ASTEROIDS ---
 const RoamingAsteroids = () => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const count = 100;
@@ -219,27 +219,28 @@ const RoamingAsteroids = () => {
   });
 
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
+    <instancedMesh ref={meshRef} args={[null as any, null as any, count]}>
       <sphereGeometry args={[1, 5, 5]} />
       <meshStandardMaterial color="#7f8c8d" roughness={0.85} metalness={0.2} />
     </instancedMesh>
   );
 };
 
-// --- MAIN SIMULATION ENGINE ---
 const Simulation = () => {
   useGameLoop();
   const bodies = useStore((state) => state.bodies);
 
-  const earthTexture = useLoader(THREE.TextureLoader, '/textures/earth.jpg');
-  const sunTexture = useLoader(THREE.TextureLoader, '/textures/sun.jpg');
-  const moonTexture = useLoader(THREE.TextureLoader, '/textures/moon.jpg');
-  const mercuryTexture = useLoader(THREE.TextureLoader, '/textures/mercury.jpg');
-  const venusTexture = useLoader(THREE.TextureLoader, '/textures/venus.jpg');
-  const marsTexture = useLoader(THREE.TextureLoader, '/textures/mars.jpg');
-  const jupiterTexture = useLoader(THREE.TextureLoader, '/textures/jupiter.jpg');
-  const uranusTexture = useLoader(THREE.TextureLoader, '/textures/uranus.jpg');
-  const neptuneTexture = useLoader(THREE.TextureLoader, '/textures/neptune.jpg');
+  const textures = {
+    Earth: useLoader(THREE.TextureLoader, '/textures/earth.jpg'),
+    Sun: useLoader(THREE.TextureLoader, '/textures/sun.jpg'),
+    Moon: useLoader(THREE.TextureLoader, '/textures/moon.jpg'),
+    Mercury: useLoader(THREE.TextureLoader, '/textures/mercury.jpg'),
+    Venus: useLoader(THREE.TextureLoader, '/textures/venus.jpg'),
+    Mars: useLoader(THREE.TextureLoader, '/textures/mars.jpg'),
+    Jupiter: useLoader(THREE.TextureLoader, '/textures/jupiter.jpg'),
+    Uranus: useLoader(THREE.TextureLoader, '/textures/uranus.jpg'),
+    Neptune: useLoader(THREE.TextureLoader, '/textures/neptune.jpg'),
+  };
 
   return (
     <>
@@ -248,41 +249,38 @@ const Simulation = () => {
       <RoamingAsteroids />
       <SpaceDebris />
       <InstancedComets />
+      {bodies.map((body, i) => {
+        const mapTexture = textures[body.name as keyof typeof textures];
+        const isSun = body.name === 'Sun';
 
-      {bodies.map((body, i) => (
-        <mesh key={i} position={[body.position.x, body.position.y, body.position.z]}>
-          <sphereGeometry args={[body.radius, 32, 32]} />
-          {body.name === 'Earth' ? (
-            <meshStandardMaterial map={earthTexture} roughness={1} metalness={0} />
-          ) : body.name === 'Sun' ? (
-            <meshStandardMaterial map={sunTexture} emissive="#ffff88" emissiveMap={sunTexture} emissiveIntensity={1.5} />
-          ) : body.name === 'Moon' ? (
-            <meshStandardMaterial map={moonTexture} roughness={1} metalness={0} />
-          ) : body.name === 'Mars' ? (
-            <meshStandardMaterial map={marsTexture} roughness={1} metalness={0} />
-          ) : body.name === 'Jupiter' ? (
-            <meshStandardMaterial map={jupiterTexture} roughness={1} metalness={0} />
-          ) : body.name === 'Uranus' ? (
-            <meshStandardMaterial map={uranusTexture} roughness={1} metalness={0} />
-          ) : body.name === 'Neptune' ? (
-            <meshStandardMaterial map={neptuneTexture} roughness={1} metalness={0} />
-          ) : body.name === 'Mercury' ? (
-            <meshStandardMaterial map={mercuryTexture} roughness={1} metalness={0} />
-          ) : body.name === 'Venus' ? (
-            <meshStandardMaterial map={venusTexture} />
-          ) : (
-            <meshStandardMaterial color={body.color} />
-          )}
+        return (
+          <mesh key={i} position={[body.position.x, body.position.y, body.position.z]}>
+            <sphereGeometry args={[body.radius, 32, 32]} />
+            <meshStandardMaterial
+              map={mapTexture || null}
+              color={!mapTexture ? body.color : '#ffffff'}
+              emissive={isSun ? '#ffff88' : '#000000'}
+              emissiveMap={isSun ? mapTexture : null}
+              emissiveIntensity={isSun ? 1.5 : 0}
+              roughness={isSun ? 0.2 : 1}
+              metalness={0}
+            />
 
-          {body.name === 'Saturn' && (
-            <mesh>
-              <ringGeometry args={[68, 120, 64]} />
-              <meshStandardMaterial color="#e2d4a8" side={THREE.DoubleSide} transparent opacity={0.7} roughness={0.8} />
-            </mesh>
-          )}
-        </mesh>
-      ))}
-
+            {body.name === 'Saturn' && (
+              <mesh rotation={[Math.PI / 3, 0, 0]}>
+                <ringGeometry args={[body.radius * 1.4, body.radius * 2.3, 64]} />
+                <meshStandardMaterial
+                  color="#e2d4a8"
+                  side={THREE.DoubleSide}
+                  transparent
+                  opacity={0.7}
+                  roughness={0.8}
+                />
+              </mesh>
+            )}
+          </mesh>
+        );
+      })}
       <TrajectoryLine />
     </>
   );
@@ -296,6 +294,7 @@ const CameraRig = () => {
   const offset = new THREE.Vector3(0, 30, 140);
 
   useFrame(() => {
+    if (!ship) return;
     const target = new THREE.Vector3(ship.position.x, ship.position.y, ship.position.z);
 
     if (!previousTarget.current) {
@@ -319,10 +318,10 @@ const CameraRig = () => {
 
 export const SceneManager = () => {
   return (
-    <Canvas camera={{ position: [0, 30, 140], fov: 80, near: 0.1, far: 30000 }}>
-      <ambientLight intensity={0.5} />
-      <pointLight position={[0, 0, 0]} intensity={2.5} distance={20000} decay={1} />
-      <Stars radius={12000} depth={60} count={3000} factor={5} />
+    <Canvas camera={{ position: [0, 30, 140], fov: 80, near: 0.1, far: 10000 }}>
+      <ambientLight intensity={0.4} />
+      <pointLight position={[0, 0, 0]} intensity={2} />
+      <Stars radius={12000} depth={50} count={2000} factor={4} />
       <Simulation />
       <CameraRig />
     </Canvas>

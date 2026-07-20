@@ -3,7 +3,6 @@
 import { useStore } from '../state/store';
 import { updateShipPhysics } from '../physics/rocketMotion'; //[cite: 1]
 import { updateBodyPositions } from '../physics/orbitPath'; //[cite: 1]
-import { CONSTANT_DT } from '../physics/constants'; //[cite: 1]
 
 export class World {
   static tick() {

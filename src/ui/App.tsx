@@ -7,6 +7,7 @@ import { CodexUnlocker } from './components/hud/CodexUnlocker';
 import { BurnControls } from './components/controls/BurnControls';
 import { PauseMenu } from './PauseMenu';
 import { CaptionBox, showGameCaption } from './hud/CaptionBox';
+import { Minimap } from './components/hud/Minimap';
 
 export default function App() {
   const togglePaused = useStore((state) => state.togglePaused);
@@ -84,6 +85,9 @@ export default function App() {
 
         <CodexUnlocker />
         <PauseMenu />
+        <div className="absolute bottom-6 right-6 z-20 pointer-events-auto">
+          <Minimap />
+        </div>
       </div>
     </div>
   );
