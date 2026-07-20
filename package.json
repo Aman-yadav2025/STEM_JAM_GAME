@@ -1,0 +1,23 @@
+{
+  "name": "solar-system",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Aman-yadav2025/STEM_JAM_GAME.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Aman-yadav2025/STEM_JAM_GAME/issues"
+  },
+  "homepage": "https://github.com/Aman-yadav2025/STEM_JAM_GAME#readme",
+  "description": "",
+  "devDependencies": {
+    "vite": "^8.1.5"
+  }
+}
