@@ -140,7 +140,7 @@ interface GameState {
     name: 'Uranus',
     mass: 90000,
     radius: 40,
-    position: new Vector3(0, 3300, 0),
+    position: new Vector3(0, 0, 0),
     soiRadius: 260,
     color: 'lightblue',
     orbit: {
