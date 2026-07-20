@@ -1,6 +1,7 @@
 import { SceneManager } from '../scene/SceneManager';
 import { StatusHUD } from './components/hud/StatusHUD';
 import { BurnControls } from './components/controls/BurnControls';
+import { Minimap } from './components/hud/Minimap';
 
 export default function App() {
   return (
@@ -15,7 +16,12 @@ export default function App() {
         <header className="pointer-events-auto w-fit">
           <StatusHUD />
         </header>
+      
+      <div className="absolute bottom-6 right-6 z-20 pointer-events-auto">
+          <Minimap />
+        </div>
 
+      
         <footer className="flex justify-center pb-4">
           <BurnControls />
         </footer>

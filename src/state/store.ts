@@ -29,6 +29,8 @@ interface GameState {
     color: 'yellow',
   };
 
+  
+
   const mercury: MovingBody = {
     name: 'Mercury',
     mass: 15000,
@@ -163,8 +165,6 @@ interface GameState {
       initialAngle: Math.PI * 1.8,
     },
   };
-
-
 
   return {
     ship: {
