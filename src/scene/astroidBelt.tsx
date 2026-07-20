@@ -32,7 +32,7 @@ export function AsteroidBelt({ count = 600 }) {
   }, [count]);
 
   // 2. Animate positions along orbital paths inside the render loop
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     if (!meshRef.current) return;
 
     asteroids.forEach((asteroid, i) => {

@@ -6,7 +6,7 @@ import { updateBodyPositions } from '../physics/orbitPath'; //[cite: 1]
 import { CONSTANT_DT } from '../physics/constants'; //[cite: 1]
 
 export class World {
-  static tick() {
+  static tick(dt = CONSTANT_DT) {
     // 1. Grab current state from Zustand
     const state = useStore.getState();
     let currentShip = state.ship;
@@ -24,7 +24,8 @@ export class World {
       state.engine,
       state.activeBurnDirection,
       state.throttle,
-      currentTime
+      currentTime,
+      dt
     ); //[cite: 1]
 
     // 4. Commit the new state back to the store
