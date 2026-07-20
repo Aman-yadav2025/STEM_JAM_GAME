@@ -168,8 +168,8 @@ interface GameState {
 
   return {
     ship: {
-      position: new Vector3(earth.position.x, earth.position.y+100,earth.position.z), //[cite: 1]
-      velocity: new Vector3(Math.sqrt(G * earth.mass / 100 ),0, 0),
+      position: new Vector3(0, 0, earth.position.z+500),
+      velocity: new Vector3(100, 0, 100),
       mass: 1000,
       fuel: 500,
       maxFuel: 500,
