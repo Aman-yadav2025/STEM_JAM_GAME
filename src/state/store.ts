@@ -1,4 +1,5 @@
-//This file is the single source of truth. It holds the simulation state and the player's inputs, keeping them accessible to both the React UI and the R3F canvas.
+//This file is the single source of truth. It holds the simulation state and the player's inputs, keeping them 
+//accessible to both the React UI and the R3F canvas.
 
 import { create } from 'zustand';
 import type { Spacecraft, BurnDirection } from '../physics/constants'; //[cite: 1]
