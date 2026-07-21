@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { calculateFastTravelState } from '../physics/fastTravel';
 import { 
   type Spacecraft, 
   type BurnDirection, 
@@ -107,6 +108,7 @@ interface GameState {
   startNewGame: () => void;
   continueGame: () => void;
   clearSave: () => void;
+  fastTravelToTarget: (targetName: string) => void;
 }
 
 // ---- Save system -----------------------------------------------------
@@ -725,6 +727,28 @@ export const useStore = create<GameState>((set, get) => {
     clearSave: () => {
       deleteSave();
       set({ hasSave: false });
+    },
+
+    fastTravelToTarget: (targetName) => {
+      const state = get();
+      const target = state.bodies.find((b) => b.name === targetName);
+      if (!target) return;
+
+      // Call external fast travel module
+      const updatedShipState = calculateFastTravelState(state.ship, target);
+
+      set({
+        ship: {
+          ...state.ship,
+          ...updatedShipState,
+        },
+        // Reset active burn controls on teleport
+        autopilotEnabled: false,
+        autopilotTargetName: targetName,
+        autopilotStatus: 'STABLE_ORBIT',
+        activeBurnDirection: null,
+        throttle: 0,
+      });
     },
   };
 });
