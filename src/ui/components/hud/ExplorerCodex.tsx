@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { G } from '../../../physics/constants';
 import { useStore } from '../../../state/store';
 import { CornerFrame } from './CornerFrame';
@@ -21,6 +21,7 @@ function calculateTelemetry(body: { name: string; mass: number; radius: number; 
 }
 
 export function ExplorerCodex() {
+  const [isExpanded, setIsExpanded] = useState(false);
   const codexEntries = useStore((state) => state.codexEntries);
   const achievements = useStore((state) => state.achievements);
   const activeScanTargetId = useStore((state) => state.activeScanTargetId);
@@ -37,19 +38,17 @@ export function ExplorerCodex() {
   const telemetry = activeBody ? calculateTelemetry(activeBody as never, ship as never) : null;
 
   return (
-    <CornerFrame className="font-mono text-[#E6E9EF] w-[min(340px,calc(100vw-2rem))] max-h-[38vh] overflow-hidden" accent="#A78BFA">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h2 className="text-sm font-bold tracking-[0.2em] text-[#A78BFA]">EXPLORER&apos;S CODEX</h2>
-          <p className="text-[10px] text-white/50 uppercase tracking-[0.24em]">Research log & telemetry</p>
-        </div>
-        <div className="text-right text-[10px] uppercase tracking-[0.24em] text-white/60">
-          <div>{unlockedEntries.length} / {codexEntries.length}</div>
-          <div>{lockedCount} locked</div>
-        </div>
-      </div>
+    <CornerFrame className={`flex h-full flex-col font-mono text-[#E6E9EF] transition-all duration-300 ${isExpanded ? 'w-[min(560px,calc(100vw-2rem))] max-h-[78vh] h-[min(74vh,640px)]' : 'w-[min(75px,calc(100vw-2rem))] max-h-[52px]'} overflow-hidden`} accent="#A78BFA">
+      <button
+        type="button"
+        onClick={() => setIsExpanded((prev) => !prev)}
+        className="flex h-10 w-full items-center justify-center rounded-xl border border-white/10 bg-white/5 text-left text-sm font-bold tracking-[0.24em] text-[#A78BFA] transition hover:border-white/20 hover:bg-white/10"
+      >
+        {isExpanded ? "Explorer's Codex" : "EC"}
+      </button>
 
-      <div className="space-y-3 overflow-y-auto pr-2 pb-1 text-sm">
+      <div className="codex-scroll mt-5 flex-1 space-y-3 overflow-y-auto pr-2 pb-1 text-sm" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <style>{`.codex-scroll::-webkit-scrollbar { display: none; }`}</style>
         {achievements.length > 0 ? (
           <div className="rounded-2xl border border-amber-400/25 bg-amber-400/10 p-3">
             <div className="text-xs uppercase tracking-[0.24em] text-amber-300">ACHIEVEMENTS</div>
