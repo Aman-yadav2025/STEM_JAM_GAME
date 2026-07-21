@@ -1,5 +1,5 @@
 import React from 'react';
-import { useStore, WARP_STEPS } from '../state/store';
+import { useStore, WARP_STEPS, getDisplayWarpValue } from '../state/store';
 
 export const TimeWarpControls: React.FC = () => {
   const timeWarp = useStore((state) => state.timeWarp);
@@ -27,8 +27,8 @@ export const TimeWarpControls: React.FC = () => {
           className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 rounded text-sm font-semibold transition flex items-center gap-1"
           title="Reset to 1x Speed"
         >
-          <span>{timeWarp}x</span>
-          {timeWarp !== 1 && <span className="text-xs opacity-75">(Reset)</span>}
+          <span>{getDisplayWarpValue(timeWarp)}x</span>
+          {timeWarp !== WARP_STEPS[2] && <span className="text-xs opacity-75">(Reset)</span>}
         </button>
 
         {/* Step Up Button */}
@@ -54,7 +54,7 @@ export const TimeWarpControls: React.FC = () => {
                 : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
             }`}
           >
-            {step}x
+            {getDisplayWarpValue(step)}x
           </button>
         ))}
       </div>

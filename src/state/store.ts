@@ -6,8 +6,12 @@ import { Vector3 } from '../physics/vector3';
 import { buildSolarSystem } from '../scene/celestialFactory';
 
 
-export const WARP_STEPS = [1, 2, 5, 10, 25, 50, 75, 100] as const;
+export const WARP_STEPS = [0.01, 0.05, 0.1, 0.2, 0.5] as const;
 export type WarpStep = (typeof WARP_STEPS)[number];
+
+export const DEFAULT_WARP_STEP: WarpStep = WARP_STEPS[2];
+
+export const getDisplayWarpValue = (step: WarpStep): number => Number((step * 10).toFixed(10));
 
 
 export type CodexEntry = {
@@ -334,7 +338,7 @@ const createInitialShip = (bodies: MovingBody[] = initialBodies): Spacecraft => 
   const totalVelocity = earthVelocity.add(relativeVelocity);
 
   return {
-    position:  new Vector3(0,1000,0), //shipPosition,
+    position:  new Vector3(1000,0,0), //shipPosition,
     velocity: new Vector3(40,100,400),
     mass: 1000,
     fuel: 500,
@@ -476,7 +480,7 @@ export const useStore = create<GameState>((set, get) => {
     engine: DEFAULT_ENGINE,
     time: 0,
 
-    timeWarp: 1,
+    timeWarp: DEFAULT_WARP_STEP,
     flightInput: { pitch: 0, yaw: 0, roll: 0, thrusting: false },
 
     setTimeWarp: (warp) => set({ timeWarp: warp }),
@@ -497,7 +501,7 @@ export const useStore = create<GameState>((set, get) => {
       }
     },
 
-    resetTimeWarp: () => set({ timeWarp: 1 }),
+    resetTimeWarp: () => set({ timeWarp: DEFAULT_WARP_STEP }),
     activeBurnDirection: null,
     throttle: 0,
 
