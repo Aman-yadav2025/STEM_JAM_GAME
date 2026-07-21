@@ -17,8 +17,16 @@ export const G = 6; // tune this first when calibrating a new level
 // Fixed physics timestep (seconds). Runs independent of render framerate.
 export const CONSTANT_DT = 1 / 120;
 
-// Slow the simulation down so the ship feels more like a spacecraft
-// and less like a projectile flying around the planets.
+// NOTE: as currently consumed in GameLoop.ts (stepDt = CONSTANT_DT *
+// SIMULATION_TIME_SCALE, then the accumulator is drained by stepDt per
+// tick), this does NOT slow down simulated time relative to real time —
+// it only changes step size (smaller steps = more, finer ticks per real
+// second, same total simulated time per real second). If you actually want
+// simulated time to run slower than real time, GameLoop.ts's accumulator
+// needs to advance simulated time by `stepDt`, but only consume
+// `stepDt / SIMULATION_TIME_SCALE` of real elapsed time per tick — i.e. the
+// scale needs to divide how much of `accumulator` gets drained, not just
+// shrink the step size.
 export const SIMULATION_TIME_SCALE = 0.4;
 
 // Below this eccentricity, an orbit is considered "circular" for win checks.
@@ -72,10 +80,17 @@ export type BurnDirection =
 
   
 /**
- * Hill-sphere-style approximation of a sphere of influence radius.
+ * Hill-sphere approximation of a sphere of influence radius.
  * d = distance between the two bodies, mPrimary = mass of the body being
  * orbited (e.g. planet), mBody = mass of the smaller body (e.g. moon).
+ *
+ * r_Hill = d * (mBody / (3 * mPrimary)) ^ (1/3)
+ *
+ * Previously this used `Math.pow(mBody / mPrimary, 2 / 5)` with no factor
+ * of 3 — wrong exponent (2/5 instead of 1/3) and missing the /3, which
+ * threw off every SOI radius in the game (and the safety margins built on
+ * top of them elsewhere, e.g. in celestialFactory.ts).
  */
 export function computeSOIRadius(d: number, mBody: number, mPrimary: number): number {
-  return d * Math.pow(mBody / mPrimary, 2 / 5);
+  return d * Math.pow(mBody / (3 * mPrimary), 1 / 3);
 }
