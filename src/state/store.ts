@@ -3,6 +3,7 @@ import { type Spacecraft, type BurnDirection } from '../physics/constants';
 import type { MovingBody } from '../physics/orbitPath';
 import { type EngineSpec, DEFAULT_ENGINE } from '../physics/Rocketequation.ts';
 import { Vector3 } from '../physics/vector3';
+import { buildSolarSystem } from '../scene/celestialFactory';
 
 export type CodexEntry = {
   id: string;
@@ -32,7 +33,12 @@ interface GameState {
   activeBurnDirection: BurnDirection | null;
   throttle: number;
 
+  gamePhase: 'menu'|'Playing'|'GameOver';
+  setGamePhase: (phase: 'menu'|'Playing'|'GameOver')=> void;
+  returnToMainMenu: (save?: boolean) => void;
+  
   isPaused: boolean;
+  
   setPaused: (paused: boolean) => void;
   togglePaused: () => void;
 
@@ -55,7 +61,80 @@ interface GameState {
   setBodies: (bodies: MovingBody[]) => void;
   setControls: (direction: BurnDirection | null, throttle: number) => void;
   setTime: (t: number) => void;
+
+  // --- Save / Continue / New Game ---
+  hasSave: boolean;
+  saveGame: () => void;
+  startNewGame: () => void;
+  continueGame: () => void;
+  clearSave: () => void;
 }
+
+// ---- Save system -----------------------------------------------------
+// We only persist the pieces of state that can't be trivially
+// regenerated (ship, time, engine, codex + achievement progress).
+// `bodies` is left out on purpose: it's rebuilt deterministically at
+// store creation and driven by `time` via the physics/orbit code, and
+// it contains circular `parentBody` references that JSON can't encode.
+
+const SAVE_KEY = 'orbit-simulator-save-v1';
+
+type SerializedVector3 = { x: number; y: number; z: number };
+
+type SaveData = {
+  ship: Omit<Spacecraft, 'position' | 'velocity'> & {
+    position: SerializedVector3;
+    velocity: SerializedVector3;
+  };
+  engine: EngineSpec;
+  time: number;
+  codexEntries: CodexEntry[];
+  achievements: Achievement[];
+};
+
+const serializeVector3 = (v: Vector3): SerializedVector3 => ({ x: v.x, y: v.y, z: v.z });
+const deserializeVector3 = (v: SerializedVector3): Vector3 => new Vector3(v.x, v.y, v.z);
+
+const hasLocalStorage = () => typeof window !== 'undefined' && !!window.localStorage;
+
+const readSave = (): SaveData | null => {
+  if (!hasLocalStorage()) return null;
+  try {
+    const raw = window.localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as SaveData;
+  } catch {
+    // Corrupted or unreadable save — treat as no save.
+    return null;
+  }
+};
+
+const writeSave = (data: SaveData) => {
+  if (!hasLocalStorage()) return;
+  try {
+    window.localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  } catch {
+    window.alert('No storage');
+  }
+};
+
+const deleteSave = () => {
+  if (!hasLocalStorage()) return;
+  try {
+    window.localStorage.removeItem(SAVE_KEY);
+  } catch {
+    // ignore
+  }
+};
+
+const createInitialShip = (): Spacecraft => ({
+  position: new Vector3(-2000, 0, 0),
+  velocity: new Vector3(50, 0, 50),
+  mass: 1000,
+  fuel: 500,
+  maxFuel: 500,
+  heading: 0,
+});
 
 export const useStore = create<GameState>((set, get) => {
   const sun: MovingBody = {
@@ -563,7 +642,7 @@ export const useStore = create<GameState>((set, get) => {
     },
   };
 
-  const initialCodexEntries: CodexEntry[] = [
+  const createInitialCodexEntries = (): CodexEntry[] => [
     {
       id: 'Earth',
       title: 'Earth — The Blue Beacon',
@@ -656,7 +735,7 @@ export const useStore = create<GameState>((set, get) => {
     },
   ];
 
-  const initialAchievements: Achievement[] = [
+  const createInitialAchievements = (): Achievement[] => [
     {
       id: 'efficient-transfer',
       title: 'Efficiency',
@@ -687,14 +766,7 @@ export const useStore = create<GameState>((set, get) => {
   ];
 
   return {
-    ship: {
-      position: new Vector3(-2000, 0, 0),
-      velocity: new Vector3(50, 0, 50),
-      mass: 1000,
-      fuel: 500,
-      maxFuel: 500,
-      heading: 0,
-    },
+    ship: createInitialShip(),
     bodies: [
       sun,
       mercury,
@@ -749,11 +821,14 @@ export const useStore = create<GameState>((set, get) => {
     activeBurnDirection: null,
     throttle: 0,
 
+    gamePhase: 'menu',
+    setGamePhase:(phase)=>set({gamePhase:phase}),
+
     isPaused: false,
     setPaused: (paused) => set({ isPaused: paused }),
     togglePaused: () => set((state) => ({ isPaused: !state.isPaused })),
-    codexEntries: initialCodexEntries,
-    achievements: initialAchievements,
+    codexEntries: createInitialCodexEntries(),
+    achievements: createInitialAchievements(),
     activeScanTargetId: null,
     scanProgress: 0,
     currentBodyId: null,
@@ -834,5 +909,93 @@ export const useStore = create<GameState>((set, get) => {
     setBodies: (bodies) => set({ bodies }),
     setControls: (direction, throttle) => set({ activeBurnDirection: direction, throttle }),
     setTime: (time) => set({ time }),
+
+    // --- Save / Continue / New Game -------------------------------
+    hasSave: readSave() !== null,
+
+    saveGame: () => {
+      const state = get();
+      const data: SaveData = {
+        ship: {
+          ...state.ship,
+          position: serializeVector3(state.ship.position),
+          velocity: serializeVector3(state.ship.velocity),
+        },
+        engine: state.engine,
+        time: state.time,
+        codexEntries: state.codexEntries,
+        achievements: state.achievements,
+      };
+      writeSave(data);
+      set({ hasSave: true });
+    },
+
+    returnToMainMenu: (save = true) => {
+    if (save) {
+      get().saveGame();
+    }
+    set({
+      gamePhase: 'menu',
+      activeBurnDirection: null,
+      throttle: 0,
+      isPaused: true, // Pause the physics loop if needed
+      activeScanTargetId: null,
+    });
+  },
+
+    startNewGame: () => {
+      deleteSave();
+      set({
+        ship: createInitialShip(),
+        engine: DEFAULT_ENGINE,
+        time: 0,
+        activeBurnDirection: null,
+        throttle: 0,
+        codexEntries: createInitialCodexEntries(),
+        achievements: createInitialAchievements(),
+        activeScanTargetId: null,
+        scanProgress: 0,
+        currentBodyId: null,
+        ringGrazingTime: 0,
+        aerobrakeTime: 0,
+        isPaused: false,
+        gamePhase: 'Playing',
+      });
+      // Write the fresh state as the new save right away so a crash or
+      // refresh right after starting doesn't lose the new-game state.
+      get().saveGame();
+    },
+
+    continueGame: () => {
+      const data = readSave();
+      if (!data) {
+        // No save to continue from — fall back to a fresh game.
+        get().startNewGame();
+        return;
+      }
+
+      set({
+        ship: {
+          ...data.ship,
+          position: deserializeVector3(data.ship.position),
+          velocity: deserializeVector3(data.ship.velocity),
+        },
+        engine: data.engine,
+        time: data.time,
+        codexEntries: data.codexEntries,
+        achievements: data.achievements,
+        activeBurnDirection: null,
+        throttle: 0,
+        activeScanTargetId: null,
+        scanProgress: 0,
+        isPaused: false,
+        gamePhase: 'Playing',
+      });
+    },
+
+    clearSave: () => {
+      deleteSave();
+      set({ hasSave: false });
+    },
   };
 });

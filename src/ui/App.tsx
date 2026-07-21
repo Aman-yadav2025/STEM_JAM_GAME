@@ -1,4 +1,6 @@
 import { useEffect } from 'react';
+import React from 'react';
+import {MainMenu}  from './MainMenu';
 import { SceneManager } from '../scene/SceneManager';
 import { useStore } from '../state/store';
 import { StatusHUD } from './components/hud/StatusHUD';
@@ -10,48 +12,57 @@ import { CaptionBox, showGameCaption } from './hud/CaptionBox';
 import { Minimap } from './components/hud/Minimap';
 
 export default function App() {
+  const gamePhase = useStore((state) => state.gamePhase);
   const togglePaused = useStore((state) => state.togglePaused);
 
+// Only trigger the intro caption when entering the 'playing' phase
   useEffect(() => {
-    showGameCaption(
-      'System online. Tap a burn direction to begin steering, then hold throttle to ignite. Your first objective: escape low orbit and intercept the transfer window.',
-      'info',
-      [
-        {
-          label: 'Planet Hazards',
-          handler: () => showGameCaption(
-            'Venus is the Pressure Cooker: a deep-heat zone where sensors overheat and only shielded ships survive. Uranus is the Sideways Spinner: erratic gravitation can flip your controls mid-flight.',
-            'tip'
-          ),
-        },
-        {
-          label: 'Deep-Space Lore',
-          handler: () => showGameCaption(
-            'Brown dwarfs are failed stars in the cold dark. Perspective tricks make distant objects appear close, and micrometeoroids mean hull checks matter in every mission.',
-            'tip'
-          ),
-        },
-        {
-          label: 'Star Navigation',
-          handler: () => showGameCaption(
-            'Constellations are sky-region waypoints, not real clusters. Calibrate your nav-computer by star-hopping through known patterns and discover alien names for the same star fields.',
-            'tip'
-          ),
-        },
-      ]
-    );
-  }, []);
+    if (gamePhase === 'Playing') {
+      showGameCaption(
+        'System online. Tap a burn direction to begin steering, then hold throttle to ignite. Your first objective: escape low orbit and intercept the transfer window.',
+        'info',
+        [
+          {
+            label: 'Planet Hazards',
+            handler: () => showGameCaption(
+              'Venus is the Pressure Cooker: a deep-heat zone where sensors overheat and only shielded ships survive. Uranus is the Sideways Spinner: erratic gravitation can flip your controls mid-flight.',
+              'tip'
+            ),
+          },
+          {
+            label: 'Deep-Space Lore',
+            handler: () => showGameCaption(
+              'Brown dwarfs are failed stars in the cold dark. Perspective tricks make distant objects appear close, and micrometeoroids mean hull checks matter in every mission.',
+              'tip'
+            ),
+          },
+          {
+            label: 'Star Navigation',
+            handler: () => showGameCaption(
+              'Constellations are sky-region waypoints, not real clusters. Calibrate your nav-computer by star-hopping through known patterns and discover alien names for the same star fields.',
+              'tip'
+            ),
+          },
+        ]
+      );
+    }
+  }, [gamePhase]);
 
+  // Only allow pausing via Escape key if currently playing
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && gamePhase === 'Playing') {
         togglePaused();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [togglePaused]);
+  }, [togglePaused, gamePhase]);
+
+  if (gamePhase === 'menu') {
+    return <MainMenu />;
+  }
 
   return (
     <div className="relative w-screen h-screen bg-black overflow-hidden">
