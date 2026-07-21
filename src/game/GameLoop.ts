@@ -2,17 +2,26 @@ import { useFrame } from '@react-three/fiber';
 import { useRef } from 'react';
 import { World } from './World';
 import { CONSTANT_DT } from '../physics/constants';
+import { useStore } from '../state/store';
+import { SIMULATION_TIME_SCALE } from '../physics/constants';
 
 export const useGameLoop = () => {
+  const isPaused = useStore((state) => state.isPaused);
   const accumulator = useRef(0);
+  const stepDt = CONSTANT_DT * SIMULATION_TIME_SCALE;
 
   useFrame((_, delta) => {
+    if (isPaused) {
+      accumulator.current = 0;
+      return;
+    }
+
     const safeDelta = Math.min(delta, 0.1);
     accumulator.current += safeDelta;
 
-    while (accumulator.current >= CONSTANT_DT) {
-      World.tick();
-      accumulator.current -= CONSTANT_DT;
+    while (accumulator.current >= stepDt) {
+      World.tick(stepDt);
+      accumulator.current -= stepDt;
     }
   });
 };

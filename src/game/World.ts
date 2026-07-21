@@ -3,10 +3,26 @@
 import { useStore } from '../state/store';
 import { updateShipPhysics } from '../physics/rocketMotion'; //[cite: 1]
 import { updateBodyPositions } from '../physics/orbitPath'; //[cite: 1]
-import { CONSTANT_DT } from '../physics/constants'; //[cite: 1]
+import { showGameCaption } from '../ui/hud/CaptionBox';
+import { CONSTANT_DT } from '../physics/constants';
+
+function getCurrentBodyId(ship: { position: { distanceTo: (target: any) => number } }, bodies: Array<{ name: string; soiRadius: number; position: any }>) {
+  let currentBodyId: string | null = null;
+  let smallestSoI = Infinity;
+
+  bodies.forEach((body) => {
+    const distance = ship.position.distanceTo(body.position);
+    if (distance < body.soiRadius && body.soiRadius < smallestSoI) {
+      smallestSoI = body.soiRadius;
+      currentBodyId = body.name;
+    }
+  });
+
+  return currentBodyId;
+}
 
 export class World {
-  static tick() {
+  static tick(dt = CONSTANT_DT) {
     // 1. Grab current state from Zustand
     const state = useStore.getState();
     let currentShip = state.ship;
@@ -24,7 +40,8 @@ export class World {
       state.engine,
       state.activeBurnDirection,
       state.throttle,
-      currentTime
+      currentTime,
+      dt
     ); //[cite: 1]
 
     // 4. Commit the new state back to the store
