@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { type Spacecraft, type BurnDirection, G, type FlightInputState } from '../physics/constants';
 import type { MovingBody } from '../physics/orbitPath';
-import { type EngineSpec, DEFAULT_ENGINE } from '../physics/Rocketequation.ts';
+import { type EngineSpec, DEFAULT_ENGINE } from '../physics/rocketEquation';
 import { Vector3 } from '../physics/vector3';
 import { buildSolarSystem } from '../scene/celestialFactory';
 
@@ -321,7 +321,7 @@ const createInitialShip = (bodies: MovingBody[] = initialBodies): Spacecraft => 
   const orbitRadius = earth.radius + orbitAltitude; // 35 + 12 = 47 units from Earth center
 
   const relativePosition = new Vector3(orbitRadius, 0, 0);
-  earth.position.add(relativePosition);
+  const shipPosition = earth.position.add(relativePosition);
 
   // 3. Calculate circular orbital speed relative to Earth: v = sqrt(G * M / r).
   // Uses the real simulation G imported from physics/constants (G = 6) —

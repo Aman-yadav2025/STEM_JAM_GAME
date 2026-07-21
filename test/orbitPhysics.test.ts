@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { updateShipPhysics } from '../src/physics/rocketMotion';
-import { DEFAULT_ENGINE } from '../src/physics/Rocketequation';
+import { DEFAULT_ENGINE } from '../src/physics/rocketEquation';
 import { CONSTANT_DT, G, type CelestialBody, type Spacecraft } from '../src/physics/constants';
 import { Vector3 } from '../src/physics/vector3';
 import { bodyPositionAtTime, type OrbitPath } from '../src/physics/orbitPath';
@@ -53,6 +53,9 @@ function createCircularOrbitScenario() {
     fuel: 500,
     maxFuel: 500,
     heading: 0,
+    pitch: 0,
+    yaw: 0,
+    roll: 0
   };
 
   return { sun, planet, ship, planetOrbitRadius, shipOrbitRadius };

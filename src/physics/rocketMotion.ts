@@ -5,7 +5,7 @@
 // thrust on top when the player is holding the main engine key.
 
 import { CONSTANT_DT, type CelestialBody, type Spacecraft, type BurnDirection, type FlightInputState } from "./constants";
-import { STANDARD_g, type EngineSpec } from "./Rocketequation";
+import { STANDARD_g, type EngineSpec } from "./rocketEquation";
 import { Vector3 } from "./vector3";
 import { DominantAccel } from "./gravity";
 import { updateBodyPositions, type OrbitPath } from "./orbitPath";
