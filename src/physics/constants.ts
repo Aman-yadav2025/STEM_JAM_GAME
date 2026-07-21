@@ -41,6 +41,13 @@ export interface CelestialBody {
   color: string;
 }
 
+export interface FlightInputState {
+  pitch: number;  // -1..1, forward/back tilt
+  yaw: number;    // -1..1, left/right tilt
+  roll: number;   // -1..1, roll input
+  thrusting: boolean;
+}
+
 export interface Spacecraft {
   position: Vector3;
   velocity: Vector3;
@@ -48,6 +55,9 @@ export interface Spacecraft {
   fuel: number;         // current propellant mass, 0 <= fuel <= maxFuel
   maxFuel: number;       // fuel capacity — fuel can never exceed this
   heading: number;         // radians, cosmetic — align to velocity vector for sprite rotation
+  pitch: number;          // radians, local nose-up/nose-down attitude
+  yaw: number;            // radians, local left/right attitude
+  roll: number;           // radians, local roll attitude
 }
 
 /** Total current mass (dry + remaining fuel) — used by gravity/thrust accel calcs. */

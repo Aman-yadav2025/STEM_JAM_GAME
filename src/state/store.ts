@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { type Spacecraft, type BurnDirection, G } from '../physics/constants';
+import { type Spacecraft, type BurnDirection, G, type FlightInputState } from '../physics/constants';
 import type { MovingBody } from '../physics/orbitPath';
 import { type EngineSpec, DEFAULT_ENGINE } from '../physics/Rocketequation.ts';
 import { Vector3 } from '../physics/vector3';
@@ -47,6 +47,9 @@ interface GameState {
   gamePhase: 'menu' | 'Playing' | 'GameOver';
   setGamePhase: (phase: 'menu' | 'Playing' | 'GameOver') => void;
   returnToMainMenu: (save?: boolean) => void;
+
+  flightInput: FlightInputState;
+  setFlightControls: (controls: FlightInputState) => void;
 
   isPaused: boolean;
 
@@ -284,6 +287,9 @@ const createInitialShip = (bodies: MovingBody[] = initialBodies): Spacecraft => 
       fuel: 500,
       maxFuel: 500,
       heading: Math.PI / 2,
+      pitch: 0,
+      yaw: 0,
+      roll: 0,
     };
   }
 
@@ -313,7 +319,7 @@ const createInitialShip = (bodies: MovingBody[] = initialBodies): Spacecraft => 
   const orbitRadius = earth.radius + orbitAltitude; // 35 + 12 = 47 units from Earth center
 
   const relativePosition = new Vector3(orbitRadius, 0, 0);
-  const shipPosition = earth.position.add(relativePosition);
+  earth.position.add(relativePosition);
 
   // 3. Calculate circular orbital speed relative to Earth: v = sqrt(G * M / r).
   // Uses the real simulation G imported from physics/constants (G = 6) —
@@ -334,6 +340,9 @@ const createInitialShip = (bodies: MovingBody[] = initialBodies): Spacecraft => 
     fuel: 500,
     maxFuel: 500,
     heading: Math.atan2(totalVelocity.z, totalVelocity.x),
+    pitch: 0,
+    yaw: 0,
+    roll: 0,
   };
 };
 
@@ -468,6 +477,7 @@ export const useStore = create<GameState>((set, get) => {
     time: 0,
 
     timeWarp: 1,
+    flightInput: { pitch: 0, yaw: 0, roll: 0, thrusting: false },
 
     setTimeWarp: (warp) => set({ timeWarp: warp }),
 
@@ -578,6 +588,7 @@ export const useStore = create<GameState>((set, get) => {
     setShip: (ship) => set({ ship }),
     setBodies: (bodies) => set({ bodies }),
     setControls: (direction, throttle) => set({ activeBurnDirection: direction, throttle }),
+    setFlightControls: (controls) => set({ flightInput: controls }),
     setTime: (time) => set({ time }),
 
     // --- Save / Continue / New Game -------------------------------
@@ -608,6 +619,7 @@ export const useStore = create<GameState>((set, get) => {
         gamePhase: 'menu',
         activeBurnDirection: null,
         throttle: 0,
+        flightInput: { pitch: 0, yaw: 0, roll: 0, thrusting: false },
         isPaused: true,
         activeScanTargetId: null,
       });
@@ -622,6 +634,7 @@ export const useStore = create<GameState>((set, get) => {
         time: 0,
         activeBurnDirection: null,
         throttle: 0,
+        flightInput: { pitch: 0, yaw: 0, roll: 0, thrusting: false },
         codexEntries: createInitialCodexEntries(),
         achievements: createInitialAchievements(),
         activeScanTargetId: null,
