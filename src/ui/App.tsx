@@ -144,9 +144,9 @@ export default function App() {
         
         {/* Bottom Left - Navigation & Time Controls */}
         <div className="absolute bottom-6 left-6 z-20 pointer-events-auto flex flex-col gap-4">
-        <TimeWarpControls />
-          <AutopilotPanel />
           <FastTravelPanel />
+          <AutopilotPanel />
+        <TimeWarpControls />  
         </div>
       </div>
     </div>
