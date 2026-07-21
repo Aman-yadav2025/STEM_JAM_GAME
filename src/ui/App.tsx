@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import {MainMenu}  from './MainMenu';
+import { MainMenu } from './MainMenu';
 import { SceneManager } from '../scene/SceneManager';
 import { useStore } from '../state/store';
 import { StatusHUD } from './components/hud/StatusHUD';
@@ -11,13 +11,14 @@ import { CaptionBox, showGameCaption } from './components/hud/CaptionBox';
 import { Minimap } from './components/hud/Minimap';
 import { TimeWarpControls } from './TimeWarpControls';
 import { AutopilotPanel } from './AutopilotPanel';
+import { FastTravelPanel } from './components/hud/FastTravelPanel';
 
 export default function App() {
   const gamePhase = useStore((state) => state.gamePhase);
   const togglePaused = useStore((state) => state.togglePaused);
   const setFlightControls = useStore((state) => state.setFlightControls);
 
-// Only trigger the intro caption when entering the 'playing' phase
+  // Only trigger the intro caption when entering the 'playing' phase
   useEffect(() => {
     if (gamePhase === 'Playing') {
       showGameCaption(
@@ -26,24 +27,27 @@ export default function App() {
         [
           {
             label: 'Planet Hazards',
-            handler: () => showGameCaption(
-              'Venus is the Pressure Cooker: a deep-heat zone where sensors overheat and only shielded ships survive. Uranus is the Sideways Spinner: erratic gravitation can flip your controls mid-flight.',
-              'tip'
-            ),
+            handler: () =>
+              showGameCaption(
+                'Venus is the Pressure Cooker: a deep-heat zone where sensors overheat and only shielded ships survive. Uranus is the Sideways Spinner: erratic gravitation can flip your controls mid-flight.',
+                'tip'
+              ),
           },
           {
             label: 'Deep-Space Lore',
-            handler: () => showGameCaption(
-              'Brown dwarfs are failed stars in the cold dark. Perspective tricks make distant objects appear close, and micrometeoroids mean hull checks matter in every mission.',
-              'tip'
-            ),
+            handler: () =>
+              showGameCaption(
+                'Brown dwarfs are failed stars in the cold dark. Perspective tricks make distant objects appear close, and micrometeoroids mean hull checks matter in every mission.',
+                'tip'
+              ),
           },
           {
             label: 'Star Navigation',
-            handler: () => showGameCaption(
-              'Constellations are sky-region waypoints, not real clusters. Calibrate your nav-computer by star-hopping through known patterns and discover alien names for the same star fields.',
-              'tip'
-            ),
+            handler: () =>
+              showGameCaption(
+                'Constellations are sky-region waypoints, not real clusters. Calibrate your nav-computer by star-hopping through known patterns and discover alien names for the same star fields.',
+                'tip'
+              ),
           },
         ]
       );
@@ -132,13 +136,18 @@ export default function App() {
 
         <CodexUnlocker />
         <PauseMenu />
+        
+        {/* Bottom Right - Minimap */}
         <div className="absolute bottom-6 right-6 z-20 pointer-events-auto">
           <Minimap />
         </div>
-        <div className="pointer-events-auto absolute bottom-5 left-5">
-          <AutopilotPanel />
+        
+        {/* Bottom Left - Navigation & Time Controls */}
+        <div className="absolute bottom-6 left-6 z-20 pointer-events-auto flex flex-col gap-4">
         <TimeWarpControls />
-      </div>
+          <AutopilotPanel />
+          <FastTravelPanel />
+        </div>
       </div>
     </div>
   );
