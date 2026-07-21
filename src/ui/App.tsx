@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import React from 'react';
 import {MainMenu}  from './MainMenu';
 import { SceneManager } from '../scene/SceneManager';
 import { useStore } from '../state/store';
@@ -11,6 +10,7 @@ import { PauseMenu } from './PauseMenu';
 import { CaptionBox, showGameCaption } from './hud/CaptionBox';
 import { Minimap } from './components/hud/Minimap';
 import { TimeWarpControls } from './TimeWarpControls';
+import { AutopilotPanel } from './AutopilotPanel';
 
 export default function App() {
   const gamePhase = useStore((state) => state.gamePhase);
@@ -101,6 +101,7 @@ export default function App() {
           <Minimap />
         </div>
         <div className="pointer-events-auto absolute bottom-5 left-5">
+          <AutopilotPanel />
         <TimeWarpControls />
       </div>
       </div>

@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import { type Spacecraft, type BurnDirection, G } from '../physics/constants';
-import type { MovingBody } from '../physics/orbitPath';
+import { type MovingBody, bodyVelocityAtTime } from '../physics/orbitPath';
 import { type EngineSpec, DEFAULT_ENGINE } from '../physics/Rocketequation.ts';
 import { Vector3 } from '../physics/vector3';
 import { buildSolarSystem } from '../scene/celestialFactory';
+import type { AutopilotStatus } from '../physics/autopilot';
 
 
-export const WARP_STEPS = [1, 2, 5, 10, 25, 50, 75, 100] as const;
+export const WARP_STEPS = [0,1, 2, 5, 10, 25, 50, 75, 100] as const;
 export type WarpStep = (typeof WARP_STEPS)[number];
 
 
@@ -30,6 +31,7 @@ export type Achievement = {
 };
 
 interface GameState {
+  cancelAutopilot: () => void;
   ship: Spacecraft;
   bodies: MovingBody[];
   engine: EngineSpec;
@@ -43,6 +45,18 @@ interface GameState {
 
   activeBurnDirection: BurnDirection | null;
   throttle: number;
+
+  // --- Autopilot ---
+  // When enabled, World.tick() feeds computeAutopilot()'s output into
+  // updateShipPhysics() instead of the player's manual activeBurnDirection/
+  // throttle. Manual controls remain untouched underneath so toggling
+  // autopilot off hands control straight back with no extra plumbing.
+  autopilotEnabled: boolean;
+  autopilotTargetName: string | null;
+  autopilotStatus: AutopilotStatus;
+  setAutopilotTarget: (targetName: string | null) => void;
+  setAutopilotEnabled: (enabled: boolean) => void;
+  toggleAutopilot: () => void;
 
   gamePhase: 'menu' | 'Playing' | 'GameOver';
   setGamePhase: (phase: 'menu' | 'Playing' | 'GameOver') => void;
@@ -297,39 +311,32 @@ const createInitialShip = (bodies: MovingBody[] = initialBodies): Spacecraft => 
   // out of Earth's SOI and end up orbiting the Sun instead.
   let earthVelocity = Vector3.zero();
   if (earth.orbit) {
-    const { orbitalPeriod } = earth.orbit;
-    const omega = (2 * Math.PI) / orbitalPeriod;
-
-    earthVelocity = new Vector3(
-      -omega * earth.position.z,
-      0,
-      omega * earth.position.x
-    );
+    earthVelocity = bodyVelocityAtTime(earth.orbit, 0);
   }
 
-  // 2. Position ship in Low Earth Orbit (12 units above Earth's surface),
-  // offset along +X relative to Earth.
-  const orbitAltitude = 12;
-  const orbitRadius = earth.radius + orbitAltitude; // 35 + 12 = 47 units from Earth center
+  // 2. Position ship in a safer low Earth orbit, using the Earth's current
+  // radial direction rather than hardcoding +X. This makes the start point
+  // consistent for any planet orientation and reduces initial frame mismatch.
+  const orbitAltitude = Math.max(20, Math.round(earth.radius * 0.5));
+  const orbitRadius = earth.radius + orbitAltitude;
 
-  const relativePosition = new Vector3(orbitRadius, 0, 0);
+  const earthParent = earth.orbit?.parentBody?.position ?? Vector3.zero();
+  const earthRadial = earth.position.subtract(earthParent).normalize();
+  const relativePosition = earthRadial.scale(orbitRadius);
   const shipPosition = earth.position.add(relativePosition);
 
   // 3. Calculate circular orbital speed relative to Earth: v = sqrt(G * M / r).
-  // Uses the real simulation G imported from physics/constants (G = 6) —
-  // there is no local shadowing `const G = 1;` here anymore.
   const circularSpeed = Math.sqrt((G * earth.mass) / orbitRadius);
 
-  // Tangential direction for a ship offset along +X in the XZ orbital
-  // plane is +Z (matching Earth's own plane of motion), not +Y.
-  const relativeVelocity = new Vector3(0, 0, circularSpeed);
+  const tangentDir = earthRadial.cross(new Vector3(0, 1, 0)).normalize();
+  const relativeVelocity = tangentDir.scale(circularSpeed);
 
   // 4. Combine Earth's velocity with the ship's relative orbital velocity.
   const totalVelocity = earthVelocity.add(relativeVelocity);
 
   return {
-    position:  new Vector3(0,1000,0), //shipPosition,
-    velocity: new Vector3(40,100,400),
+    position: shipPosition,
+    velocity: totalVelocity,
     mass: 1000,
     fuel: 500,
     maxFuel: 500,
@@ -491,6 +498,37 @@ export const useStore = create<GameState>((set, get) => {
     activeBurnDirection: null,
     throttle: 0,
 
+    autopilotEnabled: false,
+    autopilotTargetName: null,
+    autopilotStatus: 'IDLE',
+
+    // Picking a target doesn't auto-engage autopilot on its own — this just
+    // records which body computeAutopilot() should fly toward. Player still
+    // flips the master switch via setAutopilotEnabled/toggleAutopilot.
+    setAutopilotTarget: (targetName) => set({ autopilotTargetName: targetName }),
+
+    cancelAutopilot: () => {
+      const state = get();
+      state.setAutopilotEnabled(false);
+      state.setAutopilotTarget(null);
+    },
+
+    setAutopilotEnabled: (enabled) => {
+      // Disabling autopilot hands control back to the player immediately —
+      // clear any burn autopilot was mid-way through so the ship doesn't
+      // keep coasting on a stale thrust command it no longer owns.
+      if (!enabled) {
+        set({ autopilotEnabled: false, activeBurnDirection: null, throttle: 0, autopilotStatus: 'IDLE' });
+      } else {
+        set({ autopilotEnabled: true });
+      }
+    },
+
+    toggleAutopilot: () => {
+      const state = get();
+      state.setAutopilotEnabled(!state.autopilotEnabled);
+    },
+
     gamePhase: 'menu',
     setGamePhase: (phase) => set({ gamePhase: phase }),
 
@@ -610,6 +648,8 @@ export const useStore = create<GameState>((set, get) => {
         throttle: 0,
         isPaused: true,
         activeScanTargetId: null,
+        autopilotEnabled: false,
+        autopilotStatus: 'IDLE',
       });
     },
 
@@ -631,6 +671,9 @@ export const useStore = create<GameState>((set, get) => {
         aerobrakeTime: 0,
         isPaused: false,
         gamePhase: 'Playing',
+        autopilotEnabled: false,
+        autopilotTargetName: null,
+        autopilotStatus: 'IDLE',
       });
       get().saveGame();
     },
@@ -657,6 +700,9 @@ export const useStore = create<GameState>((set, get) => {
         scanProgress: 0,
         isPaused: false,
         gamePhase: 'Playing',
+        autopilotEnabled: false,
+        autopilotTargetName: null,
+        autopilotStatus: 'IDLE',
       });
     },
 

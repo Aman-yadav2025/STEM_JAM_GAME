@@ -103,9 +103,10 @@ export function updateShipPhysics(
     .add(ship.velocity.scale(stepDt))
     .add(a0Total.scale(0.5 * stepDt * stepDt));
 
-  // 5. Second gravity sample, at the NEW position. Bodies are already at
-  //    time t (only the ship moves within a single tick), so no second
-  //    updateBodyPositions call is needed here.
+  // 5. Second gravity sample, at the NEW position and new simulation time.
+  //    Since the dominant gravity source itself moves, we must sample the
+  //    field at t + dt rather than reusing the old body positions from t.
+  updateBodyPositions(bodies, t + stepDt);
   const a1Gravity = DominantAccel(newPosition, bodies);
   const a1Total = a1Gravity.add(thrustAcceleration);
 
