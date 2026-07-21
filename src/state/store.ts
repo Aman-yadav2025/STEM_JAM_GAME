@@ -5,6 +5,11 @@ import { type EngineSpec, DEFAULT_ENGINE } from '../physics/Rocketequation.ts';
 import { Vector3 } from '../physics/vector3';
 import { buildSolarSystem } from '../scene/celestialFactory';
 
+
+export const WARP_STEPS = [1, 2, 5, 10, 25, 50, 75, 100] as const;
+export type WarpStep = (typeof WARP_STEPS)[number];
+
+
 export type CodexEntry = {
   id: string;
   title: string;
@@ -29,6 +34,12 @@ interface GameState {
   bodies: MovingBody[];
   engine: EngineSpec;
   time: number;
+
+  timeWarp: WarpStep;
+  setTimeWarp: (warp: WarpStep) => void;
+  increaseTimeWarp: () => void;
+  decreaseTimeWarp: () => void;
+  resetTimeWarp: () => void;
 
   activeBurnDirection: BurnDirection | null;
   throttle: number;
@@ -455,6 +466,28 @@ export const useStore = create<GameState>((set, get) => {
     bodies: initialBodies,
     engine: DEFAULT_ENGINE,
     time: 0,
+
+    timeWarp: 1,
+
+    setTimeWarp: (warp) => set({ timeWarp: warp }),
+
+    increaseTimeWarp: () => {
+      const current = get().timeWarp;
+      const currentIndex = WARP_STEPS.indexOf(current);
+      if (currentIndex < WARP_STEPS.length - 1) {
+        set({ timeWarp: WARP_STEPS[currentIndex + 1] });
+      }
+    },
+
+    decreaseTimeWarp: () => {
+      const current = get().timeWarp;
+      const currentIndex = WARP_STEPS.indexOf(current);
+      if (currentIndex > 0) {
+        set({ timeWarp: WARP_STEPS[currentIndex - 1] });
+      }
+    },
+
+    resetTimeWarp: () => set({ timeWarp: 1 }),
     activeBurnDirection: null,
     throttle: 0,
 

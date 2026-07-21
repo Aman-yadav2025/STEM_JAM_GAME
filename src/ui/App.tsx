@@ -10,6 +10,7 @@ import { BurnControls } from './components/controls/BurnControls';
 import { PauseMenu } from './PauseMenu';
 import { CaptionBox, showGameCaption } from './hud/CaptionBox';
 import { Minimap } from './components/hud/Minimap';
+import { TimeWarpControls } from './TimeWarpControls';
 
 export default function App() {
   const gamePhase = useStore((state) => state.gamePhase);
@@ -99,6 +100,9 @@ export default function App() {
         <div className="absolute bottom-6 right-6 z-20 pointer-events-auto">
           <Minimap />
         </div>
+        <div className="pointer-events-auto absolute bottom-5 left-5">
+        <TimeWarpControls />
+      </div>
       </div>
     </div>
   );
