@@ -1,5 +1,5 @@
 import React from 'react';
-import { useStore, WARP_STEPS, type WarpStep } from '../state/store';
+import { useStore, WARP_STEPS } from '../state/store';
 
 export const TimeWarpControls: React.FC = () => {
   const timeWarp = useStore((state) => state.timeWarp);

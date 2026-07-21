@@ -1,6 +1,6 @@
 import { Vector3 } from '../physics/vector3';
-import { type CelestialBody, computeSOIRadius } from '../physics/constants';
-import { type MovingBody, type OrbitPath } from '../physics/orbitPath';
+import { computeSOIRadius } from '../physics/constants';
+import type { MovingBody } from '../physics/orbitPath';
 
 // --- CONFIGURATION SPECS ---
 
