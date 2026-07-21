@@ -6,8 +6,12 @@ import { Vector3 } from '../physics/vector3';
 import { buildSolarSystem } from '../scene/celestialFactory';
 
 
-export const WARP_STEPS = [1, 2, 5, 10, 25, 50, 75, 100] as const;
+export const WARP_STEPS = [0.01, 0.05, 0.1, 0.2, 0.5] as const;
 export type WarpStep = (typeof WARP_STEPS)[number];
+
+export const DEFAULT_WARP_STEP: WarpStep = WARP_STEPS[2];
+
+export const getDisplayWarpValue = (step: WarpStep): number => Number((step * 10).toFixed(10));
 
 
 export type CodexEntry = {
@@ -470,7 +474,7 @@ export const useStore = create<GameState>((set, get) => {
     time: 0,
     trajectoryPath: [],
 
-    timeWarp: 1,
+    timeWarp: DEFAULT_WARP_STEP,
     flightInput: { pitch: 0, yaw: 0, roll: 0, thrusting: false },
 
     setTimeWarp: (warp) => set({ timeWarp: warp }),
@@ -491,7 +495,7 @@ export const useStore = create<GameState>((set, get) => {
       }
     },
 
-    resetTimeWarp: () => set({ timeWarp: 1 }),
+    resetTimeWarp: () => set({ timeWarp: DEFAULT_WARP_STEP }),
     activeBurnDirection: null,
     throttle: 0,
 
