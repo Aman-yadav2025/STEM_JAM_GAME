@@ -23,9 +23,9 @@ interface TrajectoryLineProps {
 }
 
 export function TrajectoryLine({
-  maxSteps = 1e5,
+  maxSteps = 2000,
   minSteps = 50,
-  recomputeEveryNFrames = 60,
+  recomputeEveryNFrames = 1,
   color = '#F0E1CE',
 }: TrajectoryLineProps) {
   const bodies = useStore((state) => state.bodies) as MovingBody[];

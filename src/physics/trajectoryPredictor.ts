@@ -64,37 +64,53 @@ export function predictPath(
   const dt = CONSTANT_DT;
   const predictedBodies: MovingBody[] = bodies.map((b) => ({ ...b, position: b.position.clone() }));
 
-  let position = startPosition.clone();
-  let velocity = startVelocity.clone();
-  let t = startTime;
+  // 1. Identify the dominant body exactly at the start time
+  updateBodyPositions(predictedBodies, startTime);
+  const dominantBody = getDominantBody(startPosition, predictedBodies);
+  const dominantStartPos = dominantBody.position.clone();
 
-  const path: Vector3[] = [position.clone()];
+  // 2. Calculate the dominant body's global velocity via finite difference
+  // (Since the planets are "on rails", we sample slightly before and after)
+  const epsilonDt = 0.01;
+  updateBodyPositions(predictedBodies, startTime - epsilonDt);
+  const posMinus = dominantBody.position.clone();
+  updateBodyPositions(predictedBodies, startTime + epsilonDt);
+  const posPlus = dominantBody.position.clone();
+  const dominantVelocity = posPlus.subtract(posMinus).scale(1 / (2 * epsilonDt));
 
-  updateBodyPositions(predictedBodies, t);
-  let a0 = DominantAccel(position, predictedBodies);
+  // 3. Shift Ship to Local Space (relative to the dominant body)
+  let relPosition = startPosition.subtract(dominantStartPos);
+  let relVelocity = startVelocity.subtract(dominantVelocity);
 
+  const path: Vector3[] = [startPosition.clone()];
+  const mu = G * dominantBody.mass;
+
+  // Helper: Gravity in pure local space (pulling toward origin)
+  function getLocalGravity(pos: Vector3): Vector3 {
+    const rSq = pos.lengthsq();
+    if (rSq === 0) return Vector3.zero();
+    const aMag = mu / rSq;
+    return pos.normalize().scale(-aMag); // negative because gravity pulls inward
+  }
+
+  let a0 = getLocalGravity(relPosition);
+
+  // 4. Simulate the local 2-body orbit
   for (let i = 0; i < steps; i++) {
-    // Position update uses the acceleration sample from the START of this step.
-    position = position.add(velocity.scale(dt)).add(a0.scale(0.5 * dt * dt));
-    t += dt;
+    // Verlet integration in pure local space
+    relPosition = relPosition.add(relVelocity.scale(dt)).add(a0.scale(0.5 * dt * dt));
+    const a1 = getLocalGravity(relPosition);
+    relVelocity = relVelocity.add(a0.add(a1).scale(0.5 * dt));
+    a0 = a1;
 
-    // Move bodies to the new time, then take the SECOND acceleration sample
-    // at the ship's new position.
-    updateBodyPositions(predictedBodies, t);
-    const a1 = DominantAccel(position, predictedBodies);
+    // Shift back to Global Space, but anchored to where the planet is RIGHT NOW
+    const globalDrawPos = relPosition.add(dominantStartPos);
+    path.push(globalDrawPos);
 
-    // Velocity update uses the average of both samples — this averaging is
-    // what makes Verlet symplectic/energy-conserving, unlike Euler.
-    velocity = velocity.add(a0.add(a1).scale(0.5 * dt));
-
-    a0 = a1; // reuse as next iteration's starting sample — avoids recomputing
-
-    path.push(position.clone());
-
-    const crashed = predictedBodies.some(
-      (body) => position.distanceTo(body.position) < body.radius
-    );
-    if (crashed) break;
+    // Crash detection (local distance check)
+    if (relPosition.magnitude() < dominantBody.radius) {
+      break;
+    }
   }
 
   return path;

@@ -27,6 +27,7 @@ function createCircularOrbitScenario() {
   const planetOrbitRadius = 1500;
   const shipOrbitRadius = 50;
   const planetMass = Math.round(Math.pow(35, 3) * 1.5 * 1.5);
+  const planetPeriod = 2 * Math.PI * Math.sqrt(Math.pow(planetOrbitRadius, 3) / (G * sun.mass));
 
   const planet: MovingBody = {
     name: 'Test Planet',
@@ -38,7 +39,7 @@ function createCircularOrbitScenario() {
     orbit: {
       parentBody: sun,
       orbitalRadius: planetOrbitRadius,
-      orbitalPeriod: 70,
+      orbitalPeriod: planetPeriod,
       initialAngle: 0,
     },
   };
@@ -69,7 +70,7 @@ describe('updateShipPhysics', () => {
     let t = 0;
     let maxShipRadiusError = 0;
     let maxPlanetRadiusError = 0;
-    const steps = 600;
+    const steps = 1e8;
 
     for (let i = 0; i < steps; i += 1) {
       const result = updateShipPhysics(currentShip, [sun, planet], DEFAULT_ENGINE, null, 0, t, CONSTANT_DT);

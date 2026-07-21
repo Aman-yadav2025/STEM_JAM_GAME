@@ -1,5 +1,5 @@
 import { Vector3 } from '../physics/vector3';
-import { computeSOIRadius } from '../physics/constants';
+import { computeSOIRadius, G } from '../physics/constants';
 import type { MovingBody } from '../physics/orbitPath';
 
 // --- CONFIGURATION SPECS ---
@@ -8,7 +8,6 @@ export interface MoonSpec {
   name: string;
   radius: number;
   color: string;
-  orbitalPeriod: number; // Seconds per revolution
   /** Explicit mass override. If omitted, calculated dynamically from radius and density. */
   mass?: number;
   initialAngle?: number; // Radians at t=0 (default: distributed automatically)
@@ -26,7 +25,6 @@ export interface PlanetSpec {
   name: string;
   radius: number;
   sunDistance: number;
-  orbitalPeriod: number; // Seconds per revolution
   color: string;
   /** Explicit mass override. If omitted, calculated dynamically from radius and density. */
   mass?: number;
@@ -95,6 +93,8 @@ export function createPlanetSystem(
     )
   );
 
+  const planetPeriod = 2 * Math.PI * Math.sqrt(Math.pow(spec.sunDistance, 3) / (G * sun.mass));
+
   // 3. Base Planet Definition
   const planet: MovingBody = {
     name: spec.name,
@@ -106,7 +106,7 @@ export function createPlanetSystem(
     orbit: {
       parentBody: sun,
       orbitalRadius: spec.sunDistance,
-      orbitalPeriod: spec.orbitalPeriod,
+      orbitalPeriod: planetPeriod,
       initialAngle: planetAngle,
     },
   };
@@ -140,6 +140,7 @@ export function createPlanetSystem(
           moonOrbitRadius * Math.sin(moonAngle)
         )
       );
+      const moonOrbitalPeriod = 2 * Math.PI * Math.sqrt(Math.pow(moonOrbitRadius, 3) / (G * planetMass));
 
       // Compute Moon SOI via Hill Sphere or fallback
       const calculatedMoonSOI = computeSOIRadius(
@@ -161,7 +162,7 @@ export function createPlanetSystem(
         orbit: {
           parentBody: planet,
           orbitalRadius: moonOrbitRadius,
-          orbitalPeriod: moonSpec.orbitalPeriod,
+          orbitalPeriod: moonOrbitalPeriod,
           initialAngle: moonAngle,
         },
       };
