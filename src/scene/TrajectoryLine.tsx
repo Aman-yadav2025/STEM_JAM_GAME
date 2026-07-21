@@ -40,10 +40,11 @@ export function TrajectoryLine({
     frameCount.current++;
     if (frameCount.current % recomputeEveryNFrames !== 0) return;
 
-    const { ship, time } = useStore.getState();
+    const { ship, time, setTrajectoryPath } = useStore.getState();
 
     const dynamicSteps = estimateOrbitSteps(ship.position, ship.velocity, bodies, maxSteps, minSteps);
     const path = predictPath(ship.position, ship.velocity, bodies, dynamicSteps, time);
+    setTrajectoryPath(path);
 
     for (let i = 0; i < path.length; i++) {
       positions[i * 3] = path[i].x;

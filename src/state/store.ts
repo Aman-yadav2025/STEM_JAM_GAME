@@ -34,6 +34,7 @@ interface GameState {
   bodies: MovingBody[];
   engine: EngineSpec;
   time: number;
+  trajectoryPath: Vector3[];
 
   timeWarp: WarpStep;
   setTimeWarp: (warp: WarpStep) => void;
@@ -72,6 +73,7 @@ interface GameState {
   setBodies: (bodies: MovingBody[]) => void;
   setControls: (direction: BurnDirection | null, throttle: number) => void;
   setTime: (t: number) => void;
+  setTrajectoryPath: (path: Vector3[]) => void;
 
   // --- Save / Continue / New Game ---
   hasSave: boolean;
@@ -309,7 +311,7 @@ const createInitialShip = (bodies: MovingBody[] = initialBodies): Spacecraft => 
 
   // 2. Position ship in Low Earth Orbit (12 units above Earth's surface),
   // offset along +X relative to Earth.
-  const orbitAltitude = 12;
+  const orbitAltitude = 70;
   const orbitRadius = earth.radius + orbitAltitude; // 35 + 12 = 47 units from Earth center
 
   const relativePosition = new Vector3(orbitRadius, 0, 0);
@@ -328,8 +330,8 @@ const createInitialShip = (bodies: MovingBody[] = initialBodies): Spacecraft => 
   const totalVelocity = earthVelocity.add(relativeVelocity);
 
   return {
-    position:  new Vector3(0,1000,0), //shipPosition,
-    velocity: new Vector3(40,100,400),
+    position:  shipPosition,
+    velocity: totalVelocity,
     mass: 1000,
     fuel: 500,
     maxFuel: 500,
@@ -466,6 +468,7 @@ export const useStore = create<GameState>((set, get) => {
     bodies: initialBodies,
     engine: DEFAULT_ENGINE,
     time: 0,
+    trajectoryPath: [],
 
     timeWarp: 1,
 
@@ -579,6 +582,7 @@ export const useStore = create<GameState>((set, get) => {
     setBodies: (bodies) => set({ bodies }),
     setControls: (direction, throttle) => set({ activeBurnDirection: direction, throttle }),
     setTime: (time) => set({ time }),
+    setTrajectoryPath: (path) => set({ trajectoryPath: path }),
 
     // --- Save / Continue / New Game -------------------------------
     hasSave: readSave() !== null,
