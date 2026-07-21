@@ -23,9 +23,9 @@ interface TrajectoryLineProps {
 }
 
 export function TrajectoryLine({
-  maxSteps = 1e5,
+  maxSteps = 2000,
   minSteps = 50,
-  recomputeEveryNFrames = 60,
+  recomputeEveryNFrames = 1,
   color = '#F0E1CE',
 }: TrajectoryLineProps) {
   const bodies = useStore((state) => state.bodies) as MovingBody[];
@@ -40,10 +40,11 @@ export function TrajectoryLine({
     frameCount.current++;
     if (frameCount.current % recomputeEveryNFrames !== 0) return;
 
-    const { ship, time } = useStore.getState();
+    const { ship, time, setTrajectoryPath } = useStore.getState();
 
     const dynamicSteps = estimateOrbitSteps(ship.position, ship.velocity, bodies, maxSteps, minSteps);
     const path = predictPath(ship.position, ship.velocity, bodies, dynamicSteps, time);
+    setTrajectoryPath(path);
 
     for (let i = 0; i < path.length; i++) {
       positions[i * 3] = path[i].x;
@@ -66,7 +67,7 @@ export function TrajectoryLine({
       <bufferGeometry ref={geometryRef}>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
-      <lineDashedMaterial color={color} dashSize={4} gapSize={2} transparent opacity={0.6} />
+      <lineDashedMaterial color={color} dashSize={2} gapSize={3} transparent opacity={0.6} />
     </line_>
   );
 }

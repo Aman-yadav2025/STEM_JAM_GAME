@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useStore } from '../../../state/store';
-import { showGameCaption } from '../../hud/CaptionBox';
+import { showGameCaption } from './CaptionBox';
 
 export function CodexUnlocker() {
   const ship = useStore((state) => state.ship);

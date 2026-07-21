@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../../../state/store';
-import { predictPath, estimateOrbitSteps } from '../../../physics/trajectoryPredictor';
 
 export const Minimap = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -46,7 +45,7 @@ export const Minimap = () => {
       const state = useStore.getState();
       const ship = state.ship;
       const bodies = state.bodies || [];
-      const time = state.time;
+      const trajectoryPath = state.trajectoryPath || [];
 
       if (!ship) {
         animationId = requestAnimationFrame(renderMinimap);
@@ -84,14 +83,11 @@ export const Minimap = () => {
       ctx.setLineDash([]);
 
       // 5. Trajectory
-      const steps = estimateOrbitSteps(ship.position, ship.velocity, bodies, 2000, 500);
-      const path = predictPath(ship.position, ship.velocity, bodies, steps, time);
-
-      if (path && path.length > 0) {
+      if (trajectoryPath.length > 0) {
         ctx.beginPath();
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
         ctx.lineWidth = 1.5;
-        path.forEach((p, index) => {
+        trajectoryPath.forEach((p, index) => {
           const pos = toPixelSpace(p.x, p.z ?? 0);
           if (index === 0) ctx.moveTo(pos.x, pos.y);
           else ctx.lineTo(pos.x, pos.y);

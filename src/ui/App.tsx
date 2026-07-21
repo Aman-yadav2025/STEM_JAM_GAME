@@ -7,7 +7,7 @@ import { ExplorerCodex } from './components/hud/ExplorerCodex';
 import { CodexUnlocker } from './components/hud/CodexUnlocker';
 import { BurnControls } from './components/controls/BurnControls';
 import { PauseMenu } from './PauseMenu';
-import { CaptionBox, showGameCaption } from './hud/CaptionBox';
+import { CaptionBox, showGameCaption } from './components/hud/CaptionBox';
 import { Minimap } from './components/hud/Minimap';
 import { TimeWarpControls } from './TimeWarpControls';
 import { AutopilotPanel } from './AutopilotPanel';
@@ -15,6 +15,7 @@ import { AutopilotPanel } from './AutopilotPanel';
 export default function App() {
   const gamePhase = useStore((state) => state.gamePhase);
   const togglePaused = useStore((state) => state.togglePaused);
+  const setFlightControls = useStore((state) => state.setFlightControls);
 
 // Only trigger the intro caption when entering the 'playing' phase
   useEffect(() => {
@@ -49,17 +50,51 @@ export default function App() {
     }
   }, [gamePhase]);
 
-  // Only allow pausing via Escape key if currently playing
   useEffect(() => {
+    const pressedKeys = new Set<string>();
+
+    const updateFlightControls = () => {
+      setFlightControls({
+        pitch: (pressedKeys.has('w') ? 1 : 0) - (pressedKeys.has('s') ? 1 : 0),
+        yaw: (pressedKeys.has('d') ? 1 : 0) - (pressedKeys.has('a') ? 1 : 0),
+        roll: (pressedKeys.has('e') ? 1 : 0) - (pressedKeys.has('q') ? 1 : 0),
+        thrusting: pressedKeys.has('space'),
+      });
+    };
+
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && gamePhase === 'Playing') {
+      const key = event.code === 'Space' ? 'space' : event.key.toLowerCase();
+
+      if (key === 'escape' && gamePhase === 'Playing') {
+        event.preventDefault();
         togglePaused();
+        return;
+      }
+
+      if (['w', 'a', 's', 'd', 'q', 'e', 'space'].includes(key)) {
+        event.preventDefault();
+        pressedKeys.add(key);
+        updateFlightControls();
+      }
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      const key = event.code === 'Space' ? 'space' : event.key.toLowerCase();
+      if (['w', 'a', 's', 'd', 'q', 'e', 'space'].includes(key)) {
+        pressedKeys.delete(key);
+        updateFlightControls();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [togglePaused, gamePhase]);
+    window.addEventListener('keyup', handleKeyUp);
+    updateFlightControls();
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [gamePhase, setFlightControls, togglePaused]);
 
   if (gamePhase === 'menu') {
     return <MainMenu />;

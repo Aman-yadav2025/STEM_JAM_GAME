@@ -67,7 +67,17 @@ export function getDominantBody(shipPosition: Vector3, bodies: CelestialBody[]):
  */
 export function DominantAccel(position: Vector3, bodies: CelestialBody[]): Vector3 {
   const dominant = getDominantBody(position, bodies);
-  return accelFromBody(position, dominant);
+  let accel = accelFromBody(position, dominant);
+  
+  // If the dominant body is not the "Sun" (e.g., it's a planet orbiting something else),
+  // we must add the parent body's acceleration so the ship's global path curves with the planet.
+  if (dominant.name !== 'sun') {
+    // bodies[0] is typically the Sun / universal center
+    const frameAccel = accelFromBody(dominant.position, bodies[0]);
+    accel = accel.add(frameAccel);
+  }
+  
+  return accel;
 }
 
 /**

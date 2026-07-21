@@ -3,23 +3,7 @@
 import { useStore } from '../state/store';
 import { updateShipPhysics } from '../physics/rocketMotion';
 import { computeAutopilot } from '../physics/autopilot';
-import { showGameCaption } from '../ui/hud/CaptionBox';
 import { CONSTANT_DT } from '../physics/constants';
-
-function getCurrentBodyId(ship: { position: { distanceTo: (target: any) => number } }, bodies: Array<{ name: string; soiRadius: number; position: any }>) {
-  let currentBodyId: string | null = null;
-  let smallestSoI = Infinity;
-
-  bodies.forEach((body) => {
-    const distance = ship.position.distanceTo(body.position);
-    if (distance < body.soiRadius && body.soiRadius < smallestSoI) {
-      smallestSoI = body.soiRadius;
-      currentBodyId = body.name;
-    }
-  });
-
-  return currentBodyId;
-}
 
 export class World {
   static tick(dt = CONSTANT_DT) {
@@ -72,7 +56,8 @@ export class World {
         burnDirection,
         throttle,
         currentTime,
-        subDt
+        subDt,
+        state.flightInput
       );
 
       currentShip = nextShip;

@@ -1,14 +1,23 @@
 import { create } from 'zustand';
-import { type Spacecraft, type BurnDirection, G } from '../physics/constants';
+import { 
+  type Spacecraft, 
+  type BurnDirection, 
+  type FlightInputState, 
+  G 
+} from '../physics/constants';
 import { type MovingBody, bodyVelocityAtTime } from '../physics/orbitPath';
-import { type EngineSpec, DEFAULT_ENGINE } from '../physics/Rocketequation.ts';
+import { type EngineSpec, DEFAULT_ENGINE } from '../physics/rocketEquation';
 import { Vector3 } from '../physics/vector3';
 import { buildSolarSystem } from '../scene/celestialFactory';
 import type { AutopilotStatus } from '../physics/autopilot';
 
 
-export const WARP_STEPS = [0,1, 2, 5, 10, 25, 50, 75, 100] as const;
+export const WARP_STEPS = [0.01, 0.05, 0.1, 0.2, 0.5,0,1, 2, 5, 10, 25, 50, 75, 100] as const;
 export type WarpStep = (typeof WARP_STEPS)[number];
+
+export const DEFAULT_WARP_STEP: WarpStep = WARP_STEPS[2];
+
+export const getDisplayWarpValue = (step: WarpStep): number => Number((step * 10).toFixed(10));
 
 
 export type CodexEntry = {
@@ -36,6 +45,7 @@ interface GameState {
   bodies: MovingBody[];
   engine: EngineSpec;
   time: number;
+  trajectoryPath: Vector3[];
 
   timeWarp: WarpStep;
   setTimeWarp: (warp: WarpStep) => void;
@@ -62,6 +72,9 @@ interface GameState {
   setGamePhase: (phase: 'menu' | 'Playing' | 'GameOver') => void;
   returnToMainMenu: (save?: boolean) => void;
 
+  flightInput: FlightInputState;
+  setFlightControls: (controls: FlightInputState) => void;
+
   isPaused: boolean;
 
   setPaused: (paused: boolean) => void;
@@ -86,6 +99,7 @@ interface GameState {
   setBodies: (bodies: MovingBody[]) => void;
   setControls: (direction: BurnDirection | null, throttle: number) => void;
   setTime: (t: number) => void;
+  setTrajectoryPath: (path: Vector3[]) => void;
 
   // --- Save / Continue / New Game ---
   hasSave: boolean;
@@ -163,7 +177,6 @@ const initialBodies = buildSolarSystem(
       name: 'Mercury',
       radius: 18,
       sunDistance: 550,
-      orbitalPeriod: 25,
       color: 'gray',
       initialAngle: 0,
     },
@@ -171,7 +184,6 @@ const initialBodies = buildSolarSystem(
       name: 'Venus',
       radius: 30,
       sunDistance: 950,
-      orbitalPeriod: 45,
       color: 'orange',
       initialAngle: Math.PI / 4,
     },
@@ -179,108 +191,101 @@ const initialBodies = buildSolarSystem(
       name: 'Earth',
       radius: 35,
       sunDistance: 1500,
-      orbitalPeriod: 70,
       color: 'blue',
       initialAngle: 0,
       moons: [
-        { name: 'Moon', radius: 8, color: 'lightgray', orbitalPeriod: 12 },
+        { name: 'Moon', radius: 8, color: 'lightgray'},
       ],
     },
     {
       name: 'Mars',
       radius: 24,
       sunDistance: 2200,
-      orbitalPeriod: 110,
       color: 'red',
       initialAngle: Math.PI / 2,
       moons: [
-        { name: 'Phobos', radius: 3, color: 'gray', orbitalPeriod: 3 },
-        { name: 'Deimos', radius: 2, color: 'gray', orbitalPeriod: 6, initialAngle: 2.5 },
+        { name: 'Phobos', radius: 3, color: 'gray' },
+        { name: 'Deimos', radius: 2, color: 'gray', initialAngle: 2.5 },
       ],
     },
     {
       name: 'Jupiter',
       radius: 65,
       sunDistance: 3400,
-      orbitalPeriod: 200,
       color: 'brown',
       density: 0.8, // gas giant — lighter per unit volume than rocky planets
       initialAngle: Math.PI,
       moons: [
-        { name: 'Amalthea', radius: 2, color: 'red', orbitalPeriod: 3 },
-        { name: 'Io', radius: 6, color: 'yellow', orbitalPeriod: 5 },
-        { name: 'Europa', radius: 5, color: 'white', orbitalPeriod: 8 },
-        { name: 'Ganymede', radius: 8, color: 'gray', orbitalPeriod: 14 },
-        { name: 'Callisto', radius: 7, color: 'darkgray', orbitalPeriod: 22 },
-        { name: 'Himalia', radius: 2, color: 'gray', orbitalPeriod: 40 },
-        { name: 'Elara', radius: 2, color: 'gray', orbitalPeriod: 45 },
-        { name: 'Pasiphae', radius: 1, color: 'darkgray', orbitalPeriod: 60 },
-        { name: 'Sinope', radius: 1, color: 'darkgray', orbitalPeriod: 65 },
-        { name: 'Carme', radius: 1, color: 'darkgray', orbitalPeriod: 70 },
+        { name: 'Amalthea', radius: 2, color: 'red'},
+        { name: 'Io', radius: 6, color: 'yellow'},
+        { name: 'Europa', radius: 5, color: 'white'},
+        { name: 'Ganymede', radius: 8, color: 'gray'},
+        { name: 'Callisto', radius: 7, color: 'darkgray'},
+        { name: 'Himalia', radius: 2, color: 'gray'},
+        { name: 'Elara', radius: 2, color: 'gray'},
+        { name: 'Pasiphae', radius: 1, color: 'darkgray'},
+        { name: 'Sinope', radius: 1, color: 'darkgray'},
+        { name: 'Carme', radius: 1, color: 'darkgray'},
       ],
     },
     {
       name: 'Saturn',
       radius: 52,
       sunDistance: 4800,
-      orbitalPeriod: 320,
       color: 'khaki',
       density: 0.6, // least dense gas giant
       initialAngle: Math.PI * 1.2,
       moons: [
-        { name: 'Atlas', radius: 1, color: 'gray', orbitalPeriod: 4 },
-        { name: 'Janus', radius: 1, color: 'gray', orbitalPeriod: 5 },
-        { name: 'Epimetheus', radius: 1, color: 'gray', orbitalPeriod: 5 },
-        { name: 'Mimas', radius: 2, color: 'lightgray', orbitalPeriod: 7 },
-        { name: 'Enceladus', radius: 3, color: 'white', orbitalPeriod: 9 },
-        { name: 'Tethys', radius: 3, color: 'lightgray', orbitalPeriod: 11 },
-        { name: 'Telesto', radius: 1, color: 'gray', orbitalPeriod: 11 },
-        { name: 'Calypso', radius: 1, color: 'gray', orbitalPeriod: 11 },
-        { name: 'Dione', radius: 4, color: 'lightgray', orbitalPeriod: 14 },
-        { name: 'Helene', radius: 1, color: 'gray', orbitalPeriod: 14 },
-        { name: 'Rhea', radius: 5, color: 'lightgray', orbitalPeriod: 18 },
-        { name: 'Titan', radius: 9, color: 'orange', orbitalPeriod: 30 },
-        { name: 'Hyperion', radius: 2, color: 'tan', orbitalPeriod: 35 },
-        { name: 'Iapetus', radius: 4, color: 'brown', orbitalPeriod: 55 },
-        { name: 'Phoebe', radius: 2, color: 'darkgray', orbitalPeriod: 90 },
+        { name: 'Atlas', radius: 1, color: 'gray'},
+        { name: 'Janus', radius: 1, color: 'gray'},
+        { name: 'Epimetheus', radius: 1, color: 'gray'},
+        { name: 'Mimas', radius: 2, color: 'lightgray'},
+        { name: 'Enceladus', radius: 3, color: 'white'},
+        { name: 'Tethys', radius: 3, color: 'lightgray',},
+        { name: 'Telesto', radius: 1, color: 'gray',},
+        { name: 'Calypso', radius: 1, color: 'gray',},
+        { name: 'Dione', radius: 4, color: 'lightgray',},
+        { name: 'Helene', radius: 1, color: 'gray',},
+        { name: 'Rhea', radius: 5, color: 'lightgray',},
+        { name: 'Titan', radius: 9, color: 'orange',},
+        { name: 'Hyperion', radius: 2, color: 'tan',},
+        { name: 'Iapetus', radius: 4, color: 'brown',},
+        { name: 'Phoebe', radius: 2, color: 'darkgray',},
       ],
     },
     {
       name: 'Uranus',
       radius: 40,
       sunDistance: 6200,
-      orbitalPeriod: 460,
       color: 'lightblue',
       density: 0.9, // ice giant
       initialAngle: Math.PI * 1.5,
       moons: [
-        { name: 'Miranda', radius: 2, color: 'lightgray', orbitalPeriod: 6 },
-        { name: 'Ariel', radius: 3, color: 'lightblue', orbitalPeriod: 10 },
-        { name: 'Umbriel', radius: 3, color: 'gray', orbitalPeriod: 14 },
-        { name: 'Titania', radius: 5, color: 'tan', orbitalPeriod: 22 },
-        { name: 'Oberon', radius: 5, color: 'gray', orbitalPeriod: 30 },
+        { name: 'Miranda', radius: 2, color: 'lightgray'},
+        { name: 'Ariel', radius: 3, color: 'lightblue',},
+        { name: 'Umbriel', radius: 3, color: 'gray',},
+        { name: 'Titania', radius: 5, color: 'tan',},
+        { name: 'Oberon', radius: 5, color: 'gray',},
       ],
     },
     {
       name: 'Neptune',
       radius: 38,
       sunDistance: 7500,
-      orbitalPeriod: 600,
       color: 'darkblue',
       density: 1.1, // ice giant, slightly denser than Uranus
       initialAngle: Math.PI * 1.8,
       moons: [
-        { name: 'Larissa', radius: 2, color: 'gray', orbitalPeriod: 5 },
-        { name: 'Proteus', radius: 3, color: 'darkgray', orbitalPeriod: 10 },
-        { name: 'Triton', radius: 6, color: 'lightblue', orbitalPeriod: 20 },
-        { name: 'Nereid', radius: 2, color: 'gray', orbitalPeriod: 45 },
+        { name: 'Larissa', radius: 2, color: 'gray'},
+        { name: 'Proteus', radius: 3, color: 'darkgray'},
+        { name: 'Triton', radius: 6, color: 'lightblue'},
+        { name: 'Nereid', radius: 2, color: 'gray'},
       ],
     },
     {
       name: 'Pluto',
       radius: 6,
       sunDistance: 8600,
-      orbitalPeriod: 740,
       color: 'tan',
       initialAngle: Math.PI * 0.6,
     },
@@ -298,6 +303,9 @@ const createInitialShip = (bodies: MovingBody[] = initialBodies): Spacecraft => 
       fuel: 500,
       maxFuel: 500,
       heading: Math.PI / 2,
+      pitch: 0,
+      yaw: 0,
+      roll: 0,
     };
   }
 
@@ -314,11 +322,10 @@ const createInitialShip = (bodies: MovingBody[] = initialBodies): Spacecraft => 
     earthVelocity = bodyVelocityAtTime(earth.orbit, 0);
   }
 
-  // 2. Position ship in a safer low Earth orbit, using the Earth's current
-  // radial direction rather than hardcoding +X. This makes the start point
-  // consistent for any planet orientation and reduces initial frame mismatch.
-  const orbitAltitude = Math.max(20, Math.round(earth.radius * 0.5));
-  const orbitRadius = earth.radius + orbitAltitude;
+  // 2. Position ship in Low Earth Orbit (12 units above Earth's surface),
+  // offset along +X relative to Earth.
+  const orbitAltitude = 70;
+  const orbitRadius = earth.radius + orbitAltitude; // 35 + 12 = 47 units from Earth center
 
   const earthParent = earth.orbit?.parentBody?.position ?? Vector3.zero();
   const earthRadial = earth.position.subtract(earthParent).normalize();
@@ -335,12 +342,15 @@ const createInitialShip = (bodies: MovingBody[] = initialBodies): Spacecraft => 
   const totalVelocity = earthVelocity.add(relativeVelocity);
 
   return {
-    position: shipPosition,
+    position:  shipPosition,
     velocity: totalVelocity,
     mass: 1000,
     fuel: 500,
     maxFuel: 500,
     heading: Math.atan2(totalVelocity.z, totalVelocity.x),
+    pitch: 0,
+    yaw: 0,
+    roll: 0,
   };
 };
 
@@ -473,8 +483,10 @@ export const useStore = create<GameState>((set, get) => {
     bodies: initialBodies,
     engine: DEFAULT_ENGINE,
     time: 0,
+    trajectoryPath: [],
 
-    timeWarp: 1,
+    timeWarp: DEFAULT_WARP_STEP,
+    flightInput: { pitch: 0, yaw: 0, roll: 0, thrusting: false },
 
     setTimeWarp: (warp) => set({ timeWarp: warp }),
 
@@ -494,7 +506,7 @@ export const useStore = create<GameState>((set, get) => {
       }
     },
 
-    resetTimeWarp: () => set({ timeWarp: 1 }),
+    resetTimeWarp: () => set({ timeWarp: DEFAULT_WARP_STEP }),
     activeBurnDirection: null,
     throttle: 0,
 
@@ -616,7 +628,9 @@ export const useStore = create<GameState>((set, get) => {
     setShip: (ship) => set({ ship }),
     setBodies: (bodies) => set({ bodies }),
     setControls: (direction, throttle) => set({ activeBurnDirection: direction, throttle }),
+    setFlightControls: (controls) => set({ flightInput: controls }),
     setTime: (time) => set({ time }),
+    setTrajectoryPath: (path) => set({ trajectoryPath: path }),
 
     // --- Save / Continue / New Game -------------------------------
     hasSave: readSave() !== null,
@@ -646,6 +660,7 @@ export const useStore = create<GameState>((set, get) => {
         gamePhase: 'menu',
         activeBurnDirection: null,
         throttle: 0,
+        flightInput: { pitch: 0, yaw: 0, roll: 0, thrusting: false },
         isPaused: true,
         activeScanTargetId: null,
         autopilotEnabled: false,
@@ -662,6 +677,7 @@ export const useStore = create<GameState>((set, get) => {
         time: 0,
         activeBurnDirection: null,
         throttle: 0,
+        flightInput: { pitch: 0, yaw: 0, roll: 0, thrusting: false },
         codexEntries: createInitialCodexEntries(),
         achievements: createInitialAchievements(),
         activeScanTargetId: null,
