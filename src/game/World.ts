@@ -3,7 +3,7 @@
 import { useStore } from '../state/store';
 import { updateShipPhysics } from '../physics/rocketMotion'; //[cite: 1]
 import { updateBodyPositions } from '../physics/orbitPath'; //[cite: 1]
-import { showGameCaption } from '../ui/hud/CaptionBox';
+import { showGameCaption } from '../ui/components/hud/CaptionBox';
 import { CONSTANT_DT } from '../physics/constants';
 
 function getCurrentBodyId(ship: { position: { distanceTo: (target: any) => number } }, bodies: Array<{ name: string; soiRadius: number; position: any }>) {

@@ -6,7 +6,7 @@ import { ExplorerCodex } from './components/hud/ExplorerCodex';
 import { CodexUnlocker } from './components/hud/CodexUnlocker';
 import { BurnControls } from './components/controls/BurnControls';
 import { PauseMenu } from './PauseMenu';
-import { CaptionBox, showGameCaption } from './hud/CaptionBox';
+import { CaptionBox, showGameCaption } from './components/hud/CaptionBox';
 import { Minimap } from './components/hud/Minimap';
 
 export default function App() {
