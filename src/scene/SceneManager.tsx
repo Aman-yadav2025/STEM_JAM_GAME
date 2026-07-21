@@ -84,7 +84,7 @@ const CameraRig = () => {
 
 export const SceneManager = () => {
   return (
-    <Canvas camera={{ position: [0, 30, 140], fov: 80 }}>
+    <Canvas camera={{ position: [0, 30, 140], fov: 80,far: 1e9 }}>
       <ambientLight intensity={0.4} />
       <pointLight position={[0, 0, 0]} intensity={2} />
       <Stars radius={300} depth={50} count={4000} factor={4} />

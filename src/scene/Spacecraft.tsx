@@ -16,6 +16,7 @@ export const SpacecraftMesh = () => {
     const speed = Math.hypot(ship.velocity.x, ship.velocity.y);
     if (speed > 0.0001) {
       meshRef.current.rotation.z = Math.atan2(ship.velocity.y, ship.velocity.x) - Math.PI/2;
+      meshRef.current.rotation.x = 0.092;
     }
   });
 
