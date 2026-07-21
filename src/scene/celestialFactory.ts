@@ -12,7 +12,7 @@ export interface MoonSpec {
   /** Explicit mass override. If omitted, calculated dynamically from radius and density. */
   mass?: number;
   initialAngle?: number; // Radians at t=0 (default: distributed automatically)
-  /** Orbital distance as a multiplier of parent planet radius (default: 3.5 + index * 1.8) */
+  /** Orbital distance as a multiplier of parent planet radius (default: 3.5 + index * 1.0) */
   orbitMultiplier?: number;
   /** Explicit orbital radius in world units (overrides orbitMultiplier if supplied) */
   orbitalRadius?: number;
@@ -65,6 +65,15 @@ export function createSun(spec: SunSpec = {}): MovingBody {
 /**
  * Dynamically builds a Planet and all its child Moons relative to the planet's radius.
  * All dependent properties (Mass, Moon Distances, Moon SOIs, Planet SOI) scale automatically.
+ *
+ * IMPORTANT: orbital positions here use the XZ plane (Y is up), matching
+ * orbitPath.ts's bodyPositionAtTime(), which is what actually drives motion
+ * every frame. sin(angle) goes into Z, not Y — if this ever drifts out of
+ * sync with orbitPath.ts again, initial velocities computed elsewhere
+ * (e.g. the ship's starting orbital velocity in store.ts) will point the
+ * wrong way relative to the body's real per-frame motion, and anything
+ * placed in orbit around that body will fly out of its SOI almost
+ * immediately instead of orbiting it.
  */
 export function createPlanetSystem(
   sun: MovingBody,
@@ -77,12 +86,12 @@ export function createPlanetSystem(
   const planetMass =
     spec.mass ?? Math.round(Math.pow(spec.radius, 3) * planetDensity * 1.5);
 
-  // 2. Initial Planet Position at t=0
+  // 2. Initial Planet Position at t=0 (XZ plane, Y is up — see note above)
   const planetPos = sun.position.add(
     new Vector3(
       spec.sunDistance * Math.cos(planetAngle),
-      spec.sunDistance * Math.sin(planetAngle),
-      0
+      0,
+      spec.sunDistance * Math.sin(planetAngle)
     )
   );
 
@@ -114,18 +123,21 @@ export function createPlanetSystem(
       const moonMass =
         moonSpec.mass ?? Math.round(Math.pow(moonSpec.radius, 3) * moonDensity);
 
-      // Calculate orbital distance dynamically if multiplier isn't explicit
-      const multiplier = moonSpec.orbitMultiplier ?? (3.5 + index * 1.8);
+      // Calculate orbital distance dynamically if multiplier isn't explicit.
+      // Growth per moon-index kept modest so systems with many moons (Jupiter,
+      // Saturn) don't push their outermost moon - and therefore the planet's
+      // own SOI - out far enough to overlap a neighboring planet.
+      const multiplier = moonSpec.orbitMultiplier ?? (3.5 + index * 1.0);
       const moonOrbitRadius =
         moonSpec.orbitalRadius ?? spec.radius * multiplier;
       const moonAngle = moonSpec.initialAngle ?? index * 0.8;
 
-      // Position relative to Planet at t=0
+      // Position relative to Planet at t=0 (XZ plane, matching orbitPath.ts)
       const moonPos = planetPos.add(
         new Vector3(
           moonOrbitRadius * Math.cos(moonAngle),
-          moonOrbitRadius * Math.sin(moonAngle),
-          0
+          0,
+          moonOrbitRadius * Math.sin(moonAngle)
         )
       );
 
@@ -156,8 +168,10 @@ export function createPlanetSystem(
 
       systemBodies.push(moon);
 
-      // Track outer extent of moon system to guarantee Planet SOI encapsulates all moons
-      const outerReach = moonOrbitRadius + moonSoiRadius * 2.5;
+      // Track outer extent of moon system to guarantee Planet SOI encapsulates all moons.
+      // Margin tightened from 2.5x to 1.2x - it only needs to clear the moon's own
+      // SOI, not swallow multiple planet-widths of empty space beyond it.
+      const outerReach = moonOrbitRadius + moonSoiRadius * 1.2;
       if (outerReach > maxMoonOuterReach) {
         maxMoonOuterReach = outerReach;
       }
@@ -174,12 +188,17 @@ export function createPlanetSystem(
   if (spec.soiRadius) {
     planet.soiRadius = spec.soiRadius;
   } else {
-    // Ensure Planet SOI safely encloses all moon orbits + margins
-    planet.soiRadius = Math.max(
+    // Ensure Planet SOI safely encloses all moon orbits + margin (tightened
+    // from 1.5x to 1.1x for the same overlap reason as above), floored at
+    // 6 planet-radii, and hard-capped at 40% of the Sun distance so a
+    // planet's SOI can never mathematically reach into a neighboring
+    // planet's territory, regardless of how many moons get added later.
+    const dynamicSOI = Math.max(
       Math.round(physicsPlanetSOI),
-      Math.ceil(maxMoonOuterReach + spec.radius * 1.5),
+      Math.ceil(maxMoonOuterReach + spec.radius * 1.1),
       spec.radius * 6
     );
+    planet.soiRadius = Math.min(dynamicSOI, spec.sunDistance * 0.4);
   }
 
   return systemBodies;

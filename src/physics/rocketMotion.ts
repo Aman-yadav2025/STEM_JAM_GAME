@@ -12,6 +12,24 @@
 //
 // applyBurn()/rocketEquation.ts's deltaVBudget/maxAvailableDeltaV are still
 // used — just for HUD readouts now, not for computing this frame's motion.
+//
+// INTEGRATION SCHEME: velocity Verlet, not semi-implicit Euler.
+//
+// This used to be semi-implicit Euler. That's normally fine for orbital
+// mechanics because it's symplectic (energy stays bounded rather than
+// drifting) - BUT that guarantee only strictly holds for an AUTONOMOUS
+// system, i.e. one where the force field doesn't itself change with time.
+// Here it does: the body the ship is orbiting (e.g. Earth) is itself
+// moving every tick along its own solar orbit, so the force field the ship
+// feels is explicitly time-dependent. Under Euler, that non-autonomy let
+// small per-step errors slowly random-walk the ship's orbital energy
+// upward over thousands of ticks - stable for a while, then a slow drift
+// into an unbound trajectory that looks like a sudden "escape" once the
+// ship crosses the dominant body's SOI boundary. trajectoryPredictor.ts
+// already made this same argument for using Verlet over Euler for its
+// coast predictions; the same argument applies here during any tick where
+// thrust direction isn't actively changing (which is every tick - thrust,
+// if any, is fixed in direction for the duration of one fixed timestep).
 
 import { CONSTANT_DT, type CelestialBody, type Spacecraft, type BurnDirection } from "./constants";
 import { STANDARD_g, type EngineSpec } from "./Rocketequation";
@@ -51,6 +69,10 @@ export function updateShipPhysics(
   updateBodyPositions(bodies, t);
 
   // 2. Engine thrust (if the player is actively burning and has fuel).
+  //    Direction/magnitude are treated as constant across this one fixed
+  //    timestep (the player's input can only change between ticks, not
+  //    mid-tick), which is what makes it safe to fold into a Verlet step
+  //    the same way a constant external force would be.
   let thrustAcceleration = Vector3.zero();
   let fuelBurnedThisFrame = 0;
 
@@ -69,21 +91,30 @@ export function updateShipPhysics(
     fuelBurnedThisFrame = Math.min(ship.fuel, massFlowRate * stepDt);
   }
 
-  // 3. Gravity — always active, dominant-body patched-conic.
-  const gravityAcceleration = DominantAccel(ship.position, bodies);
+  // 3. Gravity sample at the START position — dominant-body patched-conic.
+  const a0Gravity = DominantAccel(ship.position, bodies);
 
-  // 4. Superposition: combine engine push and gravity pull.
-  const totalAcceleration = gravityAcceleration.add(thrustAcceleration);
+  // 4. Velocity Verlet position update:
+  //    x1 = x0 + v0*dt + 0.5*a0*dt^2
+  //    Thrust is constant for the step, so it folds into the same
+  //    "constant acceleration this step" term as gravity's first sample.
+  const a0Total = a0Gravity.add(thrustAcceleration);
+  const newPosition = ship.position
+    .add(ship.velocity.scale(stepDt))
+    .add(a0Total.scale(0.5 * stepDt * stepDt));
 
-  // 5. Semi-implicit Euler integration.
-  //    (Not full velocity-Verlet here — thrust direction can change
-  //    mid-burn based on live player input, so re-deriving a second
-  //    acceleration sample at the new position for every frame the
-  //    player might change direction adds cost without much benefit.
-  //    Semi-implicit Euler is standard for player-controlled thrust and
-  //    is what most arcade-precision space games use.)
-  const newVelocity = ship.velocity.add(totalAcceleration.scale(stepDt));
-  const newPosition = ship.position.add(newVelocity.scale(stepDt));
+  // 5. Second gravity sample, at the NEW position. Bodies are already at
+  //    time t (only the ship moves within a single tick), so no second
+  //    updateBodyPositions call is needed here.
+  const a1Gravity = DominantAccel(newPosition, bodies);
+  const a1Total = a1Gravity.add(thrustAcceleration);
+
+  // 6. Velocity Verlet velocity update — average of both acceleration
+  //    samples. This averaging is what keeps the integration bounded
+  //    (no long-term energy drift) even though the body being orbited is
+  //    itself moving every tick.
+  const newVelocity = ship.velocity.add(a0Total.add(a1Total).scale(0.5 * stepDt));
+
   const newFuel = Math.max(0, ship.fuel - fuelBurnedThisFrame);
 
   return {
@@ -111,4 +142,3 @@ export function checkHazardCollisions(shipPos: Vector3, bodies: MovingBody[]) {
     }
   }
 }
-

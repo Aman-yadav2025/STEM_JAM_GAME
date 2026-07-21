@@ -1,8 +1,7 @@
 //from state import game data or current data and apply physics on them here and then update back both in store and in UI
 
 import { useStore } from '../state/store';
-import { updateShipPhysics } from '../physics/rocketMotion'; //[cite: 1]
-import { updateBodyPositions } from '../physics/orbitPath'; //[cite: 1]
+import { updateShipPhysics } from '../physics/rocketMotion';
 import { showGameCaption } from '../ui/hud/CaptionBox';
 import { CONSTANT_DT } from '../physics/constants';
 
@@ -29,11 +28,11 @@ export class World {
     let currentBodies = [...state.bodies];
     let currentTime = state.time;
 
-    // 2. Update planets/moons first so the ship's gravity reads live positions[cite: 1]
-    // Assuming currentBodies implements the MovingBody interface[cite: 1]
-    updateBodyPositions(currentBodies as any, currentTime); //[cite: 1]
-
-    // 3. Update ship physics (integrates continuous thrust and dominant-body gravity)[cite: 1]
+    // 2. Update ship physics (integrates continuous thrust and dominant-body
+    // gravity). This internally calls updateBodyPositions(bodies, currentTime)
+    // as its own first step, so calling it again out here would just be a
+    // redundant duplicate — removed to keep body-position updates coming
+    // from a single call site.
     const { ship: nextShip, t: nextTime } = updateShipPhysics(
       currentShip,
       currentBodies as any,
@@ -42,13 +41,13 @@ export class World {
       state.throttle,
       currentTime,
       dt
-    ); //[cite: 1]
+    );
 
-    // 4. Commit the new state back to the store
+    // 3. Commit the new state back to the store
     useStore.setState({
       ship: nextShip,
       bodies: currentBodies,
-      time: nextTime // nextTime usually equals currentTime + CONSTANT_DT[cite: 1]
+      time: nextTime,
     });
   }
 }
