@@ -84,7 +84,11 @@ export function updateShipPhysics(
       const totalShipMass = ship.mass + fuel;
       const engineAccMagnitude = currentThrustForce / totalShipMass;
       const directionVector = usingAutopilot
-        ? getBurnDirectionVector(ship, bodies, _activeBurnDirection!)
+        ? getBurnDirectionVector(
+            { ...ship, position, velocity, fuel },
+            bodies,
+            _activeBurnDirection!
+          )
         : getShipForwardVector({ ...ship, pitch: newPitch, yaw: newYaw, roll: newRoll });
       thrustAcceleration = directionVector.scale(engineAccMagnitude);
 
