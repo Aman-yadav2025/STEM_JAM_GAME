@@ -28,8 +28,8 @@ export interface EngineSpec {
 }
 
 export const DEFAULT_ENGINE: EngineSpec = {
-  specificImpulse: 3200, // slightly higher efficiency for smoother burns
-  maxThrust: 520,        // increased thrust for stronger ship power
+  specificImpulse: 3200000, // engine efficiency
+  maxThrust: 44000000,      // increased thrust for stronger ship power and faster fuel burn
 };
 
 /** Converts specific impulse (seconds) to exhaust velocity (game distance units / s). */

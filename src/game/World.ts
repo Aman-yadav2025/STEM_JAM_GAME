@@ -47,6 +47,16 @@ export class World {
         burnDirection = autopilotOutput.direction;
         throttle = autopilotOutput.throttle;
         latestAutopilotStatus = autopilotOutput.status;
+
+        // Mirror autopilot outputs into the (hidden) active controls so
+        // other systems that expect `activeBurnDirection`/`throttle`
+        // reflect the autopilot state. These controls are not exposed in
+        // the UI anymore but are kept for autopilot compatibility.
+        try {
+          state.setControls(autopilotOutput.direction, autopilotOutput.throttle);
+        } catch (e) {
+          // Defensive: ignore failures to avoid crashing the tick loop.
+        }
       }
 
       const { ship: nextShip, t: nextTime } = updateShipPhysics(
