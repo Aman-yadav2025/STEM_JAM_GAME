@@ -1,28 +1,82 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useStore } from '../state/store'; // Adjust path as needed
+import { useStore } from '../state/store';
 
 export const MainMenu: React.FC = () => {
   const hasSave = useStore((state) => state.hasSave);
   const continueGame = useStore((state) => state.continueGame);
   const startNewGame = useStore((state) => state.startNewGame);
+  
   const [showSettings, setShowSettings] = useState(false);
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
   const [musicVolume, setMusicVolume] = useState(80);
   const [sfxVolume, setSfxVolume] = useState(70);
 
-  // Play interface interaction sound
-  const playSfx = () => {
-    const audio = new Audio('https://mixkit.co');
-    audio.volume = sfxVolume / 100;
-    audio.play().catch(() => {});
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  // Handle background music playback & browser autoplay restrictions
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    
+    audio.volume = musicVolume / 100;
+    audio.loop = true;
+
+    // Attempt to play on mount. If it fails, user interaction will start it via playSfx.
+    audio.play().catch(() => {
+      console.log("Autoplay blocked: Music will start on first user interaction.");
+    });
+  }, []);
+
+  // Update MP3 volume dynamically when slider changes in Settings
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = musicVolume / 100;
+    }
+  }, [musicVolume]);
+
+  const playSfx = (type: 'hover' | 'click' = 'click') => {
+    // This function is a great place to ensure our main audio is playing.
+    if (audioRef.current && audioRef.current.paused) {
+      audioRef.current.play().catch(() => {});
+    }
+
+    try {
+      const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      if (type === 'hover') {
+        osc.frequency.setValueAtTime(440, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.04);
+        gain.gain.setValueAtTime((sfxVolume / 100) * 0.03, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+      } else {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(329.63, ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime((sfxVolume / 100) * 0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+      }
+      
+      osc.start();
+      osc.stop(ctx.currentTime + 0.08);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+    } catch {
+      // Audio fallback
+    }
   };
 
   const handleContinue = () => continueGame();
   const handleNewGame = () => startNewGame();
   const handleQuit = () => {
-    // Wire this up to your platform's quit/exit behavior (Electron app.quit(), window.close(), etc.)
-    window.close();
+    try {
+      window.close();
+    } catch {
+      // Browser safety fallback
+    }
     setShowQuitConfirm(false);
   };
 
@@ -34,109 +88,116 @@ export const MainMenu: React.FC = () => {
   ];
 
   return (
-    <div className="relative w-screen h-screen flex flex-col justify-center px-12 md:px-24 bg-black text-white select-none overflow-hidden font-mono">
+    <div className="relative w-screen h-screen flex flex-col justify-center px-12 md:px-24 text-white select-none overflow-hidden font-mono bg-black">
 
-      {/* Deep space backdrop */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-cyan-950/20 via-black to-slate-900/40 z-0 pointer-events-none" />
+      {/* Background Audio Element: Ensure your MP3 file is placed in public/ (e.g., sound.mp3 or soundtrack.mp3) */}
+      <audio ref={audioRef} src="/Far-North.mp3" preload="auto" />
 
-      {/* Starfield */}
-      <div className="absolute inset-0 z-0 pointer-events-none opacity-60">
-        {Array.from({ length: 60 }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full bg-cyan-100"
-            style={{
-              width: Math.random() > 0.85 ? 2 : 1,
-              height: Math.random() > 0.85 ? 2 : 1,
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
-              opacity: Math.random() * 0.6 + 0.2,
-            }}
-          />
-        ))}
+      {/* Video Background Layer: earth.mp4 from public folder */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute w-full h-full object-cover filter brightness-75 contrast-110"
+          src="/earth.mp4"
+        />
       </div>
 
-      {/* Scanline overlay for a digital/CRT feel */}
+      {/* Cinematic Dark Vignette & Overlays */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/50 to-black/30 z-0 pointer-events-none" />
+      <div className="absolute inset-0 bg-radial-gradient from-transparent via-black/40 to-black/90 z-0 pointer-events-none" />
+
+      {/* CRT Scanline Overlay */}
       <div
-        className="absolute inset-0 z-20 pointer-events-none opacity-[0.06]"
+        className="absolute inset-0 z-20 pointer-events-none opacity-[0.05]"
         style={{
           backgroundImage:
             'repeating-linear-gradient(0deg, #22d3ee 0px, #22d3ee 1px, transparent 1px, transparent 3px)',
         }}
       />
 
-      {/* Corner HUD brackets */}
-      <div className="absolute top-6 left-6 w-10 h-10 border-t-2 border-l-2 border-cyan-500/40 z-10" />
-      <div className="absolute top-6 right-6 w-10 h-10 border-t-2 border-r-2 border-cyan-500/40 z-10" />
-      <div className="absolute bottom-6 left-6 w-10 h-10 border-b-2 border-l-2 border-cyan-500/40 z-10" />
-      <div className="absolute bottom-6 right-6 w-10 h-10 border-b-2 border-r-2 border-cyan-500/40 z-10" />
+      {/* Cybernetic Corner HUD Brackets */}
+      <div className="absolute top-8 left-8 w-12 h-12 border-t-2 border-l-2 border-cyan-400/60 z-10 shadow-[0_0_12px_rgba(34,211,238,0.3)]" />
+      <div className="absolute top-8 right-8 w-12 h-12 border-t-2 border-r-2 border-cyan-400/60 z-10 shadow-[0_0_12px_rgba(34,211,238,0.3)]" />
+      <div className="absolute bottom-8 left-8 w-12 h-12 border-b-2 border-l-2 border-cyan-400/60 z-10 shadow-[0_0_12px_rgba(34,211,238,0.3)]" />
+      <div className="absolute bottom-8 right-8 w-12 h-12 border-b-2 border-r-2 border-cyan-400/60 z-10 shadow-[0_0_12px_rgba(34,211,238,0.3)]" />
 
-      {/* Status readout, top-right style HUD text */}
-      <div className="absolute top-8 right-16 z-10 text-right text-[10px] tracking-widest text-cyan-500/50 uppercase leading-relaxed hidden md:block">
-        <p>Comms Link :: Stable</p>
-        <p>Nav System :: Online</p>
-        <p>Life Support :: 100%</p>
+      {/* Top-Right Mission Status HUD Panel */}
+      <div className="absolute top-10 right-20 z-10 text-right text-[11px] tracking-[0.2em] text-cyan-400/70 uppercase leading-relaxed hidden md:block bg-black/40 backdrop-blur-md px-4 py-2.5 rounded border border-cyan-900/40 shadow-lg shadow-cyan-950/50">
+        <p className="flex items-center justify-end gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          COMMS LINK :: SECURE
+        </p>
+        <p>NAV MATRIX :: SYNCHRONIZED</p>
+        <p className="text-cyan-300">AUDIO FEED :: ACTIVE</p>
       </div>
 
       {/* Main UI Container */}
-      <div className="relative z-10">
+      <div className="relative z-10 max-w-2xl">
         <motion.div
-          initial={{ opacity: 0, y: -30 }}
+          initial={{ opacity: 0, y: -25 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: 'easeOut' }}
         >
-          <div className="flex items-center gap-3 mb-1">
-            <span className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_8px_2px_rgba(34,211,238,0.6)]" />
-            <span className="text-[11px] uppercase tracking-[0.3em] text-cyan-400/80">
-              Mission Control // Terminal Active
+          <div className="flex items-center gap-3 mb-2">
+            <span className="w-2.5 h-2.5 bg-cyan-400 rounded-full animate-ping absolute" />
+            <span className="w-2.5 h-2.5 bg-cyan-400 rounded-full shadow-[0_0_12px_3px_rgba(34,211,238,0.8)]" />
+            <span className="text-xs uppercase tracking-[0.35em] text-cyan-300/90 font-semibold">
+              MISSION CONTROL // ORBITAL INTERFACE v1.4
             </span>
           </div>
-          <h1 className="text-6xl md:text-7xl font-black tracking-widest bg-gradient-to-r from-cyan-300 via-blue-400 to-indigo-400 bg-clip-text text-transparent uppercase drop-shadow-[0_5px_15px_rgba(34,211,238,0.25)]">
-            Orbit Simulator
+          
+          <h1 className="text-6xl md:text-8xl font-black tracking-widest bg-gradient-to-r from-cyan-200 via-cyan-400 to-indigo-400 bg-clip-text text-transparent uppercase drop-shadow-[0_0_30px_rgba(34,211,238,0.4)]">
+            ORBIT SIMULATOR
           </h1>
-          <p className="mt-3 text-sm md:text-base text-slate-400 max-w-md tracking-wide leading-relaxed">
-            Navigate celestial bodies, master transfer windows, and conquer the solar system.
+          
+          <p className="mt-4 text-sm md:text-base text-slate-300 max-w-lg tracking-wide leading-relaxed font-sans">
+            Calculate transfer vectors, navigate deep-space planetary gravitational fields, and conquer the solar system.
           </p>
         </motion.div>
 
         {/* Dynamic Nav Menu */}
-        <nav className="mt-10 flex flex-col gap-3 max-w-sm">
+        <nav className="mt-10 flex flex-col gap-3.5 max-w-md">
           {menuItems.map((item, index) => (
             <motion.button
               key={item.label}
-              initial={{ x: -50, opacity: 0 }}
-              animate={{ x: 0, opacity: item.disabled ? 0.4 : 1 }}
+              initial={{ x: -40, opacity: 0 }}
+              animate={{ x: 0, opacity: item.disabled ? 0.35 : 1 }}
               transition={{
-                delay: index * 0.12,
+                delay: index * 0.1,
                 type: 'spring',
-                stiffness: 110,
-                damping: 14,
+                stiffness: 120,
+                damping: 15,
               }}
-              whileHover={item.disabled ? {} : { scale: 1.03, x: 8 }}
+              whileHover={item.disabled ? {} : { scale: 1.025, x: 10 }}
               whileTap={item.disabled ? {} : { scale: 0.98 }}
+              onHoverStart={() => !item.disabled && playSfx('hover')}
               disabled={item.disabled}
               onClick={() => {
                 if (item.disabled) return;
-                playSfx();
+                playSfx('click');
                 item.action();
               }}
-              className={`group relative text-left py-3.5 px-6 text-xl font-bold uppercase tracking-wider border rounded-md transition-all duration-200 ${
+              className={`group relative text-left py-4 px-7 text-lg font-bold uppercase tracking-wider border rounded-lg transition-all duration-300 backdrop-blur-sm ${
                 item.disabled
-                  ? 'bg-slate-900/40 text-slate-600 border-slate-800/60 cursor-not-allowed'
+                  ? 'bg-slate-950/40 text-slate-600 border-slate-900 cursor-not-allowed shadow-none'
                   : item.primary
-                  ? 'bg-cyan-500/10 text-cyan-100 border-cyan-400/60 shadow-[0_0_20px_-4px_rgba(34,211,238,0.5)] hover:bg-cyan-400/20 hover:border-cyan-300 hover:shadow-[0_0_28px_-2px_rgba(34,211,238,0.7)]'
-                  : 'bg-slate-900/50 text-slate-300 border-slate-800 hover:bg-slate-800/70 hover:text-cyan-200 hover:border-cyan-700/60'
+                  ? 'bg-cyan-500/15 text-cyan-100 border-cyan-400/70 shadow-[0_0_25px_-4px_rgba(34,211,238,0.4)] hover:bg-cyan-400/25 hover:border-cyan-200 hover:shadow-[0_0_35px_-2px_rgba(34,211,238,0.7)]'
+                  : 'bg-slate-950/60 text-slate-300 border-slate-800/80 hover:bg-slate-900/80 hover:text-cyan-200 hover:border-cyan-600/70 hover:shadow-[0_0_20px_-5px_rgba(34,211,238,0.3)]'
               }`}
             >
               <span className="flex items-center justify-between">
-                <span className="flex items-center gap-3">
-                  <span className="text-cyan-500/60 text-xs font-mono">
-                    0{index + 1}
+                <span className="flex items-center gap-4">
+                  <span className="text-cyan-400/70 text-xs font-mono tracking-widest">
+                    // 0{index + 1}
                   </span>
                   {item.label}
                 </span>
                 <span
-                  className={`text-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity ${
+                  className={`text-cyan-400 font-bold opacity-0 group-hover:opacity-100 transition-all transform -translate-x-2 group-hover:translate-x-0 ${
                     item.disabled ? 'hidden' : ''
                   }`}
                 >
@@ -146,135 +207,89 @@ export const MainMenu: React.FC = () => {
             </motion.button>
           ))}
         </nav>
-
-        <p className="mt-8 text-[10px] tracking-widest text-slate-600 uppercase">
-          Build v0.1.0 :: Terminal ID #OS-2291
-        </p>
       </div>
 
-      {/* Settings Modal */}
+      {/* Settings Modal Overlay */}
       <AnimatePresence>
         {showSettings && (
-          <motion.div
+          <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm"
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md"
           >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-slate-950/95 border border-cyan-900/60 p-8 rounded-xl w-full max-w-md shadow-2xl shadow-cyan-500/10 backdrop-blur-md font-mono"
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
-                <span className="text-[10px] uppercase tracking-[0.3em] text-cyan-500/70">
-                  Console Access
-                </span>
-              </div>
-              <h2 className="text-2xl font-black uppercase tracking-wider mb-6 bg-gradient-to-r from-cyan-300 to-blue-400 bg-clip-text text-transparent">
-                System Calibration
-              </h2>
-
-              {/* Audio Controls */}
-              <div className="space-y-5 mb-8">
+            <div className="bg-slate-950 border border-cyan-500/50 p-8 rounded-lg max-w-md w-full shadow-[0_0_40px_rgba(34,211,238,0.2)]">
+              <h2 className="text-xl font-bold text-cyan-300 mb-6 uppercase tracking-wider">// SYSTEM CALIBRATION</h2>
+              
+              <div className="space-y-6">
                 <div>
-                  <div className="flex justify-between text-xs uppercase tracking-wider font-semibold text-slate-400 mb-2">
-                    <span>Music Volume</span>
-                    <span className="text-cyan-400">{musicVolume}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={musicVolume}
+                  <label className="text-xs uppercase text-slate-400 block mb-2">Music Volume: {musicVolume}%</label>
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="100" 
+                    value={musicVolume} 
                     onChange={(e) => setMusicVolume(Number(e.target.value))}
-                    className="w-full accent-cyan-400 bg-slate-800 h-1.5 rounded-lg cursor-pointer appearance-none"
+                    className="w-full accent-cyan-400 cursor-pointer"
                   />
                 </div>
 
                 <div>
-                  <div className="flex justify-between text-xs uppercase tracking-wider font-semibold text-slate-400 mb-2">
-                    <span>SFX Volume</span>
-                    <span className="text-cyan-400">{sfxVolume}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={sfxVolume}
+                  <label className="text-xs uppercase text-slate-400 block mb-2">SFX Volume: {sfxVolume}%</label>
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="100" 
+                    value={sfxVolume} 
                     onChange={(e) => setSfxVolume(Number(e.target.value))}
-                    className="w-full accent-cyan-400 bg-slate-800 h-1.5 rounded-lg cursor-pointer appearance-none"
+                    className="w-full accent-cyan-400 cursor-pointer"
                   />
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => {
-                  playSfx();
-                  setShowSettings(false);
-                }}
-                className="w-full py-3 bg-cyan-500/90 hover:bg-cyan-400 text-black font-bold uppercase tracking-wider rounded-lg transition shadow-lg shadow-cyan-500/20"
+              <button 
+                onClick={() => { playSfx('click'); setShowSettings(false); }}
+                className="mt-8 w-full py-3 bg-cyan-500/20 text-cyan-200 border border-cyan-400/60 rounded font-bold uppercase tracking-wider hover:bg-cyan-400/30 transition-all"
               >
-                Confirm &amp; Return
-              </motion.button>
-            </motion.div>
+                Save & Close
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Quit Confirmation Modal */}
+      {/* Quit Confirmation Overlay */}
       <AnimatePresence>
         {showQuitConfirm && (
-          <motion.div
+          <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm"
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md"
           >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-slate-950/95 border border-red-900/50 p-8 rounded-xl w-full max-w-sm shadow-2xl shadow-red-500/10 backdrop-blur-md font-mono text-center"
-            >
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <span className="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse" />
-                <span className="text-[10px] uppercase tracking-[0.3em] text-red-400/70">
-                  Warning
-                </span>
-              </div>
-              <h2 className="text-xl font-black uppercase tracking-wider mb-6 text-red-300">
-                Terminate Session?
-              </h2>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    playSfx();
-                    setShowQuitConfirm(false);
-                  }}
-                  className="flex-1 py-3 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-bold uppercase tracking-wider rounded-lg transition text-sm"
+            <div className="bg-slate-950 border border-red-500/50 p-8 rounded-lg max-w-sm w-full shadow-[0_0_40px_rgba(239,68,68,0.2)] text-center">
+              <h2 className="text-xl font-bold text-red-400 mb-4 uppercase tracking-wider">// TERMINATE LINK?</h2>
+              <p className="text-xs text-slate-400 mb-6">Are you sure you want to disconnect from mission control?</p>
+              
+              <div className="flex gap-4">
+                <button 
+                  onClick={handleQuit}
+                  className="flex-1 py-3 bg-red-500/20 text-red-200 border border-red-400/60 rounded font-bold uppercase tracking-wider hover:bg-red-400/30 transition-all"
                 >
-                  Cancel
+                  Yes
                 </button>
-                <button
-                  onClick={() => {
-                    playSfx();
-                    handleQuit();
-                  }}
-                  className="flex-1 py-3 bg-red-600/90 hover:bg-red-500 text-white font-bold uppercase tracking-wider rounded-lg transition text-sm shadow-lg shadow-red-600/20"
+                <button 
+                  onClick={() => setShowQuitConfirm(false)}
+                  className="flex-1 py-3 bg-slate-800 text-slate-200 border border-slate-700 rounded font-bold uppercase tracking-wider hover:bg-slate-700 transition-all"
                 >
-                  Quit
+                  No
                 </button>
               </div>
-            </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
+
     </div>
   );
 };
