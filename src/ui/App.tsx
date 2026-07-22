@@ -113,12 +113,11 @@ export default function App() {
         <SceneManager />
       </div>
 
-<<<<<<< HEAD
-<<<<<<< HEAD
+
       {/* UI Overlay - grid to avoid panel overlap */}
       <div className="absolute inset-0 z-10 pointer-events-none p-6 grid grid-cols-[minmax(320px,40vw)_1fr_320px] grid-rows-[1fr_auto] gap-6">
         {/* Left column: HUD + Codex */}
-        <div className="col-start-1 row-start-1 row-end-3 pointer-events-auto flex flex-col justify-between gap-4">
+        <div className=" pointer-events-auto flex flex-col justify-between gap-4">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
             <div className="pointer-events-auto">
               <StatusHUD />
@@ -145,53 +144,11 @@ export default function App() {
 
         {/* Bottom-left: Navigation & Time Controls */}
         <div className="col-start-1 row-start-2 pointer-events-auto flex flex-col gap-4">
-=======
-      {/* Structured UI Overlay Layer (Pointer events pass through background) */}
-      <div className="absolute inset-0 z-10 pointer-events-none">
-        
-        {/* 1. TOP-LEFT COLUMN: Status & Explorer's Codex */}
-        <div className="absolute top-6 left-6 z-20 flex flex-col gap-3 items-start pointer-events-auto">
-          <StatusHUD />
-          <div className="w-[min(380px,38vw)]">
-            <ExplorerCodex />
-          </div>
-        </div>
-
-        {/* 2. TOP-RIGHT: Burn & Flight Controls */}
-        <div className="absolute top-6 right-6 z-20 pointer-events-auto w-full max-w-[300px]">
-          <BurnControls />
-        </div>
-
-        {/* 3. BOTTOM-LEFT COLUMN: Time Warp, Autopilot & Fast Travel */}
-        <div className="absolute bottom-6 left-6 z-20 pointer-events-auto flex flex-col gap-2 max-w-[340px]">
->>>>>>> 5154dc51f0d1916c1498a74745be23866b9d85c0
-=======
-      {/* Structured UI Overlay Layer (Pointer events pass through background) */}
-      <div className="absolute inset-0 z-10 pointer-events-none">
-        
-        {/* 1. TOP-LEFT COLUMN: Status & Explorer's Codex */}
-        <div className="absolute top-6 left-6 z-20 flex flex-col gap-3 items-start pointer-events-auto">
-          <StatusHUD />
-          <div className="w-[min(380px,38vw)]">
-            <ExplorerCodex />
-          </div>
-        </div>
-
-        {/* 2. TOP-RIGHT: Burn & Flight Controls */}
-        <div className="absolute top-6 right-6 z-20 pointer-events-auto w-full max-w-[300px]">
-          <BurnControls />
-        </div>
-
-        {/* 3. BOTTOM-LEFT COLUMN: Time Warp, Autopilot & Fast Travel */}
-        <div className="absolute bottom-6 left-6 z-20 pointer-events-auto flex flex-col gap-2 max-w-[340px]">
->>>>>>> 5154dc51f0d1916c1498a74745be23866b9d85c0
           <TimeWarpControls />
           <AutopilotPanel />
           <FastTravelPanel />
         </div>
 
-<<<<<<< HEAD
-<<<<<<< HEAD
         {/* Bottom-right: Minimap */}
         <div className="col-start-3 row-start-2 pointer-events-auto self-end justify-self-end">
           <Minimap />
@@ -203,27 +160,6 @@ export default function App() {
           <PauseMenu />
           {gamePhase === 'GameOver' && <GameOverModal />}
         </div>
-=======
-=======
->>>>>>> 5154dc51f0d1916c1498a74745be23866b9d85c0
-        {/* 4. BOTTOM-CENTER: Dynamic Caption Box */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 pointer-events-auto w-full max-w-xl px-4">
-          <CaptionBox />
-        </div>
-        
-        {/* 5. BOTTOM-RIGHT: Tactical Radar / Minimap */}
-        <div className="absolute bottom-6 right-6 z-20 pointer-events-auto">
-          <Minimap />
-        </div>
-
-        {/* Global Floating Modals */}
-        <CodexUnlocker />
-        <PauseMenu />
-
-<<<<<<< HEAD
->>>>>>> 5154dc51f0d1916c1498a74745be23866b9d85c0
-=======
->>>>>>> 5154dc51f0d1916c1498a74745be23866b9d85c0
       </div>
     </div>
   );
