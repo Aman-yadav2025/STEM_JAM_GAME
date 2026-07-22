@@ -12,14 +12,15 @@ import { Minimap } from './components/hud/Minimap';
 import { TimeWarpControls } from './TimeWarpControls';
 import { AutopilotPanel } from './AutopilotPanel';
 import { FastTravelPanel } from './components/hud/FastTravelPanel';
+import { MusicControls } from './components/hud/MusicControls';
 import { useEffect } from 'react';
 import { MainMenu } from './MainMenu';
 import MusicManager from './MusicManager';
+import GameOverModal from './GameOverModal';
 
 // Temporary fallback constants if defined elsewhere in your codebase
 const EDUCATIONAL_ORBITAL_FACTS: { category: string; fact: string }[] = [];
 const PLANET_HAZARDS: { id: string; name: string; description: string; severity: string; evaluator: (data: { altitude: number; velocity: number }) => boolean }[] = [];
-import GameOverModal from './GameOverModal';
 
 export default function App() {
   const gamePhase = useStore((state) => state.gamePhase);
@@ -201,8 +202,9 @@ export default function App() {
           </div>
         </div>
 
-        {/* Bottom-left: Navigation & Time Controls */}
+        {/* Bottom-left: Navigation, Time & Music Controls */}
         <div className="col-start-1 row-start-2 pointer-events-auto flex flex-col gap-4">
+          {isPaused && <MusicControls />}
           <TimeWarpControls />
           <AutopilotPanel />
           <FastTravelPanel />

@@ -1,5 +1,6 @@
 import { useStore } from '../state/store';
 import { CornerFrame } from './components/hud/CornerFrame';
+import { MusicControls } from './components/hud/MusicControls';
 
 export function PauseMenu() {
   const isPaused = useStore((state) => state.isPaused);
@@ -29,30 +30,36 @@ export function PauseMenu() {
           </div>
 
           {/* Button Stack */}
-          <div className="flex flex-col gap-4 max-w-xs mx-auto">
-            <button
-              type="button"
-              onClick={() => setPaused(false)}
-              className="inline-flex w-full items-center justify-center rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold uppercase tracking-[0.24em] text-white transition hover:bg-white/20 hover:scale-[1.02] active:scale-95"
-            >
-              Resume
-            </button>
+          <div className="space-y-6">
+            <div className="flex flex-col gap-4 max-w-xs mx-auto">
+              <button
+                type="button"
+                onClick={() => setPaused(false)}
+                className="inline-flex w-full items-center justify-center rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold uppercase tracking-[0.24em] text-white transition hover:bg-white/20 hover:scale-[1.02] active:scale-95"
+              >
+                Resume
+              </button>
 
-            <button
-              type="button"
-              onClick={handleReturnToMenu}
-              className="inline-flex w-full items-center justify-center rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold uppercase tracking-[0.24em] text-white transition hover:bg-white/20 hover:scale-[1.02] active:scale-95"
-            >
-              Return to Menu
-            </button>
+              <button
+                type="button"
+                onClick={handleReturnToMenu}
+                className="inline-flex w-full items-center justify-center rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold uppercase tracking-[0.24em] text-white transition hover:bg-white/20 hover:scale-[1.02] active:scale-95"
+              >
+                Return to Menu
+              </button>
 
-            <button
-              type="button"
-              onClick={handleQuit}
-              className="inline-flex w-full items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-3 text-sm font-semibold uppercase tracking-[0.24em] text-red-200 transition hover:bg-red-500/20 hover:border-red-500/50 hover:scale-[1.02] active:scale-95"
-            >
-              Quit Desktop
-            </button>
+              <button
+                type="button"
+                onClick={handleQuit}
+                className="inline-flex w-full items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-3 text-sm font-semibold uppercase tracking-[0.24em] text-red-200 transition hover:bg-red-500/20 hover:border-red-500/50 hover:scale-[1.02] active:scale-95"
+              >
+                Quit Desktop
+              </button>
+            </div>
+
+            <div className="flex justify-center">
+              <MusicControls />
+            </div>
           </div>
         </div>
       </CornerFrame>

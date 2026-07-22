@@ -3,6 +3,8 @@ import { useStore } from '../state/store';
 
 const MusicManager = () => {
   const gamePhase = useStore((state) => state.gamePhase);
+  const musicMuted = useStore((state) => state.musicMuted);
+  const musicVolume = useStore((state) => state.musicVolume);
   const menuAudioRef = useRef<HTMLAudioElement>(null);
   const gameAudioRef = useRef<HTMLAudioElement>(null);
 
@@ -24,7 +26,7 @@ const MusicManager = () => {
     };
 
     const fadeIn = (audio: HTMLAudioElement) => {
-      audio.play();
+      audio.play().catch(() => {});
       audio.volume = 0;
       const fade = () => {
         if (audio.volume < 1) {
@@ -43,6 +45,17 @@ const MusicManager = () => {
       fadeIn(gameAudio);
     }
   }, [gamePhase]);
+
+  useEffect(() => {
+    if (menuAudioRef.current) {
+      menuAudioRef.current.muted = musicMuted;
+      menuAudioRef.current.volume = musicVolume / 100;
+    }
+    if (gameAudioRef.current) {
+      gameAudioRef.current.muted = musicMuted;
+      gameAudioRef.current.volume = musicVolume / 100;
+    }
+  }, [musicMuted, musicVolume]);
 
   return (
     <>

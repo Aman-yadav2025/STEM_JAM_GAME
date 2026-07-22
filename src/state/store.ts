@@ -69,6 +69,11 @@ export interface GameState {
   setAutopilotEnabled: (enabled: boolean) => void;
   toggleAutopilot: () => void;
 
+  musicMuted: boolean;
+  musicVolume: number;
+  setMusicMuted: (muted: boolean) => void;
+  setMusicVolume: (volume: number) => void;
+
   gamePhase: 'menu' | 'Playing' | 'GameOver';
   setGamePhase: (phase: 'menu' | 'Playing' | 'GameOver') => void;
   returnToMainMenu: (save?: boolean) => void;
@@ -572,6 +577,10 @@ export const useStore = create<GameState>((set, get) => {
     isPaused: false,
     setPaused: (paused) => set({ isPaused: paused }),
     togglePaused: () => set((state) => ({ isPaused: !state.isPaused })),
+    musicMuted: false,
+    musicVolume: 80,
+    setMusicMuted: (muted) => set({ musicMuted: muted }),
+    setMusicVolume: (volume) => set({ musicVolume: Math.max(0, Math.min(100, volume)) }),
     codexEntries: createInitialCodexEntries(),
     achievements: createInitialAchievements(),
     activeScanTargetId: null,
