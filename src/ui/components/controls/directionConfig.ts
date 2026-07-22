@@ -14,5 +14,6 @@ export const DIRECTION_CONFIG: Record<BurnDirection, DirectionConfig> = {
   radialOut:  { direction: 'radialOut',  label: 'RADIAL OUT',  short: 'R-OUT', accent: '#4FB4E8', accentGlow: 'rgba(79,180,232,0.5)' },
   radialIn:   { direction: 'radialIn',   label: 'RADIAL IN',   short: 'R-IN',  accent: '#3B82C4', accentGlow: 'rgba(59,130,196,0.5)' },
   normal:     { direction: 'normal',     label: 'NORMAL',      short: 'NML',  accent: '#C084FC', accentGlow: 'rgba(192,132,252,0.5)' },
+  velocityMatch: { direction: 'velocityMatch', label: 'VEL MATCH', short: 'VM', accent: '#FACC15', accentGlow: 'rgba(250,204,21,0.5)' },
   antinormal: { direction: 'antinormal', label: 'ANTINORMAL',  short: 'A-NML', accent: '#9333EA', accentGlow: 'rgba(147,51,234,0.5)' },
 };

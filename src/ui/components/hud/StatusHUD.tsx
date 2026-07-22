@@ -10,6 +10,8 @@ export function StatusHUD() {
   const fraction = maxFuel > 0 ? fuel / maxFuel : 0;
   const speed = Math.hypot(velocity.x, velocity.y);
   const low = fraction < 0.15;
+  const health = useStore((state) => state.ship.health ?? 0);
+  const maxHealth = useStore((state) => state.ship.maxHealth ?? 100);
 
   return (
     <CornerFrame accent={low ? '#F87171' : '#4FB4E8'} className="font-mono text-[#E6E9EF] w-64">
@@ -39,6 +41,23 @@ export function StatusHUD() {
       <div className="flex justify-between text-[10px] tracking-widest text-white/50">
         <span>VELOCITY</span>
         <span className="text-white/70">{speed.toFixed(2)} U/S</span>
+      </div>
+      <div className="mt-3">
+        <div className="flex justify-between text-[10px] tracking-widest text-white/50 mb-1">
+          <span>HULL</span>
+          <span className={health / maxHealth < 0.25 ? 'text-[#F87171]' : 'text-white/70'}>
+            {health.toFixed(0)} / {maxHealth.toFixed(0)}
+          </span>
+        </div>
+        <div className="h-1.5 w-full bg-white/10 overflow-hidden">
+          <div
+            className="h-full transition-[width] duration-200"
+            style={{
+              width: `${Math.max(0, Math.min(1, health / maxHealth)) * 100}%`,
+              backgroundColor: health / maxHealth < 0.25 ? '#F87171' : '#4FB4E8',
+            }}
+          />
+        </div>
       </div>
     </CornerFrame>
   );

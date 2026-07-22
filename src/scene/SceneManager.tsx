@@ -238,9 +238,14 @@ const Simulation = () => {
     Venus: useLoader(THREE.TextureLoader, '/textures/venus.jpg'),
     Mars: useLoader(THREE.TextureLoader, '/textures/mars.jpg'),
     Jupiter: useLoader(THREE.TextureLoader, '/textures/jupiter.jpg'),
+    Saturn: useLoader(THREE.TextureLoader, '/textures/saturn___texture_map_by_interplanetary1019_dlha1n5.png'),
     Uranus: useLoader(THREE.TextureLoader, '/textures/uranus.jpg'),
     Neptune: useLoader(THREE.TextureLoader, '/textures/neptune.jpg'),
   };
+  const saturnRingsTexture = useLoader(
+    THREE.TextureLoader,
+    '/textures/saturn_rings_texture_map_13k_by_fargetanik_ddh2ahf.png'
+  );
 
   return (
     <>
@@ -271,11 +276,12 @@ const Simulation = () => {
                 <mesh rotation={[Math.PI / 3, 0, 0]}>
                   <ringGeometry args={[body.radius * 1.4, body.radius * 2.3, 64]} />
                   <meshStandardMaterial 
-                    color="#e2d4a8" 
+                    map={saturnRingsTexture}
                     side={THREE.DoubleSide} 
                     transparent 
-                    opacity={0.7} 
-                    roughness={0.8} 
+                    opacity={0.9} 
+                    roughness={0.9} 
+                    toneMapped={false}
                   />
                 </mesh>
               )}
@@ -305,7 +311,7 @@ const CameraRig = () => {
   const { camera, gl } = useThree();
   const controlsRef = useRef<any>(null);
   const previousTarget = useRef<THREE.Vector3 | null>(null);
-  const offset = new THREE.Vector3(0, 30, 140);
+  const offset = new THREE.Vector3(0, 25, 120);
 
   useFrame(() => {
     if (!ship) return;
@@ -327,7 +333,21 @@ const CameraRig = () => {
     }
   });
 
-  return <OrbitControls ref={controlsRef} camera={camera} domElement={gl.domElement} />;
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      camera={camera}
+      domElement={gl.domElement}
+      enableZoom={true}
+      zoomSpeed={0.8}
+      minDistance={20}
+      maxDistance={800}
+      enablePan={false}
+      enableDamping={true}
+      dampingFactor={0.05}
+      rotateSpeed={0.7}
+    />
+  );
 };
 
 export const SceneManager = () => {

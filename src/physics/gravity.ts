@@ -14,6 +14,7 @@
 
 import { G } from './constants';
 import type { CelestialBody } from './constants';
+import type { MovingBody } from './orbitPath';
 import { Vector3 } from './vector3';
 
 /**
@@ -64,19 +65,30 @@ export function getDominantBody(shipPosition: Vector3, bodies: CelestialBody[]):
  * Total acceleration on the ship, using patched-conic dominant-body gravity.
  * This is the function every integrator (rocketMotion, trajectoryPredictor)
  * should call for gravity.
+ *
+ * BUG FIX: this used to add `accelFromBody(dominant.position, bodies[0])`
+ * whenever `dominant.name !== 'sun'` — i.e. it assumed the dominant body's
+ * parent was ALWAYS the Sun (bodies[0]). That's true for planets, but false
+ * for moons — a moon's parent is its planet, not the Sun. So a ship
+ * captured by, say, the Moon was getting the Sun's (much weaker,
+ * wrong-direction) pull added instead of Earth's — the actual force that
+ * curves the Moon's own path — which corrupted orbital dynamics for any
+ * ship near a moon and made stable capture there effectively impossible.
+ * Fix: walk the REAL parent chain (moon -> planet -> sun, however deep),
+ * adding each ancestor's pull on the previous body's position, so the
+ * reference frame is correct at every level of nesting, not just one.
  */
-export function DominantAccel(position: Vector3, bodies: CelestialBody[]): Vector3 {
-  const dominant = getDominantBody(position, bodies);
+export function DominantAccel(position: Vector3, bodies: MovingBody[]): Vector3 {
+  const dominant = getDominantBody(position, bodies) as MovingBody;
   let accel = accelFromBody(position, dominant);
-  
-  // If the dominant body is not the "Sun" (e.g., it's a planet orbiting something else),
-  // we must add the parent body's acceleration so the ship's global path curves with the planet.
-  if (dominant.name !== 'sun') {
-    // bodies[0] is typically the Sun / universal center
-    const frameAccel = accelFromBody(dominant.position, bodies[0]);
-    accel = accel.add(frameAccel);
+
+  let current: MovingBody | undefined = dominant;
+  while (current?.orbit?.parentBody) {
+    const parent = current.orbit.parentBody as MovingBody;
+    accel = accel.add(accelFromBody(current.position, parent));
+    current = parent;
   }
-  
+
   return accel;
 }
 

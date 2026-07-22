@@ -23,7 +23,7 @@ interface TrajectoryLineProps {
 }
 
 export function TrajectoryLine({
-  maxSteps = 2000,
+  maxSteps = 20000,
   minSteps = 50,
   recomputeEveryNFrames = 1,
   color = '#F0E1CE',

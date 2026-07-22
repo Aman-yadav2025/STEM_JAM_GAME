@@ -4,7 +4,7 @@ import { useStore } from '../../../state/store';
 export const FastTravelPanel: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const bodies = useStore((state) => state.bodies);
-  const setAutopilotTarget = useStore((state) => state.setAutopilotTarget);
+  const fastTravelToTarget = useStore((state) => state.fastTravelToTarget);
 
   return (
     <div className="relative">
@@ -32,7 +32,7 @@ export const FastTravelPanel: React.FC = () => {
               <button
                 key={body.name}
                 onClick={() => {
-                  setAutopilotTarget(body.name);
+                  fastTravelToTarget(body.name);
                   setIsOpen(false);
                 }}
                 className="text-left px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-purple-500/20 hover:border-purple-500/60 rounded-lg text-xs font-mono transition text-slate-200 flex items-center justify-between"

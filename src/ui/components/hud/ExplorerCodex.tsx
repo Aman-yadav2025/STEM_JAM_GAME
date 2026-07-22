@@ -50,7 +50,7 @@ export function ExplorerCodex() {
   const activeFact: RoboticFact = ROBOTIC_FACTS[currentFactIndex];
 
   return (
-    <div className="pointer-events-auto absolute top-40 left-4 z-40 font-mono">
+    <div className="pointer-events-auto z-40 font-mono">
       {!isOpen ? (
         <button
           onClick={() => setIsOpen(true)}

@@ -19,6 +19,7 @@ import MusicManager from './MusicManager';
 // Temporary fallback constants if defined elsewhere in your codebase
 const EDUCATIONAL_ORBITAL_FACTS: { category: string; fact: string }[] = [];
 const PLANET_HAZARDS: { id: string; name: string; description: string; severity: string; evaluator: (data: { altitude: number; velocity: number }) => boolean }[] = [];
+import GameOverModal from './GameOverModal';
 
 export default function App() {
   const gamePhase = useStore((state) => state.gamePhase);
@@ -95,6 +96,7 @@ export default function App() {
   }, [isPaused]);
 
   // Keyboard Flight Controls & Pause Listener
+  // Flight key handling
   useEffect(() => {
     const pressedKeys = new Set<string>();
 
@@ -170,36 +172,44 @@ export default function App() {
         </Canvas>
       </div>
 
-      {/* Structured UI Overlay Layer (Pointer events pass through background) */}
-      <div className="absolute inset-0 z-10 pointer-events-none">
-        
-        {/* 1. TOP-LEFT COLUMN: Status & Explorer's Codex */}
-        <div className="absolute top-6 left-6 z-20 flex flex-col gap-3 items-start pointer-events-auto">
-          <StatusHUD />
-          <div className="w-[min(380px,38vw)]">
-            <ExplorerCodex />
+
+      {/* UI Overlay - grid to avoid panel overlap */}
+      <div className="absolute inset-0 z-10 pointer-events-none p-6 grid grid-cols-[minmax(320px,40vw)_1fr_320px] grid-rows-[1fr_auto] gap-6">
+        {/* Left column: HUD + Codex */}
+        <div className=" pointer-events-auto flex flex-col justify-between gap-4">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
+            <div className="pointer-events-auto">
+              <StatusHUD />
+            </div>
+            <div className="pointer-events-auto w-full xl:w-[min(420px,40vw)]">
+              <ExplorerCodex />
+            </div>
+          </div>
+
+          <div className="pointer-events-auto">
+            <CaptionBox />
           </div>
         </div>
 
-        {/* 2. TOP-RIGHT: Burn & Flight Controls */}
-        <div className="absolute top-6 right-6 z-20 pointer-events-auto w-full max-w-75">
-          <BurnControls />
+        {/* Center column reserved for future mid-screen UI (keeps it free) */}
+        <div className="col-start-2 row-start-1 pointer-events-none" />
+
+        {/* Right column: Burn controls */}
+        <div className="col-start-3 row-start-1 pointer-events-auto self-start">
+          <div className="w-full max-w-[320px]">
+            <BurnControls />
+          </div>
         </div>
 
-        {/* 3. BOTTOM-LEFT COLUMN: Time Warp, Autopilot & Fast Travel */}
-        <div className="absolute bottom-6 left-6 z-20 pointer-events-auto flex flex-col gap-2 max-w-[340px]">
+        {/* Bottom-left: Navigation & Time Controls */}
+        <div className="col-start-1 row-start-2 pointer-events-auto flex flex-col gap-4">
           <TimeWarpControls />
           <AutopilotPanel />
           <FastTravelPanel />
         </div>
 
-        {/* 4. BOTTOM-CENTER: Dynamic Caption Box */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 pointer-events-auto w-full max-w-xl px-4">
-          <CaptionBox />
-        </div>
-        
-        {/* 5. BOTTOM-RIGHT: Tactical Radar / Minimap */}
-        <div className="absolute bottom-6 right-6 z-20 pointer-events-auto">
+        {/* Bottom-right: Minimap */}
+        <div className="col-start-3 row-start-2 pointer-events-auto self-end justify-self-end">
           <Minimap />
         </div>
 
@@ -207,6 +217,12 @@ export default function App() {
         <CodexUnlocker />
         <PauseMenu />
 
+        {/* Floating: modal-like components that need to overlay everything */}
+        <div className="col-start-2 row-start-1 row-end-3 pointer-events-none">
+          <CodexUnlocker />
+          <PauseMenu />
+          {gamePhase === 'GameOver' && <GameOverModal />}
+        </div>
       </div>
     </div>
   );

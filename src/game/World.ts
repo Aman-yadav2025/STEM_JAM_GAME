@@ -42,7 +42,8 @@ export class World {
         const autopilotOutput = computeAutopilot(
           currentShip,
           currentBodies as any,
-          state.autopilotTargetName
+          state.autopilotTargetName,
+          state.engine
         );
         burnDirection = autopilotOutput.direction;
         throttle = autopilotOutput.throttle;
@@ -59,6 +60,15 @@ export class World {
         }
       }
 
+      // BUG FIX: autopilotTargetName was never forwarded here, so
+      // rocketMotion.ts's `interceptTarget` always resolved to null and
+      // the 'intercept' burn direction (used for the entire cruise /
+      // planet->moon transfer phase in autopilot.ts) silently degenerated
+      // to a zero-vector in getBurnDirectionVector() — meaning autopilot
+      // burned real fuel every substep while producing ZERO actual thrust
+      // any time it was steering toward a target. That's why transfers
+      // took forever / never arrived / never got close enough to a body
+      // to reach the capture-and-circularize logic at all.
       const { ship: nextShip, t: nextTime } = updateShipPhysics(
         currentShip,
         currentBodies as any,
@@ -67,11 +77,42 @@ export class World {
         throttle,
         currentTime,
         subDt,
-        state.flightInput
+        state.flightInput,
+        state.autopilotEnabled ? state.autopilotTargetName : null
       );
 
       currentShip = nextShip;
       currentTime = nextTime;
+
+      // Collision checks per substep:
+      const storeNow = useStore.getState();
+
+      // 1) Planetary crash -> immediate game over
+      for (const body of currentBodies) {
+        const rel = body.position.subtract(currentShip.position);
+        const dist = rel.magnitude();
+        if (dist <= Math.max(1, body.radius)) {
+          // Crash into a planetary surface => game over
+          useStore.setState({ ship: { ...currentShip, health: 0 }, gamePhase: 'GameOver' });
+          return; // stop ticking
+        }
+      }
+
+      // 2) Debris collisions: check against lightweight debris list in state
+      const debrisList = storeNow.debris ?? [];
+      for (const d of debrisList) {
+        const dist = currentShip.position.subtract(d.position).magnitude();
+        if (dist <= (d.radius + 2)) {
+          // Hit debris: subtract health and remove debris
+          const newHealth = (currentShip.health ?? 0) - (d.damage ?? 10);
+          currentShip = { ...currentShip, health: Math.max(0, newHealth) };
+          useStore.setState({ ship: currentShip, debris: debrisList.filter((x: any) => x.id !== d.id) });
+          if ((currentShip.health ?? 0) <= 0) {
+            useStore.setState({ gamePhase: 'GameOver' });
+            return;
+          }
+        }
+      }
     }
 
     // 3. Commit the new state back to the store. Manual activeBurnDirection/

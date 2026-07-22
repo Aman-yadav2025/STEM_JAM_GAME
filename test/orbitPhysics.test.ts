@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { updateShipPhysics } from '../src/physics/rocketMotion';
+import { computeAutopilot } from '../src/physics/autopilot';
 import { DEFAULT_ENGINE } from '../src/physics/rocketEquation';
 import { CONSTANT_DT, G, type CelestialBody, type Spacecraft } from '../src/physics/constants';
 import { Vector3 } from '../src/physics/vector3';
@@ -96,5 +97,43 @@ describe('updateShipPhysics', () => {
     expect(finalPlanetRadius).toBeLessThan(planetOrbitRadius * 1.1);
     expect(maxShipRadiusError).toBeLessThan(shipOrbitRadius * 0.8);
     expect(maxPlanetRadiusError).toBeLessThan(planetOrbitRadius * 0.2);
+  });
+
+  it('chooses a velocity-match burn when transverse target-relative speed is too high outside the target SOI', () => {
+    const sun: MovingBody = {
+      name: 'Sun',
+      mass: 100000,
+      radius: 100,
+      position: new Vector3(0, 0, 0),
+      soiRadius: Infinity,
+      color: 'yellow',
+    };
+
+    const target: MovingBody = {
+      name: 'Target',
+      mass: 10000,
+      radius: 30,
+      position: new Vector3(1000, 0, 0),
+      soiRadius: 300,
+      color: 'blue',
+      velocity: new Vector3(0, 0, 0),
+    };
+
+    const ship: Spacecraft = {
+      position: new Vector3(0, 0, 0),
+      velocity: new Vector3(50, 200, 0),
+      mass: 1000,
+      fuel: 500,
+      maxFuel: 500,
+      heading: 0,
+      pitch: 0,
+      yaw: 0,
+      roll: 0,
+    };
+
+    const output = computeAutopilot(ship, [sun, target], 'Target');
+    expect(output.direction).toBe('velocityMatch');
+    expect(output.throttle).toBeGreaterThan(0);
+    expect(output.status).toBe('CRUISING');
   });
 });

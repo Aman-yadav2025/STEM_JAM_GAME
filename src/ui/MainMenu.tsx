@@ -9,32 +9,44 @@ export const MainMenu: React.FC = () => {
   
   const [showSettings, setShowSettings] = useState(false);
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
-  const [musicVolume, setMusicVolume] = useState(80);
+  const [musicVolume, setMusicVolume] = useState(30);
   const [sfxVolume, setSfxVolume] = useState(70);
+  const [isMuted, setIsMuted] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const hasUnmutedOnce = useRef(false);
 
-  // Handle background music playback & browser autoplay restrictions
+  // Start muted+playing immediately on mount so playback is already rolling
+  // the instant the browser allows sound (browsers block ANY unmuted
+  // autoplay regardless of volume, so muted autoplay is the only way to
+  // avoid a delay once the user interacts or toggles unmute manually).
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    
+
     audio.volume = musicVolume / 100;
     audio.loop = true;
+    audio.muted = true;
 
-    // Attempt to play on mount. If it fails, user interaction will start it via playSfx.
     audio.play().catch(() => {
-      console.log("Autoplay blocked: Music will start on first user interaction.");
+      console.log('Muted autoplay blocked; will retry on first interaction.');
     });
   }, []);
 
-  // Update MP3 volume dynamically when slider changes in Settings
+  // Update volume dynamically when slider changes in Settings
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = musicVolume / 100;
     }
   }, [musicVolume]);
+
+  // Keep the audio element's mute state in sync with our mute button
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.muted = isMuted;
+    }
+  }, [isMuted]);
 
   const playSfx = (type: 'hover' | 'click' = 'click') => {
     // This function is a great place to ensure our main audio is playing.
@@ -67,6 +79,48 @@ export const MainMenu: React.FC = () => {
     } catch {
       // Audio fallback
     }
+  };
+
+  // On the very first user gesture anywhere on the page, unmute (unless the
+  // user has explicitly muted via the button) and make sure playback is
+  // actually running.
+  useEffect(() => {
+    const resumeAudio = () => {
+      const audio = audioRef.current;
+      if (!audio) return;
+
+      if (audio.paused) {
+        audio.play().catch(() => {});
+      }
+
+      if (!hasUnmutedOnce.current) {
+        hasUnmutedOnce.current = true;
+        setIsMuted(false);
+      }
+    };
+
+    const events: Array<keyof WindowEventMap> = [
+      'pointerdown',
+      'mousedown',
+      'touchstart',
+      'click',
+      'keydown',
+    ];
+
+    for (const eventName of events) {
+      window.addEventListener(eventName, resumeAudio, { once: true });
+    }
+
+    return () => {
+      for (const eventName of events) {
+        window.removeEventListener(eventName, resumeAudio);
+      }
+    };
+  }, []);
+
+  const toggleMute = () => {
+    hasUnmutedOnce.current = true; // manual toggle counts as the "first interaction" too
+    setIsMuted((prev) => !prev);
   };
 
   const handleContinue = () => continueGame();
@@ -124,6 +178,17 @@ export const MainMenu: React.FC = () => {
       <div className="absolute top-8 right-8 w-12 h-12 border-t-2 border-r-2 border-cyan-400/60 z-10 shadow-[0_0_12px_rgba(34,211,238,0.3)]" />
       <div className="absolute bottom-8 left-8 w-12 h-12 border-b-2 border-l-2 border-cyan-400/60 z-10 shadow-[0_0_12px_rgba(34,211,238,0.3)]" />
       <div className="absolute bottom-8 right-8 w-12 h-12 border-b-2 border-r-2 border-cyan-400/60 z-10 shadow-[0_0_12px_rgba(34,211,238,0.3)]" />
+
+      {/* Mute Toggle Button */}
+      <button
+        type="button"
+        onClick={toggleMute}
+        aria-label={isMuted ? 'Unmute music' : 'Mute music'}
+        className="absolute top-8 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-3 py-2 rounded-full border border-cyan-400/40 bg-black/50 backdrop-blur-md text-cyan-300 text-xs uppercase tracking-widest hover:bg-black/70 hover:border-cyan-300/70 transition-all"
+      >
+        <span className={`w-1.5 h-1.5 rounded-full ${isMuted ? 'bg-slate-500' : 'bg-emerald-400 animate-pulse'}`} />
+        {isMuted ? 'Muted' : 'Audio On'}
+      </button>
 
       {/* Top-Right Mission Status HUD Panel */}
       <div className="absolute top-10 right-20 z-10 text-right text-[11px] tracking-[0.2em] text-cyan-400/70 uppercase leading-relaxed hidden md:block bg-black/40 backdrop-blur-md px-4 py-2.5 rounded border border-cyan-900/40 shadow-lg shadow-cyan-950/50">
@@ -244,6 +309,21 @@ export const MainMenu: React.FC = () => {
                     onChange={(e) => setSfxVolume(Number(e.target.value))}
                     className="w-full accent-cyan-400 cursor-pointer"
                   />
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+                  <label className="text-xs uppercase text-slate-400">Mute Music</label>
+                  <button
+                    type="button"
+                    onClick={toggleMute}
+                    className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border transition-all ${
+                      isMuted
+                        ? 'bg-slate-800 border-slate-700 text-slate-300'
+                        : 'bg-cyan-500/20 border-cyan-400/60 text-cyan-200'
+                    }`}
+                  >
+                    {isMuted ? 'Unmute' : 'Mute'}
+                  </button>
                 </div>
               </div>
 

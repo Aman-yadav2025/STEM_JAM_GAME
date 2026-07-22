@@ -3,12 +3,47 @@
 // Two things live here:
 //
 // 1. getBurnDirectionVector() — shared by BOTH burn styles (instant and
-//    continuous). Prograde/retrograde are relative to the ship's own
-//    velocity. Radial in/out are relative to the DOMINANT BODY's position
-//    (the true physical definition — the line connecting ship and central
-//    body), not just "perpendicular to velocity". Those only coincide for a
-//    perfectly circular orbit; for anything elliptical they diverge, so
-//    this needs `bodies` to look up the current dominant body.
+//    continuous). Prograde/retrograde/normal/antinormal are relative to
+//    the ship's velocity RELATIVE TO THE CURRENT DOMINANT BODY — not the
+//    ship's raw inertial/heliocentric velocity. Radial in/out are relative
+//    to the DOMINANT BODY's position (the true physical definition — the
+//    line connecting ship and central body), not just "perpendicular to
+//    velocity". Those only coincide for a perfectly circular orbit; for
+//    anything elliptical they diverge, so this needs `bodies` to look up
+//    the current dominant body.
+//
+//    BUG FIX (orbit insertion around anything but the Sun): prograde and
+//    retrograde used to be `ship.velocity.normalize()` — the ship's
+//    absolute/inertial velocity. That's only physically meaningful when
+//    the body you're orbiting is itself stationary. Every planet moves
+//    around the Sun, and every moon moves around its planet, so a ship's
+//    absolute velocity is really "orbital velocity around the dominant
+//    body" PLUS "the dominant body's own velocity around whatever IT
+//    orbits" (and for moons, plus the grandparent's velocity too). Firing
+//    'retrograde' against the ship's raw velocity mostly cancels the
+//    dominant body's own (large) orbital motion instead of the ship's
+//    (small) relative motion around it — the error this was supposed to
+//    correct barely shrinks, or gets corrected in the wrong plane
+//    entirely. This was survivable near the Sun (planets there have large
+//    local circular speeds relative to the mismatch), got progressively
+//    worse for slower/lower-mass bodies (Mars — never converges), turned
+//    violent for massive ones (Saturn/Uranus — badly-aimed impulses next
+//    to strong gravity produce chaotic, destabilizing trajectories), and
+//    failed outright for every moon (whose own orbital velocity is
+//    swamped by its planet's — and the planet's by the Sun's — inertial
+//    velocity). Fix: subtract the dominant body's own velocity first, so
+//    "prograde" always means "prograde relative to whatever you're
+//    actually orbiting," matching the frame autopilot.ts's error
+//    calculations were already using.
+//
+//    'intercept' is new: unlike every other direction, it isn't derived
+//    from the ship's own state at all — it points straight at an
+//    ARBITRARY target body's current position, passed in via
+//    `interceptTarget`. This is what lets the autopilot actually STEER
+//    during interplanetary cruise instead of only being able to speed up
+//    or slow down along whatever heading it already happens to have.
+//    Manual/player flight never uses this (there's no player-facing way to
+//    designate an interceptTarget), so existing controls are unaffected.
 //
 // 2. applyBurn()/previewBurn() — INSTANT delta-v burns via the rocket
 //    equation. NOT the primary player-facing mechanism anymore (see
@@ -28,24 +63,44 @@ export interface BurnResult {
   propellantUsed?: number;
 }
 
+/** Bodies at runtime always carry a velocity (see MovingBody in orbitPath.ts);
+ * CelestialBody itself doesn't declare the field, so this narrows it back in
+ * without requiring every caller to import/pass MovingBody explicitly. */
+function velocityOf(body: CelestialBody): Vector3 {
+  return (body as CelestialBody & { velocity?: Vector3 }).velocity ?? Vector3.zero();
+}
+
 /**
- * Unit vector for a given burn direction. Prograde/retrograde use the
- * ship's own velocity; radial in/out use the line to the current dominant
- * body, which is the physically correct definition of "radial".
+ * Unit vector for a given burn direction. Prograde/retrograde/normal/
+ * antinormal use the ship's velocity RELATIVE TO THE CURRENT DOMINANT
+ * BODY (see bug-fix note above) — not the ship's raw inertial velocity.
+ * Radial in/out use the line to the current dominant body, which is the
+ * physically correct definition of "radial". 'intercept' points straight
+ * at `interceptTarget`'s current position, regardless of the ship's own
+ * velocity or which body dominates its local gravity — required for
+ * `interceptTarget` to be supplied, otherwise degenerates to a zero
+ * vector (no thrust) rather than throwing, so a caller that forgets to
+ * pass a target just coasts instead of crashing.
  */
 export function getBurnDirectionVector(
   ship: Spacecraft,
   bodies: CelestialBody[],
-  direction: BurnDirection
+  direction: BurnDirection,
+  interceptTarget?: CelestialBody | null
 ): Vector3 {
 
 
 
   switch (direction) {
     case 'prograde':
-      return ship.velocity.normalize();
-    case 'retrograde':
-      return ship.velocity.normalize().scale(-1);
+    case 'retrograde': {
+      const body = getDominantBody(ship.position, bodies);
+      const relativeVelocity = ship.velocity.subtract(velocityOf(body));
+      const relSpeed = relativeVelocity.magnitude();
+      if (relSpeed === 0) return Vector3.zero();
+      const unit = relativeVelocity.scale(1 / relSpeed);
+      return direction === 'prograde' ? unit : unit.scale(-1);
+    }
     case 'radialOut': {
       const body = getDominantBody(ship.position, bodies);
       return ship.position.subtract(body.position).normalize();
@@ -58,7 +113,8 @@ export function getBurnDirectionVector(
     case 'antinormal': {
       const body = getDominantBody(ship.position, bodies);
       const relativePosition = ship.position.subtract(body.position);
-      const angularMomentum = relativePosition.cross(ship.velocity);
+      const relativeVelocity = ship.velocity.subtract(velocityOf(body));
+      const angularMomentum = relativePosition.cross(relativeVelocity);
 
       // Degenerate case: purely radial velocity (falling straight in/out,
       // or sitting at periapsis/apoapsis of a zero-angular-momentum path)
@@ -69,6 +125,22 @@ export function getBurnDirectionVector(
 
       const normalUnit = angularMomentum.normalize();
       return direction === 'normal' ? normalUnit : normalUnit.scale(-1);
+    }
+    case 'intercept': {
+      if (!interceptTarget) {
+        return Vector3.zero();
+      }
+      const toTarget = interceptTarget.position.subtract(ship.position);
+      return toTarget.magnitude() > 0 ? toTarget.normalize() : Vector3.zero();
+    }
+    case 'velocityMatch': {
+      if (!interceptTarget) {
+        return Vector3.zero();
+      }
+      const targetVelocity = velocityOf(interceptTarget);
+      const relativeVelocity = ship.velocity.subtract(targetVelocity);
+      const relSpeed = relativeVelocity.magnitude();
+      return relSpeed > 0 ? relativeVelocity.scale(-1 / relSpeed) : Vector3.zero();
     }
   }
 }
@@ -83,11 +155,15 @@ export function applyBurn(
   bodies: CelestialBody[],
   direction: BurnDirection,
   deltaV: number,
-  engine: EngineSpec = DEFAULT_ENGINE
+  engine: EngineSpec = DEFAULT_ENGINE,
+  interceptTarget?: CelestialBody | null
 ): BurnResult & { ship: Spacecraft } {
-  const speed = ship.velocity.magnitude();
-  if (speed === 0 && direction !== 'radialIn' && direction !== 'radialOut') {
-    return { success: false, reason: 'cannot determine prograde direction at zero velocity', ship };
+  if (direction === 'prograde' || direction === 'retrograde' || direction === 'normal' || direction === 'antinormal') {
+    const body = getDominantBody(ship.position, bodies);
+    const relSpeed = ship.velocity.subtract(velocityOf(body)).magnitude();
+    if (relSpeed === 0) {
+      return { success: false, reason: 'cannot determine burn direction at zero velocity relative to dominant body', ship };
+    }
   }
 
   const massBefore = totalMass(ship);
@@ -97,9 +173,9 @@ export function applyBurn(
     return { success: false, reason: 'insufficient fuel', ship };
   }
 
-  const burnUnit = getBurnDirectionVector(ship, bodies, direction);
+  const burnUnit = getBurnDirectionVector(ship, bodies, direction, interceptTarget);
   if (burnUnit.magnitude() === 0) {
-    return { success: false, reason: 'cannot determine burn direction (no orbital plane defined)', ship };
+    return { success: false, reason: 'cannot determine burn direction (no orbital plane defined, or no intercept target given)', ship };
   }
 
 
@@ -118,11 +194,12 @@ export function previewBurn(
   bodies: CelestialBody[],
   direction: BurnDirection,
   deltaV: number,
-  engine: EngineSpec = DEFAULT_ENGINE
+  engine: EngineSpec = DEFAULT_ENGINE,
+  interceptTarget?: CelestialBody | null
 ) {
   const massBefore = totalMass(ship);
   const propellantNeeded = propellantForDeltaV(deltaV, massBefore, engine);
-  const burnUnit = getBurnDirectionVector(ship, bodies, direction);
+  const burnUnit = getBurnDirectionVector(ship, bodies, direction, interceptTarget);
   const velocity = ship.velocity.add(burnUnit.scale(deltaV));
 
   return {
