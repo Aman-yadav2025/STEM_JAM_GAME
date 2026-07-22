@@ -2,48 +2,48 @@ import React, { useState } from 'react';
 import { useStore } from '../../../state/store';
 
 export const FastTravelPanel: React.FC = () => {
+  const [isOpen, setIsOpen] = useState(false);
   const bodies = useStore((state) => state.bodies);
-  const fastTravelToTarget = useStore((state) => state.fastTravelToTarget);
-
-  const [selectedDestination, setSelectedDestination] = useState<string>('');
-
-  // Filter out the Sun if you don't want to allow teleporting directly into it
-  const destinationOptions = bodies.filter((b) => b.name !== 'Sun');
-
-  const handleTeleport = () => {
-    if (selectedDestination) {
-      fastTravelToTarget(selectedDestination);
-    }
-  };
+  const setAutopilotTarget = useStore((state) => state.setAutopilotTarget);
 
   return (
-    <div className="absolute top-20 right-4 w-64 bg-slate-900/90 border border-slate-700 rounded-lg p-4 text-white shadow-xl backdrop-blur-sm z-50">
-      <h3 className="text-sm font-bold text-slate-300 mb-3 border-b border-slate-700 pb-2 flex items-center gap-2">
-        <span>⚡</span> Fast Travel System
-      </h3>
+    <div className="relative">
+      {/* Toggle Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between gap-3 bg-slate-900/90 hover:bg-slate-800/90 text-purple-400 px-4 py-2 rounded-xl border border-purple-500/30 shadow-lg backdrop-blur transition font-mono text-xs tracking-wider uppercase w-full"
+      >
+        <span className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-purple-400" />
+          Fast Travel Matrix
+        </span>
+        <span className="text-slate-400 text-sm font-bold">{isOpen ? '▲' : '▼'}</span>
+      </button>
 
-      <div className="flex flex-col gap-3">
-        <select
-          value={selectedDestination}
-          onChange={(e) => setSelectedDestination(e.target.value)}
-          className="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded px-3 py-2 outline-none cursor-pointer focus:border-amber-500 transition-colors"
-        >
-          <option value="">-- Select Destination --</option>
-          {destinationOptions.map((body) => (
-            <option key={body.name} value={body.name}>
-              {body.name}
-            </option>
-          ))}
-        </select>
-
-        <button
-          onClick={handleTeleport}
-          disabled={!selectedDestination}
-          className="w-full py-2 text-sm font-bold rounded bg-amber-600 hover:bg-amber-500 text-white disabled:bg-slate-800 disabled:text-slate-600 transition-all active:scale-95 flex items-center justify-center gap-2"
-        >
-          <span>✨</span> Engage Warp
-        </button>
-      </div>
+      {/* Expanded Panel */}
+      {isOpen && (
+        <div className="absolute bottom-full mb-2 left-0 w-64 bg-slate-950/95 text-white p-3 rounded-xl border border-purple-500/40 shadow-2xl backdrop-blur z-30 animate-in fade-in slide-in-from-bottom-2 duration-200 max-h-48 overflow-y-auto">
+          <div className="flex items-center justify-between w-full text-[10px] text-slate-400 uppercase tracking-widest px-1 mb-2">
+            <span>Instant Trajectory Jump</span>
+            <button onClick={() => setIsOpen(false)} className="hover:text-white">✕</button>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {bodies.map((body) => (
+              <button
+                key={body.name}
+                onClick={() => {
+                  setAutopilotTarget(body.name);
+                  setIsOpen(false);
+                }}
+                className="text-left px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-purple-500/20 hover:border-purple-500/60 rounded-lg text-xs font-mono transition text-slate-200 flex items-center justify-between"
+              >
+                <span>{body.name}</span>
+                <span className="text-[10px] text-purple-400 uppercase">Jump</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
