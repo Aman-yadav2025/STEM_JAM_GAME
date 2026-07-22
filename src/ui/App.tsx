@@ -13,8 +13,78 @@ import { TimeWarpControls } from './TimeWarpControls';
 import { AutopilotPanel } from './AutopilotPanel';
 import { FastTravelPanel } from './components/hud/FastTravelPanel';
 
+// --- EDUCATIONAL ORBITAL FACTS ---
+export const EDUCATIONAL_ORBITAL_FACTS = [
+  {
+      category: 'Orbital Mechanics',
+      fact: 'The Oberth Effect proves that burning rocket fuel when traveling at maximum speed (at periapsis) yields significantly more kinetic energy change than burning at apoapsis.'
+  },
+  {
+      category: 'Kepler’s Third Law',
+      fact: 'The square of a planet\'s orbital period is directly proportional to the cube of the semi-major axis of its orbit ($T^2 \\propto a^3$).'
+  },
+  {
+      category: 'Lagrange Points',
+      fact: 'Points L1 through L5 represent positions of gravitational equilibrium between two celestial bodies, allowing spacecraft to maintain formation with minimal fuel consumption.'
+  },
+  {
+      category: 'Orbital Velocity',
+      fact: 'To stay in Low Earth Orbit (LEO), a spacecraft must travel at roughly 7.8 km/s (28,080 km/h), falling continuously around the curvature of the Earth.'
+  },
+  {
+      category: 'Tidal Forces',
+      fact: 'Gravitational gradients across an extended body cause tidal stretching. Close orbits inside the Roche limit will tear unpowered bodies apart.'
+  }
+];
+
+// --- PLANET HAZARDS SYSTEM ---
+export interface PlanetHazard {
+  id: string;
+  name: string;
+  type: 'radiation' | 'atmosphere' | 'thermal' | 'debris';
+  severity: 'low' | 'moderate' | 'critical';
+  description: string;
+  evaluator: (telemetry: { altitude: number; velocity: number; distanceToSun?: number }) => boolean;
+}
+
+export const PLANET_HAZARDS: PlanetHazard[] = [
+  {
+      id: 'van_allen_belt',
+      name: 'Van Allen Radiation Belt',
+      type: 'radiation',
+      severity: 'moderate',
+      description: 'High-energy charged particles trapped by planetary magnetic field. Electronics and solar arrays undergoing degradation.',
+      evaluator: (t) => t.altitude >= 1000 && t.altitude <= 5000,
+  },
+  {
+      id: 'atmospheric_drag',
+      name: 'Upper Ionosphere Thermal Friction',
+      type: 'atmosphere',
+      severity: 'critical',
+      description: 'WARNING: Spacecraft encountering residual atmospheric molecules. Rapid orbital decay and thermal stress detected!',
+      evaluator: (t) => t.altitude < 150 && t.altitude > 0,
+  },
+  {
+      id: 'solar_flare',
+      name: 'Coronal Mass Ejection (CME)',
+      type: 'thermal',
+      severity: 'critical',
+      description: 'Solar radiation storm active! Seek planetary shadow immediately to prevent telemetry failure.',
+      evaluator: (t) => (t.distanceToSun ?? 10000) < 2500,
+  },
+  {
+      id: 'orbital_debris_field',
+      name: 'Kessler Syndrome Debris Ring',
+      type: 'debris',
+      severity: 'moderate',
+      description: 'Dense concentration of defunct satellite fragments in low orbit. Evasive maneuvering recommended.',
+      evaluator: (t) => t.altitude >= 700 && t.altitude <= 900 && t.velocity > 7.5,
+  }
+];
+
 export default function App() {
   const gamePhase = useStore((state) => state.gamePhase);
+  const isPaused = useStore((state) => state.isPaused);
   const togglePaused = useStore((state) => state.togglePaused);
   const setFlightControls = useStore((state) => state.setFlightControls);
 
@@ -26,12 +96,11 @@ export default function App() {
         'info',
         [
           {
-            label: 'Planet Hazards',
-            handler: () =>
-              showGameCaption(
-                'Venus is the Pressure Cooker: a deep-heat zone where sensors overheat and only shielded ships survive. Uranus is the Sideways Spinner: erratic gravitation can flip your controls mid-flight.',
-                'tip'
-              ),
+            label: 'Planet Hazards & Facts',
+            handler: () => {
+              const randomFact = EDUCATIONAL_ORBITAL_FACTS[Math.floor(Math.random() * EDUCATIONAL_ORBITAL_FACTS.length)];
+              showGameCaption(`[${randomFact.category}] ${randomFact.fact}`, 'tip');
+            },
           },
           {
             label: 'Deep-Space Lore',
@@ -54,6 +123,38 @@ export default function App() {
     }
   }, [gamePhase]);
 
+  // Real-time Planetary Hazard Monitor (with anti-spam check)
+  useEffect(() => {
+    let lastTriggeredHazardId: string | null = null;
+
+    const interval = setInterval(() => {
+      const telemetry = window.__shipTelemetry;
+      if (!telemetry || isPaused) return;
+
+      const activeHazard = PLANET_HAZARDS.find(hazard => 
+        hazard.evaluator({
+          altitude: telemetry.periapsisAltitude ?? 500,
+          velocity: telemetry.velocity ?? 7.0,
+        })
+      );
+
+      if (activeHazard && activeHazard.id !== lastTriggeredHazardId) {
+        lastTriggeredHazardId = activeHazard.id;
+        window.__gameCaptionLast = {
+          id: `hazard-${activeHazard.id}-${Date.now()}`,
+          text: `[HAZARD ALERT] ${activeHazard.name}: ${activeHazard.description}`,
+          type: activeHazard.severity === 'critical' ? 'warning' : 'info',
+          timestamp: new Date().toLocaleTimeString()
+        };
+      } else if (!activeHazard) {
+        lastTriggeredHazardId = null;
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isPaused]);
+
+  // Keyboard Flight Controls & Pause Listener
   useEffect(() => {
     const pressedKeys = new Set<string>();
 
