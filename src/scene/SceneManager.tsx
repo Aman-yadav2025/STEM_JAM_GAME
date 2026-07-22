@@ -352,12 +352,12 @@ const CameraRig = () => {
 
 export const SceneManager = () => {
   return (
-    <Canvas camera={{ position: [0, 30, 140], fov: 80, near: 0.1, far: 10000 }}>
+    <>
       <ambientLight intensity={0.4} />
       <pointLight position={[0, 0, 0]} intensity={2} />
       <Stars radius={12000} depth={50} count={2000} factor={4} />
       <Simulation />
       <CameraRig />
-    </Canvas>
+    </>
   );
 };

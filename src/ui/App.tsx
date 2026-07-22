@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { MainMenu } from './MainMenu';
+import { Canvas } from '@react-three/fiber';
+import { StarfieldBackground } from './components/canvas/StarfieldBackground';
 import { SceneManager } from '../scene/SceneManager';
 import { useStore } from '../state/store';
 import { StatusHUD } from './components/hud/StatusHUD';
@@ -12,14 +12,22 @@ import { Minimap } from './components/hud/Minimap';
 import { TimeWarpControls } from './TimeWarpControls';
 import { AutopilotPanel } from './AutopilotPanel';
 import { FastTravelPanel } from './components/hud/FastTravelPanel';
+import { useEffect } from 'react';
+import { MainMenu } from './MainMenu';
+import MusicManager from './MusicManager';
+
+// Temporary fallback constants if defined elsewhere in your codebase
+const EDUCATIONAL_ORBITAL_FACTS: { category: string; fact: string }[] = [];
+const PLANET_HAZARDS: { id: string; name: string; description: string; severity: string; evaluator: (data: { altitude: number; velocity: number }) => boolean }[] = [];
 import GameOverModal from './GameOverModal';
 
 export default function App() {
   const gamePhase = useStore((state) => state.gamePhase);
+  const isPaused = useStore((state) => state.isPaused);
   const togglePaused = useStore((state) => state.togglePaused);
   const setFlightControls = useStore((state) => state.setFlightControls);
 
-  // Only trigger the intro caption when entering the 'playing' phase
+  // Only trigger the intro caption when entering the 'Playing' phase
   useEffect(() => {
     if (gamePhase === 'Playing') {
       showGameCaption(
@@ -27,12 +35,13 @@ export default function App() {
         'info',
         [
           {
-            label: 'Planet Hazards',
-            handler: () =>
-              showGameCaption(
-                'Venus is the Pressure Cooker: a deep-heat zone where sensors overheat and only shielded ships survive. Uranus is the Sideways Spinner: erratic gravitation can flip your controls mid-flight.',
-                'tip'
-              ),
+            label: 'Planet Hazards & Facts',
+            handler: () => {
+              const randomFact = EDUCATIONAL_ORBITAL_FACTS.length > 0 
+                ? EDUCATIONAL_ORBITAL_FACTS[Math.floor(Math.random() * EDUCATIONAL_ORBITAL_FACTS.length)]
+                : { category: 'Orbital Mechanics', fact: 'Kepler’s second law states that a line segment joining a planet and the Sun sweeps out equal areas during equal intervals of time.' };
+              showGameCaption(`[${randomFact.category}] ${randomFact.fact}`, 'tip');
+            },
           },
           {
             label: 'Deep-Space Lore',
@@ -55,6 +64,38 @@ export default function App() {
     }
   }, [gamePhase]);
 
+  // Real-time Planetary Hazard Monitor (with anti-spam check)
+  useEffect(() => {
+    let lastTriggeredHazardId: string | null = null;
+
+    const interval = setInterval(() => {
+      const telemetry = (window as any).__shipTelemetry;
+      if (!telemetry || isPaused) return;
+
+      const activeHazard = PLANET_HAZARDS.find(hazard => 
+        hazard.evaluator({
+          altitude: telemetry.periapsisAltitude ?? 500,
+          velocity: telemetry.velocity ?? 7.0,
+        })
+      );
+
+      if (activeHazard && activeHazard.id !== lastTriggeredHazardId) {
+        lastTriggeredHazardId = activeHazard.id;
+        (window as any).__gameCaptionLast = {
+          id: `hazard-${activeHazard.id}-${Date.now()}`,
+          text: `[HAZARD ALERT] ${activeHazard.name}: ${activeHazard.description}`,
+          type: activeHazard.severity === 'critical' ? 'warning' : 'info',
+          timestamp: new Date().toLocaleTimeString()
+        };
+      } else if (!activeHazard) {
+        lastTriggeredHazardId = null;
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isPaused]);
+
+  // Keyboard Flight Controls & Pause Listener
   // Flight key handling
   useEffect(() => {
     const pressedKeys = new Set<string>();
@@ -103,14 +144,32 @@ export default function App() {
   }, [gamePhase, setFlightControls, togglePaused]);
 
   if (gamePhase === 'menu') {
-    return <MainMenu />;
+    return (
+      <>
+        <MusicManager />
+        <MainMenu />
+      </>
+    );
   }
 
   return (
-    <div className="relative w-screen h-screen bg-black overflow-hidden select-none">
-      {/* 3D Render Layer */}
+    <div className="relative w-screen h-screen bg-black overflow-hidden select-none font-mono">
+      <MusicManager />
+      
+      {/* 3D Render Layer with Canvas, Starfield Background, and Scene Manager */}
       <div className="absolute inset-0 z-0">
-        <SceneManager />
+        <Canvas
+          camera={{ position: [0, 50, 150], fov: 60, near: 0.1, far: 10000 }}
+          className="w-full h-full"
+        >
+          <color attach="background" args={['#020408']} />
+          
+          {/* 3D Stars & Milky Way Background */}
+          <StarfieldBackground />
+
+          {/* Core Scene Manager (Planets, Ships, Orbits) */}
+          <SceneManager />
+        </Canvas>
       </div>
 
 
@@ -153,6 +212,10 @@ export default function App() {
         <div className="col-start-3 row-start-2 pointer-events-auto self-end justify-self-end">
           <Minimap />
         </div>
+
+        {/* Global Floating Modals & Scanners */}
+        <CodexUnlocker />
+        <PauseMenu />
 
         {/* Floating: modal-like components that need to overlay everything */}
         <div className="col-start-2 row-start-1 row-end-3 pointer-events-none">
