@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { useStore, WARP_STEPS, getDisplayWarpValue } from '../state/store';
+import { useStore, WARP_STEPS, getDisplayWarpValue, type GameState } from '../state/store';
 
 export const TimeWarpControls: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const timeWarp = useStore((state) => state.timeWarp);
-  const setTimeWarp = useStore((state) => state.setTimeWarp);
-  const increaseTimeWarp = useStore((state) => state.increaseTimeWarp);
-  const decreaseTimeWarp = useStore((state) => state.decreaseTimeWarp);
-  const resetTimeWarp = useStore((state) => state.resetTimeWarp);
+  const timeWarp = useStore((state: GameState) => state.timeWarp);
+  const setTimeWarp = useStore((state: GameState) => state.setTimeWarp);
+  const increaseTimeWarp = useStore((state: GameState) => state.increaseTimeWarp);
+  const decreaseTimeWarp = useStore((state: GameState) => state.decreaseTimeWarp);
+  const resetTimeWarp = useStore((state: GameState) => state.resetTimeWarp);
 
   return (
     <div className="relative">
