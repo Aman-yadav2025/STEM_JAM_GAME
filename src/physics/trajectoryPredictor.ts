@@ -62,7 +62,30 @@ export function predictPath(
   startTime: number
 ): Vector3[] {
   const dt = CONSTANT_DT;
-  const predictedBodies: MovingBody[] = bodies.map((b) => ({ ...b, position: b.position.clone() }));
+
+  // Clone every body (with its own cloned position) so prediction never
+  // mutates live game state. Critically, also remap each clone's
+  // `orbit.parentBody` to point at its SIBLING inside this cloned array,
+  // not the original live body. updateBodyPositions() only advances
+  // objects that are actually IN the array it's given — if a moon's
+  // parentBody still pointed at the original live planet, the finite-
+  // difference velocity probe below would read that live planet's frozen,
+  // un-shifted position at every probe time, so the planet's own orbital
+  // velocity around the sun would never show up in the moon's computed
+  // "dominant body velocity" — only the moon's own spin around a
+  // stationary point. That's what was making trajectories drawn around a
+  // moon balloon out to solar-orbit scale.
+  const predictedBodies: MovingBody[] = bodies.map((b) => ({
+    ...b,
+    position: b.position.clone(),
+    orbit: b.orbit ? { ...b.orbit } : undefined,
+  }));
+  const clonedByName = new Map(predictedBodies.map((b) => [b.name, b]));
+  for (const b of predictedBodies) {
+    if (b.orbit?.parentBody) {
+      b.orbit.parentBody = clonedByName.get(b.orbit.parentBody.name) ?? b.orbit.parentBody;
+    }
+  }
 
   // 1. Identify the dominant body exactly at the start time
   updateBodyPositions(predictedBodies, startTime);

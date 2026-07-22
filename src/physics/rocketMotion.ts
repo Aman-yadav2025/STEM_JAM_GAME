@@ -1,8 +1,7 @@
 import { CONSTANT_DT, G, type CelestialBody, type Spacecraft, type BurnDirection, type FlightInputState } from "./constants";
 import { STANDARD_g, type EngineSpec } from "./rocketEquation";
 import { Vector3 } from "./vector3";
-import { totalAccelNBody, getDominantBody, DominantAccel } from "./gravity";
-import { updateBodyPositions, type OrbitPath } from "./orbitPath";
+import { totalAccelNBody, getDominantBody, DominantAccel } from "./gravity";import { getBurnDirectionVector } from "./burn";import { updateBodyPositions, type OrbitPath } from "./orbitPath";
 
 type MovingBody = CelestialBody & { orbit?: OrbitPath };
 
@@ -29,7 +28,15 @@ function localOrbitalPeriod(shipPos: Vector3, bodies: MovingBody[]): number {
 }
 
 const MIN_SUBSTEPS = 1;
-const MAX_SUBSTEPS = 64;        // hard cap so a near-singular r can't blow up perf
+// Hard cap so a near-singular r can't blow up perf. Raised from 64 -> 256:
+// a hot, close first pass near a massive body (e.g. arriving at Saturn or
+// Uranus with significant residual closing speed) can have a local orbital
+// period short enough that 64 substeps under-resolves it, letting the
+// integrator's energy drift destabilize what should be a capturable orbit.
+// 256 gives real headroom for that case; MIN_SUBSTEPS/typical cruise still
+// only spends a handful of substeps, so this only costs extra work exactly
+// when it's needed (deep, fast encounters).
+const MAX_SUBSTEPS = 256;
 const SAMPLES_PER_ORBIT = 60;   // resolution target: ~60 samples per local orbit
 
 function chooseSubstepCount(shipPos: Vector3, bodies: MovingBody[], stepDt: number): number {
@@ -48,14 +55,25 @@ export function updateShipPhysics(
   _throttle: number = 1.0,
   t: number,
   dt: number = CONSTANT_DT,
-  flightInput?: FlightInputState
+  flightInput?: FlightInputState,
+  // NEW: name of the body the autopilot is currently steering toward, if
+  // any. Only meaningful when _activeBurnDirection === 'intercept' — every
+  // other direction ignores it. Resolved to a live body reference once per
+  // call (not per-substep) since updateBodyPositions mutates bodies
+  // in-place, so the reference stays current across substeps automatically.
+  autopilotTargetName?: string | null
 ): RocketMotionResult {
   const stepDt = dt;
 
   const inputPitch = flightInput?.pitch ?? 0;
   const inputYaw = flightInput?.yaw ?? 0;
   const inputRoll = flightInput?.roll ?? 0;
-  const thrusting = flightInput?.thrusting ?? false;
+  const manualThrusting = flightInput?.thrusting ?? false;
+  const autopilotActive = _activeBurnDirection !== null && _throttle > 0;
+
+  const interceptTarget: MovingBody | null = autopilotTargetName
+    ? bodies.find((b) => b.name === autopilotTargetName) ?? null
+    : null;
 
   // Orientation and fuel burn are integrated once over the full frame —
   // only the orbital mechanics needs the finer substep.
@@ -76,11 +94,21 @@ export function updateShipPhysics(
 
   for (let i = 0; i < numSubsteps; i++) {
 
-    if (thrusting && fuel > 0) {
-      const currentThrustForce = engine.maxThrust;
+    const usingAutopilot = autopilotActive && fuel > 0;
+    const usingManualThrust = !usingAutopilot && manualThrusting && fuel > 0;
+
+    if (usingAutopilot || usingManualThrust) {
+      const currentThrustForce = engine.maxThrust * (usingAutopilot ? _throttle : 1);
       const totalShipMass = ship.mass + fuel;
       const engineAccMagnitude = currentThrustForce / totalShipMass;
-      const directionVector = getShipForwardVector({ ...ship, pitch: newPitch, yaw: newYaw, roll: newRoll });
+      const directionVector = usingAutopilot
+        ? getBurnDirectionVector(
+            { ...ship, position, velocity, fuel },
+            bodies,
+            _activeBurnDirection!,
+            interceptTarget
+          )
+        : getShipForwardVector({ ...ship, pitch: newPitch, yaw: newYaw, roll: newRoll });
       thrustAcceleration = directionVector.scale(engineAccMagnitude);
 
       const vE = engine.specificImpulse * STANDARD_g;

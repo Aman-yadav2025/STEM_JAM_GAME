@@ -23,7 +23,7 @@ export interface OrbitPath {
   initialAngle: number;                  // starting angle at t = 0, radians
 }
 
-export type MovingBody = CelestialBody & { orbit?: OrbitPath };
+export type MovingBody = CelestialBody & { orbit?: OrbitPath , velocity?:Vector3};
 
 /**
  * Computes a body's world position at simulation time `time`, given its
@@ -49,6 +49,28 @@ export function bodyPositionAtTime(orbit: OrbitPath, time: number): Vector3 {
   );
 }
 
+export function bodyVelocityAtTime(orbit: OrbitPath, time: number): Vector3 {
+  if (orbit.parentBody === null) {
+    return Vector3.zero();
+  }
+
+  const omega = (2 * Math.PI) / orbit.orbitalPeriod;
+  const angle = orbit.initialAngle + omega * time;
+
+  // Relative velocity vector (derivative of position with respect to time)
+  const relVx = -orbit.orbitalRadius * omega * Math.sin(angle);
+  const relVz = orbit.orbitalRadius * omega * Math.cos(angle);
+
+  // Read parent's already-updated velocity
+  const parentVel = (orbit.parentBody as MovingBody).velocity || Vector3.zero();
+
+  return new Vector3(
+    parentVel.x + relVx,
+    parentVel.y,
+    parentVel.z + relVz
+  );
+}
+
 /**
  * Updates position (mutating) for every body in the array, IN ORDER.
  * `bodies` MUST be sorted parent-before-child (e.g. [sun, planet, moon])
@@ -62,6 +84,11 @@ export function updateBodyPositions(bodies: MovingBody[], time: number): void {
   for (const body of bodies) {
     if (body.orbit) {
       body.position = bodyPositionAtTime(body.orbit, time);
+      body.velocity = bodyVelocityAtTime(body.orbit, time);
+    }else {
+      // Static bodies (like the Sun) have zero velocity
+      if (!body.position) body.position = Vector3.zero();
+      body.velocity = Vector3.zero();
     }
   }
 }

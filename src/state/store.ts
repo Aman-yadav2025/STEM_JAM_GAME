@@ -1,15 +1,22 @@
 import { create } from 'zustand';
-import { type Spacecraft, type BurnDirection, G, type FlightInputState } from '../physics/constants';
-import type { MovingBody } from '../physics/orbitPath';
+import { calculateFastTravelState } from '../physics/fastTravel';
+import { 
+  type Spacecraft, 
+  type BurnDirection, 
+  type FlightInputState, 
+  G 
+} from '../physics/constants';
+import { type MovingBody, bodyVelocityAtTime } from '../physics/orbitPath';
 import { type EngineSpec, DEFAULT_ENGINE } from '../physics/rocketEquation';
 import { Vector3 } from '../physics/vector3';
 import { buildSolarSystem } from '../scene/celestialFactory';
+import type { AutopilotStatus } from '../physics/autopilot';
 
 
-export const WARP_STEPS = [0.01, 0.05, 0.1, 0.2, 0.5] as const;
+export const WARP_STEPS = [0,1,3, 2, 5, 10, 25, 50, 75, 100] as const;
 export type WarpStep = (typeof WARP_STEPS)[number];
 
-export const DEFAULT_WARP_STEP: WarpStep = WARP_STEPS[2];
+export const DEFAULT_WARP_STEP: WarpStep = 3;
 
 export const getDisplayWarpValue = (step: WarpStep): number => Number((step * 10).toFixed(10));
 
@@ -34,6 +41,7 @@ export type Achievement = {
 };
 
 interface GameState {
+  cancelAutopilot: () => void;
   ship: Spacecraft;
   bodies: MovingBody[];
   engine: EngineSpec;
@@ -48,6 +56,18 @@ interface GameState {
 
   activeBurnDirection: BurnDirection | null;
   throttle: number;
+
+  // --- Autopilot ---
+  // When enabled, World.tick() feeds computeAutopilot()'s output into
+  // updateShipPhysics() instead of the player's manual activeBurnDirection/
+  // throttle. Manual controls remain untouched underneath so toggling
+  // autopilot off hands control straight back with no extra plumbing.
+  autopilotEnabled: boolean;
+  autopilotTargetName: string | null;
+  autopilotStatus: AutopilotStatus;
+  setAutopilotTarget: (targetName: string | null) => void;
+  setAutopilotEnabled: (enabled: boolean) => void;
+  toggleAutopilot: () => void;
 
   gamePhase: 'menu' | 'Playing' | 'GameOver';
   setGamePhase: (phase: 'menu' | 'Playing' | 'GameOver') => void;
@@ -81,6 +101,9 @@ interface GameState {
   setControls: (direction: BurnDirection | null, throttle: number) => void;
   setTime: (t: number) => void;
   setTrajectoryPath: (path: Vector3[]) => void;
+  debris: { id: string; position: Vector3; radius: number; damage: number }[];
+  removeDebris: (id: string) => void;
+  addDebris: (d: { id: string; position: Vector3; radius: number; damage: number }) => void;
 
   // --- Save / Continue / New Game ---
   hasSave: boolean;
@@ -88,6 +111,7 @@ interface GameState {
   startNewGame: () => void;
   continueGame: () => void;
   clearSave: () => void;
+  fastTravelToTarget: (targetName: string) => void;
 }
 
 // ---- Save system -----------------------------------------------------
@@ -300,14 +324,7 @@ const createInitialShip = (bodies: MovingBody[] = initialBodies): Spacecraft => 
   // out of Earth's SOI and end up orbiting the Sun instead.
   let earthVelocity = Vector3.zero();
   if (earth.orbit) {
-    const { orbitalPeriod } = earth.orbit;
-    const omega = (2 * Math.PI) / orbitalPeriod;
-
-    earthVelocity = new Vector3(
-      -omega * earth.position.z,
-      0,
-      omega * earth.position.x
-    );
+    earthVelocity = bodyVelocityAtTime(earth.orbit, 0);
   }
 
   // 2. Position ship in Low Earth Orbit (12 units above Earth's surface),
@@ -315,17 +332,16 @@ const createInitialShip = (bodies: MovingBody[] = initialBodies): Spacecraft => 
   const orbitAltitude = 70;
   const orbitRadius = earth.radius + orbitAltitude; // 35 + 12 = 47 units from Earth center
 
-  const relativePosition = new Vector3(orbitRadius, 0, 0);
+  const earthParent = earth.orbit?.parentBody?.position ?? Vector3.zero();
+  const earthRadial = earth.position.subtract(earthParent).normalize();
+  const relativePosition = earthRadial.scale(orbitRadius);
   const shipPosition = earth.position.add(relativePosition);
 
   // 3. Calculate circular orbital speed relative to Earth: v = sqrt(G * M / r).
-  // Uses the real simulation G imported from physics/constants (G = 6) —
-  // there is no local shadowing `const G = 1;` here anymore.
   const circularSpeed = Math.sqrt((G * earth.mass) / orbitRadius);
 
-  // Tangential direction for a ship offset along +X in the XZ orbital
-  // plane is +Z (matching Earth's own plane of motion), not +Y.
-  const relativeVelocity = new Vector3(0, 0, circularSpeed);
+  const tangentDir = earthRadial.cross(new Vector3(0, 1, 0)).normalize();
+  const relativeVelocity = tangentDir.scale(circularSpeed);
 
   // 4. Combine Earth's velocity with the ship's relative orbital velocity.
   const totalVelocity = earthVelocity.add(relativeVelocity);
@@ -334,14 +350,33 @@ const createInitialShip = (bodies: MovingBody[] = initialBodies): Spacecraft => 
     position:  shipPosition,
     velocity: totalVelocity,
     mass: 1000,
-    fuel: 500,
-    maxFuel: 500,
+    fuel: 500000000,
+    maxFuel: 500000000,
+    health: 100,
+    maxHealth: 100,
     heading: Math.atan2(totalVelocity.z, totalVelocity.x),
     pitch: 0,
     yaw: 0,
     roll: 0,
   };
 };
+
+type Debris = { id: string; position: Vector3; radius: number; damage: number };
+
+function createInitialDebris(bodies: MovingBody[] = initialBodies, count = 150): Debris[] {
+  const list: Debris[] = [];
+  const earth = bodies.find((b) => b.name === 'Earth');
+  const center = earth ? earth.position : new Vector3(0, 0, 0);
+
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const radius = 55 + Math.random() * 90;
+    const x = center.x + Math.cos(angle) * radius;
+    const y = center.y + Math.sin(angle) * radius;
+    list.push({ id: `deb-${i}`, position: new Vector3(x, y, 0), radius: 1 + Math.random() * 1.5, damage: 10 + Math.floor(Math.random() * 20) });
+  }
+  return list;
+}
 
 export const useStore = create<GameState>((set, get) => {
   const createInitialCodexEntries = (): CodexEntry[] => [
@@ -470,6 +505,7 @@ export const useStore = create<GameState>((set, get) => {
   return {
     ship: createInitialShip(initialBodies),
     bodies: initialBodies,
+    debris: createInitialDebris(initialBodies),
     engine: DEFAULT_ENGINE,
     time: 0,
     trajectoryPath: [],
@@ -498,6 +534,37 @@ export const useStore = create<GameState>((set, get) => {
     resetTimeWarp: () => set({ timeWarp: DEFAULT_WARP_STEP }),
     activeBurnDirection: null,
     throttle: 0,
+
+    autopilotEnabled: false,
+    autopilotTargetName: null,
+    autopilotStatus: 'IDLE',
+
+    // Picking a target doesn't auto-engage autopilot on its own — this just
+    // records which body computeAutopilot() should fly toward. Player still
+    // flips the master switch via setAutopilotEnabled/toggleAutopilot.
+    setAutopilotTarget: (targetName) => set({ autopilotTargetName: targetName }),
+
+    cancelAutopilot: () => {
+      const state = get();
+      state.setAutopilotEnabled(false);
+      state.setAutopilotTarget(null);
+    },
+
+    setAutopilotEnabled: (enabled) => {
+      // Disabling autopilot hands control back to the player immediately —
+      // clear any burn autopilot was mid-way through so the ship doesn't
+      // keep coasting on a stale thrust command it no longer owns.
+      if (!enabled) {
+        set({ autopilotEnabled: false, activeBurnDirection: null, throttle: 0, autopilotStatus: 'IDLE' });
+      } else {
+        set({ autopilotEnabled: true });
+      }
+    },
+
+    toggleAutopilot: () => {
+      const state = get();
+      state.setAutopilotEnabled(!state.autopilotEnabled);
+    },
 
     gamePhase: 'menu',
     setGamePhase: (phase) => set({ gamePhase: phase }),
@@ -589,6 +656,14 @@ export const useStore = create<GameState>((set, get) => {
     setFlightControls: (controls) => set({ flightInput: controls }),
     setTime: (time) => set({ time }),
     setTrajectoryPath: (path) => set({ trajectoryPath: path }),
+    removeDebris: (id: string) => {
+      const state = get();
+      set({ debris: state.debris.filter((d: any) => d.id !== id) });
+    },
+    addDebris: (d: { id: string; position: Vector3; radius: number; damage: number }) => {
+      const state = get();
+      set({ debris: [...state.debris, d] });
+    },
 
     // --- Save / Continue / New Game -------------------------------
     hasSave: readSave() !== null,
@@ -621,6 +696,8 @@ export const useStore = create<GameState>((set, get) => {
         flightInput: { pitch: 0, yaw: 0, roll: 0, thrusting: false },
         isPaused: true,
         activeScanTargetId: null,
+        autopilotEnabled: false,
+        autopilotStatus: 'IDLE',
       });
     },
 
@@ -629,6 +706,7 @@ export const useStore = create<GameState>((set, get) => {
       set({
         ship: createInitialShip(initialBodies),
         bodies: initialBodies, // Reset celestial bodies to initial system state
+        debris: createInitialDebris(initialBodies),
         engine: DEFAULT_ENGINE,
         time: 0,
         activeBurnDirection: null,
@@ -643,6 +721,9 @@ export const useStore = create<GameState>((set, get) => {
         aerobrakeTime: 0,
         isPaused: false,
         gamePhase: 'Playing',
+        autopilotEnabled: false,
+        autopilotTargetName: null,
+        autopilotStatus: 'IDLE',
       });
       get().saveGame();
     },
@@ -663,18 +744,44 @@ export const useStore = create<GameState>((set, get) => {
         time: data.time,
         codexEntries: data.codexEntries,
         achievements: data.achievements,
+        debris: createInitialDebris(initialBodies),
         activeBurnDirection: null,
         throttle: 0,
         activeScanTargetId: null,
         scanProgress: 0,
         isPaused: false,
         gamePhase: 'Playing',
+        autopilotEnabled: false,
+        autopilotTargetName: null,
+        autopilotStatus: 'IDLE',
       });
     },
 
     clearSave: () => {
       deleteSave();
       set({ hasSave: false });
+    },
+
+    fastTravelToTarget: (targetName) => {
+      const state = get();
+      const target = state.bodies.find((b) => b.name === targetName);
+      if (!target) return;
+
+      // Call external fast travel module
+      const updatedShipState = calculateFastTravelState(state.ship, target);
+
+      set({
+        ship: {
+          ...state.ship,
+          ...updatedShipState,
+        },
+        // Reset active burn controls on teleport
+        autopilotEnabled: false,
+        autopilotTargetName: targetName,
+        autopilotStatus: 'STABLE_ORBIT',
+        activeBurnDirection: null,
+        throttle: 0,
+      });
     },
   };
 });

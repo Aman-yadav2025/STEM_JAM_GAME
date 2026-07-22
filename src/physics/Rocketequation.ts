@@ -28,8 +28,18 @@ export interface EngineSpec {
 }
 
 export const DEFAULT_ENGINE: EngineSpec = {
-  specificImpulse: 32_000, // slightly higher efficiency for smoother burns
-  maxThrust: 50_000,        // tuned to feel like a small but noticeable thruster
+  specificImpulse: 32000, // Isp in seconds (typical chemical engine)
+  // Sized against the ship's actual loaded mass (dry + fuel, ~5x10^8 given
+  // the default fuel load in store.ts), not an arbitrary "doubled" figure.
+  // Target: at normal throttle-response timing (see autopilot.ts's
+  // ThrottleMode, ~1.5s), full throttle should comfortably close a ~1000
+  // units/s velocity error (covers escape burns even for planets close to
+  // the Sun) without needing throttle > 1.0. That requires
+  // thrust >= mass * deltaV / responseTime = 5e8 * 1000 / 1.5 ≈ 3.3e11.
+  // This is safe now that autopilot.ts computes throttle proportionally
+  // (computeRequiredThrottle) instead of always firing at throttle 1.0 —
+  // a powerful engine no longer means an uncontrollable one.
+  maxThrust: 440000000000,
 };
 
 /** Converts specific impulse (seconds) to exhaust velocity (game distance units / s). */

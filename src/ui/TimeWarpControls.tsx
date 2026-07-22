@@ -10,7 +10,7 @@ export const TimeWarpControls: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center gap-2 bg-slate-900/90 text-white p-3 rounded-xl border border-slate-700 shadow-lg backdrop-blur">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-center gap-2">
         {/* Step Down Button */}
         <button
           onClick={decreaseTimeWarp}
@@ -43,7 +43,7 @@ export const TimeWarpControls: React.FC = () => {
       </div>
 
       {/* Direct Speed Selection Bar */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center justify-center gap-1 w-full">
         {WARP_STEPS.map((step) => (
           <button
             key={step}
