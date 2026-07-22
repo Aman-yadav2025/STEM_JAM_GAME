@@ -13,7 +13,7 @@ import { buildSolarSystem } from '../scene/celestialFactory';
 import type { AutopilotStatus } from '../physics/autopilot';
 
 
-export const WARP_STEPS = [0.01, 0.05, 0.1, 0.2, 0.5,0,1, 2, 5, 10, 25, 50, 75, 100] as const;
+export const WARP_STEPS = [0,1,3, 2, 5, 10, 25, 50, 75, 100] as const;
 export type WarpStep = (typeof WARP_STEPS)[number];
 
 export const DEFAULT_WARP_STEP: WarpStep = 3;
@@ -101,6 +101,9 @@ interface GameState {
   setControls: (direction: BurnDirection | null, throttle: number) => void;
   setTime: (t: number) => void;
   setTrajectoryPath: (path: Vector3[]) => void;
+  debris: { id: string; position: Vector3; radius: number; damage: number }[];
+  removeDebris: (id: string) => void;
+  addDebris: (d: { id: string; position: Vector3; radius: number; damage: number }) => void;
 
   // --- Save / Continue / New Game ---
   hasSave: boolean;
@@ -349,12 +352,31 @@ const createInitialShip = (bodies: MovingBody[] = initialBodies): Spacecraft => 
     mass: 1000,
     fuel: 500000000,
     maxFuel: 500000000,
+    health: 100,
+    maxHealth: 100,
     heading: Math.atan2(totalVelocity.z, totalVelocity.x),
     pitch: 0,
     yaw: 0,
     roll: 0,
   };
 };
+
+type Debris = { id: string; position: Vector3; radius: number; damage: number };
+
+function createInitialDebris(bodies: MovingBody[] = initialBodies, count = 150): Debris[] {
+  const list: Debris[] = [];
+  const earth = bodies.find((b) => b.name === 'Earth');
+  const center = earth ? earth.position : new Vector3(0, 0, 0);
+
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const radius = 55 + Math.random() * 90;
+    const x = center.x + Math.cos(angle) * radius;
+    const y = center.y + Math.sin(angle) * radius;
+    list.push({ id: `deb-${i}`, position: new Vector3(x, y, 0), radius: 1 + Math.random() * 1.5, damage: 10 + Math.floor(Math.random() * 20) });
+  }
+  return list;
+}
 
 export const useStore = create<GameState>((set, get) => {
   const createInitialCodexEntries = (): CodexEntry[] => [
@@ -483,6 +505,7 @@ export const useStore = create<GameState>((set, get) => {
   return {
     ship: createInitialShip(initialBodies),
     bodies: initialBodies,
+    debris: createInitialDebris(initialBodies),
     engine: DEFAULT_ENGINE,
     time: 0,
     trajectoryPath: [],
@@ -633,6 +656,14 @@ export const useStore = create<GameState>((set, get) => {
     setFlightControls: (controls) => set({ flightInput: controls }),
     setTime: (time) => set({ time }),
     setTrajectoryPath: (path) => set({ trajectoryPath: path }),
+    removeDebris: (id: string) => {
+      const state = get();
+      set({ debris: state.debris.filter((d: any) => d.id !== id) });
+    },
+    addDebris: (d: { id: string; position: Vector3; radius: number; damage: number }) => {
+      const state = get();
+      set({ debris: [...state.debris, d] });
+    },
 
     // --- Save / Continue / New Game -------------------------------
     hasSave: readSave() !== null,
@@ -675,6 +706,7 @@ export const useStore = create<GameState>((set, get) => {
       set({
         ship: createInitialShip(initialBodies),
         bodies: initialBodies, // Reset celestial bodies to initial system state
+        debris: createInitialDebris(initialBodies),
         engine: DEFAULT_ENGINE,
         time: 0,
         activeBurnDirection: null,
@@ -712,6 +744,7 @@ export const useStore = create<GameState>((set, get) => {
         time: data.time,
         codexEntries: data.codexEntries,
         achievements: data.achievements,
+        debris: createInitialDebris(initialBodies),
         activeBurnDirection: null,
         throttle: 0,
         activeScanTargetId: null,

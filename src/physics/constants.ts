@@ -47,6 +47,8 @@ export interface Spacecraft {
   mass: number;       // dry mass — fixed, does NOT include fuel
   fuel: number;         // current propellant mass, 0 <= fuel <= maxFuel
   maxFuel: number;       // fuel capacity — fuel can never exceed this
+  health?: number;       // current hull/health (optional to avoid surprises in older saves)
+  maxHealth?: number;    // hull capacity
   heading: number;         // radians, cosmetic — align to velocity vector for sprite rotation
   pitch: number;          // radians, local nose-up/nose-down attitude
   yaw: number;            // radians, local left/right attitude

@@ -12,6 +12,7 @@ import { Minimap } from './components/hud/Minimap';
 import { TimeWarpControls } from './TimeWarpControls';
 import { AutopilotPanel } from './AutopilotPanel';
 import { FastTravelPanel } from './components/hud/FastTravelPanel';
+import GameOverModal from './GameOverModal';
 
 export default function App() {
   const gamePhase = useStore((state) => state.gamePhase);
@@ -54,6 +55,7 @@ export default function App() {
     }
   }, [gamePhase]);
 
+  // Flight key handling
   useEffect(() => {
     const pressedKeys = new Set<string>();
 
@@ -111,42 +113,51 @@ export default function App() {
         <SceneManager />
       </div>
 
-      {/* UI Overlay */}
-      <div className="absolute inset-0 z-10 pointer-events-none p-6">
-        <div className="flex h-full gap-6">
-          <div className="flex flex-1 flex-col justify-between gap-4">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
-              <div className="pointer-events-auto">
-                <StatusHUD />
-              </div>
-              <div className="pointer-events-auto w-full xl:w-[min(420px,40vw)]">
-                <ExplorerCodex />
-              </div>
-            </div>
-
+      {/* UI Overlay - grid to avoid panel overlap */}
+      <div className="absolute inset-0 z-10 pointer-events-none p-6 grid grid-cols-[minmax(320px,40vw)_1fr_320px] grid-rows-[1fr_auto] gap-6">
+        {/* Left column: HUD + Codex */}
+        <div className="col-start-1 row-start-1 row-end-3 pointer-events-auto flex flex-col justify-between gap-4">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
             <div className="pointer-events-auto">
-              <CaptionBox />
+              <StatusHUD />
+            </div>
+            <div className="pointer-events-auto w-full xl:w-[min(420px,40vw)]">
+              <ExplorerCodex />
             </div>
           </div>
 
-          <div className="pointer-events-auto w-full max-w-[320px] self-start">
+          <div className="pointer-events-auto">
+            <CaptionBox />
+          </div>
+        </div>
+
+        {/* Center column reserved for future mid-screen UI (keeps it free) */}
+        <div className="col-start-2 row-start-1 pointer-events-none" />
+
+        {/* Right column: Burn controls */}
+        <div className="col-start-3 row-start-1 pointer-events-auto self-start">
+          <div className="w-full max-w-[320px]">
             <BurnControls />
           </div>
         </div>
 
-        <CodexUnlocker />
-        <PauseMenu />
-        
-        {/* Bottom Right - Minimap */}
-        <div className="absolute bottom-6 right-6 z-20 pointer-events-auto">
-          <Minimap />
-        </div>
-        
-        {/* Bottom Left - Navigation & Time Controls */}
-        <div className="absolute bottom-6 left-6 z-20 pointer-events-auto flex flex-col gap-4">
-        <TimeWarpControls />
+        {/* Bottom-left: Navigation & Time Controls */}
+        <div className="col-start-1 row-start-2 pointer-events-auto flex flex-col gap-4">
+          <TimeWarpControls />
           <AutopilotPanel />
           <FastTravelPanel />
+        </div>
+
+        {/* Bottom-right: Minimap */}
+        <div className="col-start-3 row-start-2 pointer-events-auto self-end justify-self-end">
+          <Minimap />
+        </div>
+
+        {/* Floating: modal-like components that need to overlay everything */}
+        <div className="col-start-2 row-start-1 row-end-3 pointer-events-auto">
+          <CodexUnlocker />
+          <PauseMenu />
+          {gamePhase === 'GameOver' && <GameOverModal />}
         </div>
       </div>
     </div>
