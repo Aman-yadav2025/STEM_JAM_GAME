@@ -155,7 +155,7 @@ export default function App() {
         </div>
 
         {/* Floating: modal-like components that need to overlay everything */}
-        <div className="col-start-2 row-start-1 row-end-3 pointer-events-auto">
+        <div className="col-start-2 row-start-1 row-end-3 pointer-events-none">
           <CodexUnlocker />
           <PauseMenu />
           {gamePhase === 'GameOver' && <GameOverModal />}
