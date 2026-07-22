@@ -28,6 +28,7 @@ export function calculateFastTravelState(
   const desiredOrbitRadius = target.radius + desiredAltitude;
   const maxSafeOrbitRadius = target.soiRadius * 0.8;
   const orbitRadius = Math.min(desiredOrbitRadius, maxSafeOrbitRadius);
+  ship.position;
 
   // 2. Position ship offset along +X axis relative to the target
   const relativePosition = new Vector3(orbitRadius, 0, 0);

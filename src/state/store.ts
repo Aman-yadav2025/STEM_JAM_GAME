@@ -40,7 +40,7 @@ export type Achievement = {
   category: 'efficiency' | 'risk';
 };
 
-interface GameState {
+export interface GameState {
   cancelAutopilot: () => void;
   ship: Spacecraft;
   bodies: MovingBody[];
