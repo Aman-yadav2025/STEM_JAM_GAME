@@ -107,16 +107,17 @@ export default function App() {
   }
 
   return (
-    <div className="relative w-screen h-screen bg-black overflow-hidden">
+    <div className="relative w-screen h-screen bg-black overflow-hidden select-none">
       {/* 3D Render Layer */}
       <div className="absolute inset-0 z-0">
         <SceneManager />
       </div>
 
+
       {/* UI Overlay - grid to avoid panel overlap */}
       <div className="absolute inset-0 z-10 pointer-events-none p-6 grid grid-cols-[minmax(320px,40vw)_1fr_320px] grid-rows-[1fr_auto] gap-6">
         {/* Left column: HUD + Codex */}
-        <div className="col-start-1 row-start-1 row-end-3 pointer-events-auto flex flex-col justify-between gap-4">
+        <div className=" pointer-events-auto flex flex-col justify-between gap-4">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
             <div className="pointer-events-auto">
               <StatusHUD />
@@ -154,7 +155,7 @@ export default function App() {
         </div>
 
         {/* Floating: modal-like components that need to overlay everything */}
-        <div className="col-start-2 row-start-1 row-end-3 pointer-events-auto">
+        <div className="col-start-2 row-start-1 row-end-3 pointer-events-none">
           <CodexUnlocker />
           <PauseMenu />
           {gamePhase === 'GameOver' && <GameOverModal />}
