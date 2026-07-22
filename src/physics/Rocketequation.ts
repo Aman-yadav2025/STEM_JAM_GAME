@@ -39,7 +39,7 @@ export const DEFAULT_ENGINE: EngineSpec = {
   // This is safe now that autopilot.ts computes throttle proportionally
   // (computeRequiredThrottle) instead of always firing at throttle 1.0 —
   // a powerful engine no longer means an uncontrollable one.
-  maxThrust: 440000000000,
+  maxThrust: 4400000000,
 };
 
 /** Converts specific impulse (seconds) to exhaust velocity (game distance units / s). */

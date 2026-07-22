@@ -305,7 +305,7 @@ const CameraRig = () => {
   const { camera, gl } = useThree();
   const controlsRef = useRef<any>(null);
   const previousTarget = useRef<THREE.Vector3 | null>(null);
-  const offset = new THREE.Vector3(0, 30, 140);
+  const offset = new THREE.Vector3(0, 25, 120);
 
   useFrame(() => {
     if (!ship) return;
@@ -327,7 +327,21 @@ const CameraRig = () => {
     }
   });
 
-  return <OrbitControls ref={controlsRef} camera={camera} domElement={gl.domElement} />;
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      camera={camera}
+      domElement={gl.domElement}
+      enableZoom={true}
+      zoomSpeed={0.8}
+      minDistance={20}
+      maxDistance={800}
+      enablePan={false}
+      enableDamping={true}
+      dampingFactor={0.05}
+      rotateSpeed={0.7}
+    />
+  );
 };
 
 export const SceneManager = () => {
