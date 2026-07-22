@@ -5,6 +5,7 @@ export const AutopilotPanel: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const bodies = useStore((state) => state.bodies);
   const autopilotEnabled = useStore((state) => state.autopilotEnabled);
+  const autopilotStatus = useStore((state) => state.autopilotStatus);
   const autopilotTargetName = useStore((state) => state.autopilotTargetName);
   const setAutopilotTarget = useStore((state) => state.setAutopilotTarget);
   const toggleAutopilot = useStore((a) => a.toggleAutopilot);
@@ -18,7 +19,7 @@ export const AutopilotPanel: React.FC = () => {
       >
         <span className="flex items-center gap-2">
           <span className={`w-2 h-2 rounded-full ${autopilotEnabled ? 'bg-emerald-400 animate-ping' : 'bg-slate-600'}`} />
-          Autopilot: <strong className={autopilotEnabled ? 'text-emerald-300' : 'text-slate-400'}>{autopilotEnabled ? 'ENGAGED' : 'STANDBY'}</strong>
+          Autopilot: <strong className={autopilotEnabled ? 'text-emerald-300' : 'text-slate-400'}>{autopilotStatus}</strong>
         </span>
         <span className="text-slate-400 text-sm font-bold">{isOpen ? '▲' : '▼'}</span>
       </button>
@@ -32,6 +33,9 @@ export const AutopilotPanel: React.FC = () => {
           </div>
           <div className="mb-3 text-[11px] uppercase tracking-widest text-slate-400">
             {autopilotTargetName ? `Target: ${autopilotTargetName}` : 'No target selected'}
+          </div>
+          <div className="mb-3 text-[11px] uppercase tracking-widest text-slate-400">
+            Status: {autopilotStatus}
           </div>
           <div className="grid grid-cols-2 gap-2 mb-3 max-h-44 overflow-y-auto pr-1">
             {bodies.map((body) => {

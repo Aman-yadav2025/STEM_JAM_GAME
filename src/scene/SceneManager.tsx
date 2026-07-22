@@ -238,9 +238,14 @@ const Simulation = () => {
     Venus: useLoader(THREE.TextureLoader, '/textures/venus.jpg'),
     Mars: useLoader(THREE.TextureLoader, '/textures/mars.jpg'),
     Jupiter: useLoader(THREE.TextureLoader, '/textures/jupiter.jpg'),
+    Saturn: useLoader(THREE.TextureLoader, '/textures/saturn___texture_map_by_interplanetary1019_dlha1n5.png'),
     Uranus: useLoader(THREE.TextureLoader, '/textures/uranus.jpg'),
     Neptune: useLoader(THREE.TextureLoader, '/textures/neptune.jpg'),
   };
+  const saturnRingsTexture = useLoader(
+    THREE.TextureLoader,
+    '/textures/saturn_rings_texture_map_13k_by_fargetanik_ddh2ahf.png'
+  );
 
   return (
     <>
@@ -271,11 +276,12 @@ const Simulation = () => {
                 <mesh rotation={[Math.PI / 3, 0, 0]}>
                   <ringGeometry args={[body.radius * 1.4, body.radius * 2.3, 64]} />
                   <meshStandardMaterial 
-                    color="#e2d4a8" 
+                    map={saturnRingsTexture}
                     side={THREE.DoubleSide} 
                     transparent 
-                    opacity={0.7} 
-                    roughness={0.8} 
+                    opacity={0.9} 
+                    roughness={0.9} 
+                    toneMapped={false}
                   />
                 </mesh>
               )}
