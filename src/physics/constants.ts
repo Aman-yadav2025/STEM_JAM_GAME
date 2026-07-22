@@ -12,21 +12,14 @@
 
 import type { Vector3 } from './vector3';
 
-export const G = 0.06; // tune this first when calibrating a new level
+export const G = 0.1; // tune this first when calibrating a new level
 
 // Fixed physics timestep (seconds). Runs independent of render framerate.
 export const CONSTANT_DT = 1 / 120;
 
-// NOTE: as currently consumed in GameLoop.ts (stepDt = CONSTANT_DT *
-// SIMULATION_TIME_SCALE, then the accumulator is drained by stepDt per
-// tick), this does NOT slow down simulated time relative to real time —
-// it only changes step size (smaller steps = more, finer ticks per real
-// second, same total simulated time per real second). If you actually want
-// simulated time to run slower than real time, GameLoop.ts's accumulator
-// needs to advance simulated time by `stepDt`, but only consume
-// `stepDt / SIMULATION_TIME_SCALE` of real elapsed time per tick — i.e. the
-// scale needs to divide how much of `accumulator` gets drained, not just
-// shrink the step size.
+// NOTE: GameLoop.ts applies SIMULATION_TIME_SCALE to the real-frame
+// delta before accumulating physics steps. A value below 1 slows simulated
+// time relative to wall clock time, while a value above 1 speeds it up.
 export const SIMULATION_TIME_SCALE = 0.4;
 
 // Below this eccentricity, an orbit is considered "circular" for win checks.

@@ -54,7 +54,7 @@ const STABLE_VELOCITY_TOLERANCE = 3.0;
 // approach speed so the ship can't cross the target's capture radius
 // faster than this many seconds, giving the CAPTURING logic genuine time
 // to act before the ship can exit the SOI again.
-const MIN_SOI_TRANSIT_TIME = 1.5;
+const MIN_SOI_TRANSIT_TIME = 6.0;
 
 /**
  * Computes the throttle (0..1) actually required to correct a velocity
