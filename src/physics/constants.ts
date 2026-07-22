@@ -12,7 +12,7 @@
 
 import type { Vector3 } from './vector3';
 
-export const G = 6; // tune this first when calibrating a new level
+export const G = 0.06; // tune this first when calibrating a new level
 
 // Fixed physics timestep (seconds). Runs independent of render framerate.
 export const CONSTANT_DT = 1 / 120;
@@ -86,7 +86,9 @@ export type BurnDirection =
   | 'radialIn' 
   | 'radialOut'
   | 'normal'
-  | 'antinormal';
+  | 'antinormal'
+  | 'intercept'
+  | 'velocityMatch';
 
   
 /**

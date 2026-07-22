@@ -42,7 +42,8 @@ export class World {
         const autopilotOutput = computeAutopilot(
           currentShip,
           currentBodies as any,
-          state.autopilotTargetName
+          state.autopilotTargetName,
+          state.engine
         );
         burnDirection = autopilotOutput.direction;
         throttle = autopilotOutput.throttle;
@@ -59,6 +60,15 @@ export class World {
         }
       }
 
+      // BUG FIX: autopilotTargetName was never forwarded here, so
+      // rocketMotion.ts's `interceptTarget` always resolved to null and
+      // the 'intercept' burn direction (used for the entire cruise /
+      // planet->moon transfer phase in autopilot.ts) silently degenerated
+      // to a zero-vector in getBurnDirectionVector() — meaning autopilot
+      // burned real fuel every substep while producing ZERO actual thrust
+      // any time it was steering toward a target. That's why transfers
+      // took forever / never arrived / never got close enough to a body
+      // to reach the capture-and-circularize logic at all.
       const { ship: nextShip, t: nextTime } = updateShipPhysics(
         currentShip,
         currentBodies as any,
@@ -67,7 +77,8 @@ export class World {
         throttle,
         currentTime,
         subDt,
-        state.flightInput
+        state.flightInput,
+        state.autopilotEnabled ? state.autopilotTargetName : null
       );
 
       currentShip = nextShip;
