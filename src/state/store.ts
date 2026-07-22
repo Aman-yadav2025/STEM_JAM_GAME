@@ -16,7 +16,7 @@ import type { AutopilotStatus } from '../physics/autopilot';
 export const WARP_STEPS = [0.01, 0.05, 0.1, 0.2, 0.5,0,1, 2, 5, 10, 25, 50, 75, 100] as const;
 export type WarpStep = (typeof WARP_STEPS)[number];
 
-export const DEFAULT_WARP_STEP: WarpStep = WARP_STEPS[2];
+export const DEFAULT_WARP_STEP: WarpStep = 3;
 
 export const getDisplayWarpValue = (step: WarpStep): number => Number((step * 10).toFixed(10));
 
