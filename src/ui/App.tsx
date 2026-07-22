@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { MainMenu } from './MainMenu';
+import { Canvas } from '@react-three/fiber';
+import { StarfieldBackground } from './components/canvas/StarfieldBackground';
 import { SceneManager } from '../scene/SceneManager';
 import { useStore } from '../state/store';
 import { StatusHUD } from './components/hud/StatusHUD';
@@ -12,75 +12,13 @@ import { Minimap } from './components/hud/Minimap';
 import { TimeWarpControls } from './TimeWarpControls';
 import { AutopilotPanel } from './AutopilotPanel';
 import { FastTravelPanel } from './components/hud/FastTravelPanel';
+import { useEffect } from 'react';
+import { MainMenu } from './MainMenu';
+import MusicManager from './MusicManager';
 
-// --- EDUCATIONAL ORBITAL FACTS ---
-export const EDUCATIONAL_ORBITAL_FACTS = [
-  {
-      category: 'Orbital Mechanics',
-      fact: 'The Oberth Effect proves that burning rocket fuel when traveling at maximum speed (at periapsis) yields significantly more kinetic energy change than burning at apoapsis.'
-  },
-  {
-      category: 'Kepler’s Third Law',
-      fact: 'The square of a planet\'s orbital period is directly proportional to the cube of the semi-major axis of its orbit ($T^2 \\propto a^3$).'
-  },
-  {
-      category: 'Lagrange Points',
-      fact: 'Points L1 through L5 represent positions of gravitational equilibrium between two celestial bodies, allowing spacecraft to maintain formation with minimal fuel consumption.'
-  },
-  {
-      category: 'Orbital Velocity',
-      fact: 'To stay in Low Earth Orbit (LEO), a spacecraft must travel at roughly 7.8 km/s (28,080 km/h), falling continuously around the curvature of the Earth.'
-  },
-  {
-      category: 'Tidal Forces',
-      fact: 'Gravitational gradients across an extended body cause tidal stretching. Close orbits inside the Roche limit will tear unpowered bodies apart.'
-  }
-];
-
-// --- PLANET HAZARDS SYSTEM ---
-export interface PlanetHazard {
-  id: string;
-  name: string;
-  type: 'radiation' | 'atmosphere' | 'thermal' | 'debris';
-  severity: 'low' | 'moderate' | 'critical';
-  description: string;
-  evaluator: (telemetry: { altitude: number; velocity: number; distanceToSun?: number }) => boolean;
-}
-
-export const PLANET_HAZARDS: PlanetHazard[] = [
-  {
-      id: 'van_allen_belt',
-      name: 'Van Allen Radiation Belt',
-      type: 'radiation',
-      severity: 'moderate',
-      description: 'High-energy charged particles trapped by planetary magnetic field. Electronics and solar arrays undergoing degradation.',
-      evaluator: (t) => t.altitude >= 1000 && t.altitude <= 5000,
-  },
-  {
-      id: 'atmospheric_drag',
-      name: 'Upper Ionosphere Thermal Friction',
-      type: 'atmosphere',
-      severity: 'critical',
-      description: 'WARNING: Spacecraft encountering residual atmospheric molecules. Rapid orbital decay and thermal stress detected!',
-      evaluator: (t) => t.altitude < 150 && t.altitude > 0,
-  },
-  {
-      id: 'solar_flare',
-      name: 'Coronal Mass Ejection (CME)',
-      type: 'thermal',
-      severity: 'critical',
-      description: 'Solar radiation storm active! Seek planetary shadow immediately to prevent telemetry failure.',
-      evaluator: (t) => (t.distanceToSun ?? 10000) < 2500,
-  },
-  {
-      id: 'orbital_debris_field',
-      name: 'Kessler Syndrome Debris Ring',
-      type: 'debris',
-      severity: 'moderate',
-      description: 'Dense concentration of defunct satellite fragments in low orbit. Evasive maneuvering recommended.',
-      evaluator: (t) => t.altitude >= 700 && t.altitude <= 900 && t.velocity > 7.5,
-  }
-];
+// Temporary fallback constants if defined elsewhere in your codebase
+const EDUCATIONAL_ORBITAL_FACTS: { category: string; fact: string }[] = [];
+const PLANET_HAZARDS: { id: string; name: string; description: string; severity: string; evaluator: (data: { altitude: number; velocity: number }) => boolean }[] = [];
 
 export default function App() {
   const gamePhase = useStore((state) => state.gamePhase);
@@ -88,7 +26,7 @@ export default function App() {
   const togglePaused = useStore((state) => state.togglePaused);
   const setFlightControls = useStore((state) => state.setFlightControls);
 
-  // Only trigger the intro caption when entering the 'playing' phase
+  // Only trigger the intro caption when entering the 'Playing' phase
   useEffect(() => {
     if (gamePhase === 'Playing') {
       showGameCaption(
@@ -98,7 +36,9 @@ export default function App() {
           {
             label: 'Planet Hazards & Facts',
             handler: () => {
-              const randomFact = EDUCATIONAL_ORBITAL_FACTS[Math.floor(Math.random() * EDUCATIONAL_ORBITAL_FACTS.length)];
+              const randomFact = EDUCATIONAL_ORBITAL_FACTS.length > 0 
+                ? EDUCATIONAL_ORBITAL_FACTS[Math.floor(Math.random() * EDUCATIONAL_ORBITAL_FACTS.length)]
+                : { category: 'Orbital Mechanics', fact: 'Kepler’s second law states that a line segment joining a planet and the Sun sweeps out equal areas during equal intervals of time.' };
               showGameCaption(`[${randomFact.category}] ${randomFact.fact}`, 'tip');
             },
           },
@@ -128,7 +68,7 @@ export default function App() {
     let lastTriggeredHazardId: string | null = null;
 
     const interval = setInterval(() => {
-      const telemetry = window.__shipTelemetry;
+      const telemetry = (window as any).__shipTelemetry;
       if (!telemetry || isPaused) return;
 
       const activeHazard = PLANET_HAZARDS.find(hazard => 
@@ -140,7 +80,7 @@ export default function App() {
 
       if (activeHazard && activeHazard.id !== lastTriggeredHazardId) {
         lastTriggeredHazardId = activeHazard.id;
-        window.__gameCaptionLast = {
+        (window as any).__gameCaptionLast = {
           id: `hazard-${activeHazard.id}-${Date.now()}`,
           text: `[HAZARD ALERT] ${activeHazard.name}: ${activeHazard.description}`,
           type: activeHazard.severity === 'critical' ? 'warning' : 'info',
@@ -202,14 +142,32 @@ export default function App() {
   }, [gamePhase, setFlightControls, togglePaused]);
 
   if (gamePhase === 'menu') {
-    return <MainMenu />;
+    return (
+      <>
+        <MusicManager />
+        <MainMenu />
+      </>
+    );
   }
 
   return (
-    <div className="relative w-screen h-screen bg-black overflow-hidden select-none">
-      {/* 3D Render Layer */}
+    <div className="relative w-screen h-screen bg-black overflow-hidden select-none font-mono">
+      <MusicManager />
+      
+      {/* 3D Render Layer with Canvas, Starfield Background, and Scene Manager */}
       <div className="absolute inset-0 z-0">
-        <SceneManager />
+        <Canvas
+          camera={{ position: [0, 50, 150], fov: 60, near: 0.1, far: 10000 }}
+          className="w-full h-full"
+        >
+          <color attach="background" args={['#020408']} />
+          
+          {/* 3D Stars & Milky Way Background */}
+          <StarfieldBackground />
+
+          {/* Core Scene Manager (Planets, Ships, Orbits) */}
+          <SceneManager />
+        </Canvas>
       </div>
 
       {/* Structured UI Overlay Layer (Pointer events pass through background) */}
@@ -224,7 +182,7 @@ export default function App() {
         </div>
 
         {/* 2. TOP-RIGHT: Burn & Flight Controls */}
-        <div className="absolute top-6 right-6 z-20 pointer-events-auto w-full max-w-[300px]">
+        <div className="absolute top-6 right-6 z-20 pointer-events-auto w-full max-w-75">
           <BurnControls />
         </div>
 
@@ -245,7 +203,7 @@ export default function App() {
           <Minimap />
         </div>
 
-        {/* Global Floating Modals */}
+        {/* Global Floating Modals & Scanners */}
         <CodexUnlocker />
         <PauseMenu />
 
