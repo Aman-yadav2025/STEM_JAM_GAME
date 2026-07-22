@@ -1,7 +1,7 @@
 import { CONSTANT_DT, G, type CelestialBody, type Spacecraft, type BurnDirection, type FlightInputState } from "./constants";
 import { STANDARD_g, type EngineSpec } from "./rocketEquation";
 import { Vector3 } from "./vector3";
-import { totalAccelNBody, getDominantBody, DominantAccel } from "./gravity";import { getBurnDirectionVector } from "./burn";import { updateBodyPositions, type OrbitPath } from "./orbitPath";
+import { getDominantBody, DominantAccel } from "./gravity";import { getBurnDirectionVector } from "./burn";import { updateBodyPositions, type OrbitPath } from "./orbitPath";
 
 type MovingBody = CelestialBody & { orbit?: OrbitPath };
 

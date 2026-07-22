@@ -7,7 +7,7 @@ import {
   G 
 } from '../physics/constants';
 import { type MovingBody, bodyVelocityAtTime } from '../physics/orbitPath';
-import { type EngineSpec, DEFAULT_ENGINE } from '../physics/Rocketequation';
+import { type EngineSpec, DEFAULT_ENGINE } from '../physics/rocketEquation';
 import { Vector3 } from '../physics/vector3';
 import { buildSolarSystem } from '../scene/celestialFactory';
 import type { AutopilotStatus } from '../physics/autopilot';
@@ -40,7 +40,7 @@ export type Achievement = {
   category: 'efficiency' | 'risk';
 };
 
-interface GameState {
+export interface GameState {
   cancelAutopilot: () => void;
   ship: Spacecraft;
   bodies: MovingBody[];

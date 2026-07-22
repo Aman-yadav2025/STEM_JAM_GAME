@@ -16,4 +16,5 @@ export const DIRECTION_CONFIG: Record<BurnDirection, DirectionConfig> = {
   normal:     { direction: 'normal',     label: 'NORMAL',      short: 'NML',  accent: '#C084FC', accentGlow: 'rgba(192,132,252,0.5)' },
   velocityMatch: { direction: 'velocityMatch', label: 'VEL MATCH', short: 'VM', accent: '#FACC15', accentGlow: 'rgba(250,204,21,0.5)' },
   antinormal: { direction: 'antinormal', label: 'ANTINORMAL',  short: 'A-NML', accent: '#9333EA', accentGlow: 'rgba(147,51,234,0.5)' },
+  intercept: { direction: 'intercept', label: 'INTERCEPT', short: 'INT', accent: '#FB923C', accentGlow: 'rgba(251,146,60,0.5)' },
 };

@@ -22,7 +22,6 @@ function calculateTelemetry(body: { name: string; mass: number; radius: number; 
 }
 
 export function ExplorerCodex() {
-  const [isExpanded, setIsExpanded] = useState(false);
   const codexEntries = useStore((state) => state.codexEntries);
   const achievements = useStore((state) => state.achievements);
   const activeScanTargetId = useStore((state) => state.activeScanTargetId);

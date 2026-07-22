@@ -16,7 +16,6 @@
 
 import { CONSTANT_DT } from './constants';
 import { Vector3 } from './vector3';
-import { DominantAccel } from './gravity';
 import { updateBodyPositions, type MovingBody } from './orbitPath';
 import { G } from './constants';
 import { getDominantBody } from './gravity';
