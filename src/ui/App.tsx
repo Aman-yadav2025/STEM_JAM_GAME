@@ -12,20 +12,58 @@ import { Minimap } from './components/hud/Minimap';
 import { TimeWarpControls } from './TimeWarpControls';
 import { AutopilotPanel } from './AutopilotPanel';
 import { FastTravelPanel } from './components/hud/FastTravelPanel';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { MainMenu } from './MainMenu';
 import MusicManager from './MusicManager';
+import GameOverModal from './GameOverModal';
 
 // Temporary fallback constants if defined elsewhere in your codebase
 const EDUCATIONAL_ORBITAL_FACTS: { category: string; fact: string }[] = [];
 const PLANET_HAZARDS: { id: string; name: string; description: string; severity: string; evaluator: (data: { altitude: number; velocity: number }) => boolean }[] = [];
-import GameOverModal from './GameOverModal';
+
+/**
+ * Custom hook to manage the high-altitude jet thruster sound effect on Spacebar press.
+ */
+function useThrusterAudio(isThrusting: boolean, sfxVolume: number = 70) {
+  const thrusterAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    // Initialize audio instance from public folder
+    thrusterAudioRef.current = new Audio('/Jet-Plane-Ambience_High-Altitude_Interior.mp3');
+    thrusterAudioRef.current.loop = true;
+  }, []);
+
+  useEffect(() => {
+    if (thrusterAudioRef.current) {
+      thrusterAudioRef.current.volume = sfxVolume / 100;
+    }
+  }, [sfxVolume]);
+
+  useEffect(() => {
+    const audio = thrusterAudioRef.current;
+    if (!audio) return;
+
+    if (isThrusting) {
+      audio.play().catch(() => {
+        // Handled browser autoplay restrictions gracefully
+      });
+    } else {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+  }, [isThrusting]);
+}
 
 export default function App() {
   const gamePhase = useStore((state) => state.gamePhase);
   const isPaused = useStore((state) => state.isPaused);
   const togglePaused = useStore((state) => state.togglePaused);
   const setFlightControls = useStore((state) => state.setFlightControls);
+
+  const isThrusting = useStore((state) => state.flightInput.thrusting);
+
+  // Hook up your high-altitude jet ambience to Spacebar holding
+  useThrusterAudio(isThrusting, 80);
 
   // Only trigger the intro caption when entering the 'Playing' phase
   useEffect(() => {
@@ -96,7 +134,6 @@ export default function App() {
   }, [isPaused]);
 
   // Keyboard Flight Controls & Pause Listener
-  // Flight key handling
   useEffect(() => {
     const pressedKeys = new Set<string>();
 
@@ -171,7 +208,6 @@ export default function App() {
           <SceneManager />
         </Canvas>
       </div>
-
 
       {/* UI Overlay - grid to avoid panel overlap */}
       <div className="absolute inset-0 z-10 pointer-events-none p-6 grid grid-cols-[minmax(320px,40vw)_1fr_320px] grid-rows-[1fr_auto] gap-6">
