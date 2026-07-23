@@ -244,8 +244,6 @@ export default function App() {
           <TimeWarpControls />
           <AutopilotPanel />
           <FastTravelPanel />
-          <AutopilotPanel />
-        <TimeWarpControls />  
         </div>
 
         {/* Bottom-right: Minimap */}
