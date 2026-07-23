@@ -150,6 +150,9 @@ export function CaptionBox({
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<MissionTab>('primary');
   const [historyLogs, setHistoryLogs] = useState<CaptionPayload[]>([]);
+  
+  // Fixed Back Button State Index (0 means current/latest message)
+  const [historyIndex, setHistoryIndex] = useState(0);
 
   // Rolling telemetry number generator state for holographic HUD immersion
   const [rollingHex, setRollingHex] = useState('0xF4A2');
@@ -269,7 +272,6 @@ export function CaptionBox({
       if (typeof window === 'undefined' || !window.__shipTelemetry) return;
       const tel = window.__shipTelemetry;
 
-      // Environmental Comms Chatter: Sphere of Influence entry warning (e.g., Luna Minor)
       if (tel.distanceToLunaMinor !== undefined && tel.distanceToLunaMinor < 1500 && !lunaWarningTriggeredRef.current) {
         lunaWarningTriggeredRef.current = true;
         showGameCaption(
@@ -278,7 +280,6 @@ export function CaptionBox({
         );
       }
 
-      // Evaluate Primary: Circular Orbit ($\epsilon < 0.05$ and periapsis $> 400\text{ km}$)
       setPrimaryMissions(prev => prev.map(m => {
         if (m.id === 'circ_orbit' && !m.completed) {
           const isCirc = (tel.eccentricity ?? 1) < 0.05 && (tel.periapsisAltitude ?? 0) > 400;
@@ -299,7 +300,6 @@ export function CaptionBox({
         return m;
       }));
 
-      // Evaluate Exploration Contracts
       setExplorationContracts(prev => prev.map(m => {
         if (m.id === 'high_speed' && !m.completed) {
           const fast = (tel.velocity ?? 0) >= 8000;
@@ -325,6 +325,7 @@ export function CaptionBox({
         setCurrentType(customEvent.detail.type || 'info');
         setActions(customEvent.detail.actions ?? []);
         setVisible(true);
+        setHistoryIndex(0); // Reset index when a new caption arrives
         if (typeof window !== 'undefined' && window.__gameCaptionHistory) {
           setHistoryLogs([...window.__gameCaptionHistory]);
         }
@@ -339,6 +340,7 @@ export function CaptionBox({
       setCurrentType(pendingCaption.type || 'info');
       setActions(pendingCaption.actions ?? []);
       setVisible(true);
+      setHistoryIndex(0);
     }
 
     return () => window.removeEventListener('show-game-caption', handleGlobalCaption);
@@ -404,7 +406,7 @@ export function CaptionBox({
     setVisible(false);
   };
 
-  // If dismissed, render a sleek persistent button to bring Mission Control & Comms back instantly!
+  // If dismissed, render a sleek persistent button to bring the last caption back instantly!
   if (!visible) {
     return (
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-100 pointer-events-auto font-mono select-none">
@@ -415,13 +417,16 @@ export function CaptionBox({
               setText(window.__gameCaptionLast.text);
               setCurrentType(window.__gameCaptionLast.type || 'info');
               setActions(window.__gameCaptionLast.actions ?? []);
+              setHistoryIndex(0);
             }
             setVisible(true);
-            setIsDrawerOpen(true); // Automatically open missions/logs drawer for immediate access
+            setIsDrawerOpen(true);
           }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-cyan-400/40 bg-[#07121d]/90 text-cyan-400 text-xs font-bold uppercase tracking-[0.2em] shadow-[0_0_25px_rgba(79,180,232,0.35)] backdrop-blur-xl hover:bg-cyan-500/20 transition active:scale-95"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-cyan-400/40 bg-[#07121d]/90 text-cyan-400 text-xs font-bold uppercase tracking-[0.2em] shadow-[0_0_25px_rgba(79,180,232,0.35)] backdrop-blur-xl hover:bg-cyan-500/20 transition active:scale-95 pointer-events-auto"
         >
-          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
           [ Open Mission Control / Comms ]
         </button>
       </div>
@@ -429,12 +434,11 @@ export function CaptionBox({
   }
 
   return (
-    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[min(94vw,780px)] z-100 pointer-events-auto font-mono select-none">
+    <div className="absolute bottom-6 left-[48%] -translate-x-1/2 w-[min(94vw,680px)] z-100 pointer-events-auto font-mono select-none">
       
       {/* STRUCTURED MISSION CONTROL & COMMS DRAWER */}
       {isDrawerOpen && (
         <div className="mb-3 rounded-2xl border border-white/20 bg-[#07121d]/90 p-4 shadow-[0_0_35px_rgba(0,0,0,0.85)] backdrop-blur-xl max-h-80 overflow-y-auto animate-in fade-in duration-200 relative overflow-hidden">
-          {/* Subtle grid scanning lines overlay */}
           <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none opacity-40" />
 
           <div className="flex justify-between items-center pb-2 mb-3 border-b border-white/10 relative z-10">
@@ -452,7 +456,6 @@ export function CaptionBox({
             </button>
           </div>
 
-          {/* TAB HEADERS */}
           <div className="grid grid-cols-4 gap-1.5 mb-3 relative z-10">
             {[
               { id: 'primary', label: 'Directives' },
@@ -474,7 +477,6 @@ export function CaptionBox({
             ))}
           </div>
 
-          {/* TAB CONTENT: PRIMARY DIRECTIVES */}
           {activeTab === 'primary' && (
             <div className="space-y-2.5 relative z-10">
               {primaryMissions.map((m) => (
@@ -495,7 +497,6 @@ export function CaptionBox({
             </div>
           )}
 
-          {/* TAB CONTENT: EXPLORATION CONTRACTS */}
           {activeTab === 'exploration' && (
             <div className="space-y-2.5 relative z-10">
               {explorationContracts.map((m) => (
@@ -516,7 +517,6 @@ export function CaptionBox({
             </div>
           )}
 
-          {/* TAB CONTENT: CLASSIFIED GOALS */}
           {activeTab === 'classified' && (
             <div className="space-y-2.5 relative z-10">
               {classifiedGoals.map((m) => (
@@ -537,10 +537,9 @@ export function CaptionBox({
             </div>
           )}
 
-          {/* TAB CONTENT: COMMS ARCHIVE */}
           {activeTab === 'comms' && (
             <div className="space-y-2.5 relative z-10">
-              {historyLogs.map((log) => {
+              {historyLogs.map((log, logIdx) => {
                 const logConf = TYPE_CONFIG[log.type] || TYPE_CONFIG.info;
                 return (
                   <div 
@@ -549,6 +548,7 @@ export function CaptionBox({
                       setText(log.text);
                       setCurrentType(log.type);
                       setActions(log.actions ?? []);
+                      setHistoryIndex(logIdx);
                       setIsDrawerOpen(false);
                     }}
                     className="p-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition cursor-pointer text-xs"
@@ -579,85 +579,122 @@ export function CaptionBox({
           className={`rounded-2xl border bg-[#040b14]/90 backdrop-blur-xl ${config.border} relative overflow-hidden`}
           accent={config.color}
         >
-          {/* Grid-scanning line overlay & flickering telemetry feed background */}
           <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.3)_50%)] bg-[length:100%_4px] pointer-events-none opacity-40 z-0" />
           <div className="absolute top-0 right-0 h-[2px] w-full bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent animate-pulse pointer-events-none" />
 
-          <div className="flex flex-col h-full justify-between relative z-10 p-1">
-            <div>
-              {/* HEADER WITH HOLOGRAPHIC WAVEFORM & MISSION PANEL TOGGLE */}
-              <div className={`text-[10px] mb-2 tracking-[0.35em] font-bold ${config.textStyle} flex justify-between items-center uppercase`}>
-                <div className="flex items-center gap-3">
-                  <span>{config.label}</span>
-                  {/* Holographic Waveform Visualizer */}
-                  {!isTypingComplete && (
-                    <div className="flex items-center gap-0.5 h-3">
-                      <span className="w-0.5 h-full animate-[bounce_0.6s_infinite]" style={{ backgroundColor: config.color, animationDelay: '0.1s' }} />
-                      <span className="w-0.5 h-2/3 animate-[bounce_0.6s_infinite]" style={{ backgroundColor: config.color, animationDelay: '0.3s' }} />
-                      <span className="w-0.5 h-full animate-[bounce_0.6s_infinite]" style={{ backgroundColor: config.color, animationDelay: '0.2s' }} />
-                      <span className="w-0.5 h-1/2 animate-[bounce_0.6s_infinite]" style={{ backgroundColor: config.color, animationDelay: '0.4s' }} />
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-[9px] opacity-50 font-mono hidden sm:inline">SYNC:{flickerValue}</span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsDrawerOpen(!isDrawerOpen);
-                    }}
-                    className="text-[9px] opacity-80 hover:opacity-100 text-white font-normal bg-white/10 hover:bg-white/20 px-2 py-0.5 rounded transition uppercase tracking-widest pointer-events-auto border border-white/10"
-                  >
-                    {isDrawerOpen ? 'Close Menu' : 'Missions & Logs'}
-                  </button>
-                  <span className="text-[9px] opacity-70 text-white font-normal">
-                    {isTypingComplete ? '[Dismiss]' : '[Skip]'}
-                  </span>
-                </div>
+          <div className="flex flex-col h-full justify-between relative z-10">
+            
+            {/* INLINE HEADER WITH BACK / HISTORY CYCLE BUTTON */}
+            <div className="flex items-center justify-between px-4 py-2 border-b border-cyan-500/30 bg-cyan-950/20">
+              <div className="flex items-center gap-2">
+                {/* Back / History Toggle Button */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const history = window.__gameCaptionHistory;
+                    if (history && history.length > 0 && historyIndex < history.length - 1) {
+                      const nextIndex = historyIndex + 1;
+                      const prev = history[nextIndex];
+                      if (prev) {
+                        setText(prev.text);
+                        setCurrentType(prev.type || 'info');
+                        setActions(prev.actions ?? []);
+                        setHistoryIndex(nextIndex);
+                      }
+                    }
+                  }}
+                  className="p-1 rounded border border-cyan-400/40 text-cyan-400 hover:bg-cyan-500/20 transition active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
+                  title="Cycle Back to Previous Transmission"
+                  disabled={!window.__gameCaptionHistory || historyIndex >= window.__gameCaptionHistory.length - 1}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                
+                <span className="text-[11px] font-mono tracking-widest text-cyan-400 uppercase">
+                  {TYPE_CONFIG[currentType]?.label || 'COMM_FEED'}
+                </span>
               </div>
 
-              {/* MESSAGE CONTENT */}
-              <div className="text-white text-sm leading-relaxed min-h-14 pr-2 font-mono" style={{ wordBreak: 'break-word' }}>
-                {displayedText || 'Mission control online.'}
-                {!isTypingComplete && (
-                  <span 
-                    className="inline-block w-2.5 h-4 ml-1 align-middle" 
-                    style={{ backgroundColor: config.color, animation: 'pulse 0.8s infinite' }} 
-                  />
-                )}
-              </div>
+              <span className="text-[10px] font-mono text-cyan-500/70">
+                {new Date().toLocaleTimeString()}
+              </span>
             </div>
 
-            {/* INTERACTIVE ACTION CHIPS */}
-            {actions.length > 0 && (
-              <div className="mt-4 grid gap-2 sm:grid-cols-3 pointer-events-auto">
-                {actions.map((action, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={(evt) => {
-                      evt.stopPropagation();
-                      action.handler();
-                    }}
-                    className="rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white transition hover:bg-white/20 active:scale-95"
-                  >
-                    {action.label}
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="p-4">
+              <div>
+                <div className={`text-[10px] mb-2 tracking-[0.35em] font-bold ${config.textStyle} flex justify-between items-center uppercase`}>
+                  <div className="flex items-center gap-3">
+                    <span>STATUS READOUT</span>
+                    {!isTypingComplete && (
+                      <div className="flex items-center gap-0.5 h-3">
+                        <span className="w-0.5 h-full animate-[bounce_0.6s_infinite]" style={{ backgroundColor: config.color, animationDelay: '0.1s' }} />
+                        <span className="w-0.5 h-2/3 animate-[bounce_0.6s_infinite]" style={{ backgroundColor: config.color, animationDelay: '0.3s' }} />
+                        <span className="w-0.5 h-full animate-[bounce_0.6s_infinite]" style={{ backgroundColor: config.color, animationDelay: '0.2s' }} />
+                        <span className="w-0.5 h-1/2 animate-[bounce_0.6s_infinite]" style={{ backgroundColor: config.color, animationDelay: '0.4s' }} />
+                      </div>
+                    )}
+                  </div>
 
-            {/* FOOTER STATUS */}
-            {isTypingComplete && (
-              <div className="flex justify-between items-center mt-2 border-t border-white/5 pt-1.5">
-                <span className="text-[9px] opacity-60 font-semibold tracking-[0.25em] flex items-center gap-1.5 text-white uppercase">
-                  Data Logged <span className="w-1.5 h-1.5 rounded-full animate-ping" style={{ backgroundColor: config.color }} />
-                </span>
-                <span className="text-[9px] opacity-60 uppercase tracking-[0.2em] text-white/70">Tap box to dismiss</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] opacity-50 font-mono hidden sm:inline">SYNC:{flickerValue}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsDrawerOpen(!isDrawerOpen);
+                      }}
+                      className="text-[9px] opacity-80 hover:opacity-100 text-white font-normal bg-white/10 hover:bg-white/20 px-2 py-0.5 rounded transition uppercase tracking-widest pointer-events-auto border border-white/10"
+                    >
+                      {isDrawerOpen ? 'Close Menu' : 'Missions & Logs'}
+                    </button>
+                    <span className="text-[9px] opacity-70 text-white font-normal">
+                      {isTypingComplete ? '[Dismiss]' : '[Skip]'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-white text-sm leading-relaxed min-h-14 pr-2 font-mono" style={{ wordBreak: 'break-word' }}>
+                  {displayedText || 'Mission control online.'}
+                  {!isTypingComplete && (
+                    <span 
+                      className="inline-block w-2.5 h-4 ml-1 align-middle" 
+                      style={{ backgroundColor: config.color, animation: 'pulse 0.8s infinite' }} 
+                    />
+                  )}
+                </div>
               </div>
-            )}
+
+              {actions.length > 0 && (
+                <div className="mt-4 grid gap-2 sm:grid-cols-3 pointer-events-auto">
+                  {actions.map((action, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={(evt) => {
+                        evt.stopPropagation();
+                        action.handler();
+                      }}
+                      className="rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white transition hover:bg-white/20 active:scale-95"
+                    >
+                      {action.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {isTypingComplete && (
+                <div className="flex justify-between items-center mt-3 border-t border-white/5 pt-2">
+                  <span className="text-[9px] opacity-60 font-semibold tracking-[0.25em] flex items-center gap-1.5 text-white uppercase">
+                    Data Logged <span className="w-1.5 h-1.5 rounded-full animate-ping" style={{ backgroundColor: config.color }} />
+                  </span>
+                  <span className="text-[9px] opacity-60 uppercase tracking-[0.2em] text-white/70">Tap box to dismiss</span>
+                </div>
+              )}
+            </div>
+
           </div>
         </CornerFrame>
       </div>

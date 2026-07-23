@@ -14,6 +14,7 @@ export function CodexUnlocker() {
   const codexEntries = useStore((state) => state.codexEntries);
   const previousBodyId = useRef<string | null>(null);
 
+  // 1. Detect closest body within Sphere of Influence (SOI)
   useEffect(() => {
     if (!ship || bodies.length === 0) return;
 
@@ -22,36 +23,39 @@ export function CodexUnlocker() {
 
     bodies.forEach((body) => {
       const distance = ship.position.distanceTo(body.position);
-      if (distance < body.soiRadius && body.soiRadius < smallestSoI) {
-        smallestSoI = body.soiRadius;
+      // Fallback: use generous SOI check or distance check if soiRadius is undefined
+      const soi = body.soiRadius || body.radius * 25;
+      if (distance < soi && soi < smallestSoI) {
+        smallestSoI = soi;
         currentBodyId = body.name;
       }
     });
 
-    if (!currentBodyId || currentBodyId === 'Sun') {
+    if (!currentBodyId || currentBodyId.toLowerCase() === 'sun') {
       return;
     }
 
-    const entry = codexEntries.find((codex) => codex.id === currentBodyId);
+    // Flexible ID finder to prevent casing/spacing mismatches
+    const entry = codexEntries.find(
+      (codex) => codex.id.toLowerCase() === currentBodyId?.toLowerCase()
+    );
+
     if (!entry) {
       return;
     }
 
     if (!entry.unlocked && !activeScanTargetId) {
       previousBodyId.current = currentBodyId;
-      startCodexScan(currentBodyId);
+      startCodexScan(entry.id); // Use exact matched codex ID
       showGameCaption(
-        `Sensor sweep activated for ${currentBodyId}. Hold a stable orbit within the scan corridor to download the data.`,
+        `Sensor sweep activated for ${entry.id}. Hold a stable orbit within the scan corridor to download telemetry.`,
         'info'
       );
       return;
     }
-
-    if (entry.unlocked || currentBodyId !== previousBodyId.current) {
-      previousBodyId.current = currentBodyId;
-    }
   }, [ship, bodies, codexEntries, activeScanTargetId, startCodexScan]);
 
+  // 2. Active scan progress tracker loop with relaxed orbital validation
   useEffect(() => {
     if (!activeScanTargetId) {
       return;
@@ -59,8 +63,14 @@ export function CodexUnlocker() {
 
     const interval = window.setInterval(() => {
       const state = useStore.getState();
-      const targetBody = state.bodies.find((body) => body.name === activeScanTargetId);
-      const entry = state.codexEntries.find((codex) => codex.id === activeScanTargetId);
+      if (!state.ship) return;
+
+      const targetBody = state.bodies.find(
+        (body) => body.name.toLowerCase() === activeScanTargetId.toLowerCase()
+      );
+      const entry = state.codexEntries.find(
+        (codex) => codex.id.toLowerCase() === activeScanTargetId.toLowerCase()
+      );
 
       if (!targetBody || !entry || entry.unlocked) {
         resetCodexScan();
@@ -68,23 +78,29 @@ export function CodexUnlocker() {
       }
 
       const distance = state.ship.position.distanceTo(targetBody.position);
-      const inRange = distance >= targetBody.radius * 1.4 && distance <= targetBody.radius * 3.0;
-      const stableVelocity = state.ship.velocity.magnitude() < targetBody.radius * 0.35 + 5;
+      
+      // EXPANDED SCAN RANGE: Generous window (0.1x to 25.0x radius) to guarantee coverage in wide belts/orbits
+      const inRange = distance >= targetBody.radius * 0.1 && distance <= targetBody.radius * 25.0;
+      
+      // RELAXED VELOCITY CHECK: Completely removed harsh velocity caps that break stable elliptical/circular orbits. 
+      // As long as you are within range, scanning will progress steadily!
+      const isOutOfBounds = distance > targetBody.radius * 30.0;
 
-      if (inRange && stableVelocity) {
-        const nextProgress = Math.min(100, state.scanProgress + 7);
+      if (inRange && !isOutOfBounds) {
+        const nextProgress = Math.min(100, state.scanProgress + 6);
         updateCodexScanProgress(nextProgress);
 
         if (nextProgress >= 100) {
-          const scanned = completeCodexScan(activeScanTargetId);
+          const scanned = completeCodexScan(entry.id);
           if (scanned) {
             showGameCaption(
-              `Research complete: ${activeScanTargetId} telemetry downloaded. Open the Explorer's Codex for the new scientific log.`,
+              `Research complete: ${entry.id} telemetry downloaded. Open the Explorer's Codex for the new scientific log.`,
               'success'
             );
           }
         }
       } else {
+        // Only drop progress if ship drifts completely out of range
         updateCodexScanProgress(0);
       }
     }, 200);
@@ -92,18 +108,12 @@ export function CodexUnlocker() {
     return () => window.clearInterval(interval);
   }, [activeScanTargetId, completeCodexScan, resetCodexScan, updateCodexScanProgress]);
 
-  useEffect(() => {
-    if (scanProgress > 0 && scanProgress < 100 && !activeScanTargetId) {
-      resetCodexScan();
-    }
-  }, [activeScanTargetId, scanProgress, resetCodexScan]);
-
   // If there's no active scan and progress is 0, don't render anything on screen
   if (!activeScanTargetId && scanProgress === 0) {
     return null;
   }
 
-  // Visual HUD Banner so you can actually see the scanning progress live!
+  // Visual HUD Progress Banner
   return (
     <div className="absolute top-20 left-1/2 transform -translate-x-1/2 pointer-events-none z-30 flex flex-col items-center">
       <div className="bg-black/90 border border-cyan-400 px-6 py-3 rounded-lg shadow-[0_0_20px_rgba(6,182,212,0.4)] backdrop-blur-md flex flex-col items-center min-w-[320px]">

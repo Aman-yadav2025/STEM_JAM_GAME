@@ -241,7 +241,7 @@ export default function App() {
         </div>
 
         {/* Bottom-left: Navigation, Time & Music Controls */}
-        <div className="col-start-1 row-start-2 pointer-events-auto flex flex-col gap-4">
+        <div className="col-start-1 row-start-2 pointer-events-auto flex flex-col items-start gap-4">
           {isPaused && <MusicControls />}
           <TimeWarpControls />
           <NavigationPanel />

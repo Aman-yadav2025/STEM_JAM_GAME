@@ -11,30 +11,30 @@ export const AutopilotPanel: React.FC = () => {
   const toggleAutopilot = useStore((a) => a.toggleAutopilot);
 
   return (
-    <div className="relative">
+    <div className="relative w-full min-w-[220px] max-w-[280px]">
       {/* Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between gap-3 bg-slate-900/90 hover:bg-slate-800/90 text-emerald-400 px-4 py-2 rounded-xl border border-emerald-500/30 shadow-lg backdrop-blur transition font-mono text-xs tracking-wider uppercase w-full"
+        className="flex items-center justify-between gap-2 bg-slate-900/90 hover:bg-slate-800/90 text-emerald-400 px-4 py-2.5 rounded-xl border border-emerald-500/30 shadow-lg backdrop-blur transition font-mono text-xs tracking-[0.15em] uppercase w-full"
       >
-        <span className="flex items-center gap-2">
-          <span className={`w-2 h-2 rounded-full ${autopilotEnabled ? 'bg-emerald-400 animate-ping' : 'bg-slate-600'}`} />
-          Autopilot: <strong className={autopilotEnabled ? 'text-emerald-300' : 'text-slate-400'}>{autopilotStatus}</strong>
+        <span className="flex items-center gap-2 truncate min-w-0">
+          <span className={`w-2 h-2 rounded-full shrink-0 ${autopilotEnabled ? 'bg-emerald-400 animate-ping' : 'bg-slate-600'}`} />
+          <span className="truncate">AP: <strong className={autopilotEnabled ? 'text-emerald-300' : 'text-slate-400'}>{autopilotStatus}</strong></span>
         </span>
-        <span className="text-slate-400 text-sm font-bold">{isOpen ? '▲' : '▼'}</span>
+        <span className="text-slate-400 text-sm font-bold shrink-0">{isOpen ? '▲' : '▼'}</span>
       </button>
 
       {/* Expanded Panel */}
       {isOpen && (
-        <div className="absolute bottom-full mb-2 left-0 w-64 bg-slate-950/95 text-white p-3 rounded-xl border border-emerald-500/40 shadow-2xl backdrop-blur z-30 animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div className="absolute bottom-full mb-2 left-0 w-full bg-slate-950/95 text-white p-3 rounded-xl border border-emerald-500/40 shadow-2xl backdrop-blur z-30 animate-in fade-in slide-in-from-bottom-2 duration-200">
           <div className="flex items-center justify-between w-full text-[10px] text-slate-400 uppercase tracking-widest px-1 mb-2">
-            <span>Nav Computer Systems</span>
-            <button onClick={() => setIsOpen(false)} className="hover:text-white">✕</button>
+            <span className="truncate">Nav Computer Systems</span>
+            <button onClick={() => setIsOpen(false)} className="hover:text-white shrink-0">✕</button>
           </div>
-          <div className="mb-3 text-[11px] uppercase tracking-widest text-slate-400">
+          <div className="mb-2 text-[11px] uppercase tracking-widest text-slate-400 truncate">
             {autopilotTargetName ? `Target: ${autopilotTargetName}` : 'No target selected'}
           </div>
-          <div className="mb-3 text-[11px] uppercase tracking-widest text-slate-400">
+          <div className="mb-3 text-[11px] uppercase tracking-widest text-slate-400 truncate">
             Status: {autopilotStatus}
           </div>
           <div className="grid grid-cols-2 gap-2 mb-3 max-h-44 overflow-y-auto pr-1">
@@ -44,20 +44,20 @@ export const AutopilotPanel: React.FC = () => {
                 <button
                   key={body.name}
                   onClick={() => setAutopilotTarget(body.name)}
-                  className={`text-left px-2 py-2 rounded-lg text-xs font-mono transition border ${
+                  className={`text-left px-2 py-2 rounded-lg text-xs font-mono transition border truncate ${
                     isSelected
                       ? 'border-emerald-400 bg-emerald-500/10 text-emerald-200'
                       : 'border-slate-700 bg-slate-900/80 text-slate-200 hover:border-emerald-500/40 hover:bg-slate-800'
                   }`}
                 >
-                  {body.name}
+                  <span className="truncate block">{body.name}</span>
                 </button>
               );
             })}
           </div>
           <button
             onClick={toggleAutopilot}
-            className={`w-full py-2 px-3 rounded-lg font-mono text-xs uppercase font-bold tracking-wider transition shadow-md ${
+            className={`w-full py-2 px-3 rounded-lg font-mono text-xs uppercase font-bold tracking-wider transition shadow-md truncate ${
               autopilotEnabled
                 ? 'bg-red-600 hover:bg-red-500 text-white'
                 : 'bg-emerald-600 hover:bg-emerald-500 text-black'
