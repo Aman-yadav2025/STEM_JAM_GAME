@@ -28,7 +28,7 @@ export interface EngineSpec {
 }
 
 export const DEFAULT_ENGINE: EngineSpec = {
-  specificImpulse: 32000, // Isp in seconds (typical chemical engine)
+  specificImpulse: 320, // Isp in seconds (typical chemical engine)
   // Sized against the ship's actual loaded mass (dry + fuel, ~5x10^8 given
   // the default fuel load in store.ts), not an arbitrary "doubled" figure.
   // Target: at normal throttle-response timing (see autopilot.ts's
@@ -39,7 +39,7 @@ export const DEFAULT_ENGINE: EngineSpec = {
   // This is safe now that autopilot.ts computes throttle proportionally
   // (computeRequiredThrottle) instead of always firing at throttle 1.0 —
   // a powerful engine no longer means an uncontrollable one.
-  maxThrust: 4400000000,
+  maxThrust: 44000000,
 };
 
 /** Converts specific impulse (seconds) to exhaust velocity (game distance units / s). */
