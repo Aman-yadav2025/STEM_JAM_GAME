@@ -54,7 +54,11 @@ const STABLE_VELOCITY_TOLERANCE = 3.0;
 // approach speed so the ship can't cross the target's capture radius
 // faster than this many seconds, giving the CAPTURING logic genuine time
 // to act before the ship can exit the SOI again.
-const MIN_SOI_TRANSIT_TIME = 6.0;
+// Give the capture logic a few seconds to react before the ship can cross
+// the target's SOI. A tiny value here effectively disables the cap and
+// lets the ship arrive too hot, which is exactly what causes the fly-through
+// / missed-orbit behavior reported in-game.
+const MIN_SOI_TRANSIT_TIME = 4.0;
 
 /**
  * Computes the throttle (0..1) actually required to correct a velocity
@@ -220,19 +224,20 @@ export function computeAutopilot(
     const desiredClosingSpeed = Math.min(300, distance * 0.15, maxSafeApproachSpeed);
     const closingError = desiredClosingSpeed - closingSpeed;
 
+    // If the ship still has a large sideways component relative to the target,
+    // kill that first. Trying to steer straight at the target while the ship is
+    // still moving across the target's path simply turns the approach into a
+    // high-speed flyby and makes the later capture phase much harder.
+    const maxSafeRelativeSpeed = Math.max(5, maxSafeApproachSpeed * 0.5);
+    if (transverseSpeed > maxSafeRelativeSpeed + 5) {
+      const throttle = computeRequiredThrottle(transverseSpeed - maxSafeRelativeSpeed, ship, engine, throttleMode);
+      return { direction: 'velocityMatch', throttle, status: 'CRUISING' };
+    }
+
     if (closingError > 5) {
       // Not closing fast enough — burn straight at the target.
       const throttle = computeRequiredThrottle(closingError, ship, engine, throttleMode);
       return { direction: 'intercept', throttle, status: 'CRUISING' };
-    }
-
-    // If the ship is approaching the target at a safe radial rate but still
-    // has a large transverse velocity relative to the target, burn to null
-    // the target-relative velocity so it doesn't cross the SOI too hot.
-    const maxSafeRelativeSpeed = maxSafeApproachSpeed;
-    if (transverseSpeed > maxSafeRelativeSpeed + 5) {
-      const throttle = computeRequiredThrottle(transverseSpeed - maxSafeRelativeSpeed, ship, engine, throttleMode);
-      return { direction: 'velocityMatch', throttle, status: 'CRUISING' };
     }
 
     if (closingError < -10) {
