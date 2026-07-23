@@ -53,8 +53,8 @@
 import type { BurnDirection, Spacecraft, CelestialBody } from './constants';
 import { totalMass } from './constants';
 import { getDominantBody } from './gravity';
-import type { EngineSpec } from './rocketEquation';
-import { DEFAULT_ENGINE, propellantForDeltaV, maxDeltaVForPropellant } from './rocketEquation';
+import type { EngineSpec } from './rocketequation';
+import { DEFAULT_ENGINE, propellantForDeltaV, maxDeltaVForPropellant } from './rocketequation';
 import { Vector3 } from './vector3';
 
 export interface BurnResult {

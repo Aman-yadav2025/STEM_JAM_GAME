@@ -1,5 +1,5 @@
 import { CONSTANT_DT, G, type CelestialBody, type Spacecraft, type BurnDirection, type FlightInputState } from "./constants";
-import { STANDARD_g, type EngineSpec } from "./rocketEquation";
+import { STANDARD_g, type EngineSpec } from "./rocketequation";
 import { Vector3 } from "./vector3";
 import { getDominantBody, DominantAccel } from "./gravity";
 import { getBurnDirectionVector } from "./burn";
