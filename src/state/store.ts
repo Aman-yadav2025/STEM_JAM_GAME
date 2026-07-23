@@ -11,6 +11,7 @@ import { type EngineSpec, DEFAULT_ENGINE } from '../physics/rocketEquation';
 import { Vector3 } from '../physics/vector3';
 import { buildSolarSystem } from '../scene/celestialFactory';
 import type { AutopilotStatus } from '../physics/autopilot';
+import { planNavigationRoute } from '../physics/navigationPlanner';
 
 
 export const WARP_STEPS = [0,1,3, 2, 5, 10, 25, 50, 75, 100] as const;
@@ -68,6 +69,12 @@ export interface GameState {
   setAutopilotTarget: (targetName: string | null) => void;
   setAutopilotEnabled: (enabled: boolean) => void;
   toggleAutopilot: () => void;
+
+  navigationTargetName: string | null;
+  setNavigationTarget: (targetName: string | null) => void;
+  navigationPath: Vector3[];
+  navigationReachable: boolean;
+  refreshNavigationPath: () => void;
 
   musicMuted: boolean;
   musicVolume: number;
@@ -316,6 +323,7 @@ const createInitialShip = (bodies: MovingBody[] = initialBodies): Spacecraft => 
       pitch: 0,
       yaw: 0,
       roll: 0,
+      orientation: { x: 0, y: 0, z: 0, w: 1 }, // NEW
     };
   }
 
@@ -363,6 +371,7 @@ const createInitialShip = (bodies: MovingBody[] = initialBodies): Spacecraft => 
     pitch: 0,
     yaw: 0,
     roll: 0,
+    orientation: { x: 0, y: 0, z: 0, w: 1 }
   };
 };
 
@@ -514,6 +523,9 @@ export const useStore = create<GameState>((set, get) => {
     engine: DEFAULT_ENGINE,
     time: 0,
     trajectoryPath: [],
+    navigationTargetName: null,
+    navigationPath: [],
+    navigationReachable: false,
 
     timeWarp: DEFAULT_WARP_STEP,
     flightInput: { pitch: 0, yaw: 0, roll: 0, thrusting: false },
@@ -548,6 +560,23 @@ export const useStore = create<GameState>((set, get) => {
     // records which body computeAutopilot() should fly toward. Player still
     // flips the master switch via setAutopilotEnabled/toggleAutopilot.
     setAutopilotTarget: (targetName) => set({ autopilotTargetName: targetName }),
+
+    setNavigationTarget: (targetName) => {
+      set({ navigationTargetName: targetName });
+      get().refreshNavigationPath();
+    },
+
+    refreshNavigationPath: () => {
+      const state = get();
+      const targetName = state.navigationTargetName;
+      if (targetName) {
+        // Compute path based on current live state
+        const plan = planNavigationRoute(state.ship, state.bodies, targetName, state.engine, state.time);
+        set({ navigationPath: plan.path, navigationReachable: plan.reachable });
+      } else {
+        set({ navigationPath: [], navigationReachable: false });
+      }
+    },
 
     cancelAutopilot: () => {
       const state = get();
@@ -733,6 +762,8 @@ export const useStore = create<GameState>((set, get) => {
         autopilotEnabled: false,
         autopilotTargetName: null,
         autopilotStatus: 'IDLE',
+        navigationPath: [],
+        navigationReachable: false,
       });
       get().saveGame();
     },
@@ -748,6 +779,7 @@ export const useStore = create<GameState>((set, get) => {
           ...data.ship,
           position: deserializeVector3(data.ship.position),
           velocity: deserializeVector3(data.ship.velocity),
+          orientation: data.ship.orientation ?? { x: 0, y: 0, z: 0, w: 1 }
         },
         engine: data.engine,
         time: data.time,
@@ -763,6 +795,9 @@ export const useStore = create<GameState>((set, get) => {
         autopilotEnabled: false,
         autopilotTargetName: null,
         autopilotStatus: 'IDLE',
+        navigationPath: [],
+        navigationReachable: false,
+        
       });
     },
 

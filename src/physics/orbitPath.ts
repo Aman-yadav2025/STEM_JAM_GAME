@@ -92,3 +92,23 @@ export function updateBodyPositions(bodies: MovingBody[], time: number): void {
     }
   }
 }
+
+/**
+ * Deep clones an array of MovingBodies and correctly re-links their orbit.parentBody
+ * references to point to the cloned objects instead of the original live ones.
+ */
+export function cloneBodiesForSimulation(bodies: MovingBody[]): MovingBody[] {
+  const clonedBodies: MovingBody[] = bodies.map((b) => ({
+    ...b,
+    position: b.position ? b.position.clone() : Vector3.zero(),
+    velocity: b.velocity ? b.velocity.clone() : Vector3.zero(),
+    orbit: b.orbit ? { ...b.orbit } : undefined,
+  }));
+  const clonedByName = new Map(clonedBodies.map((b) => [b.name, b]));
+  for (const b of clonedBodies) {
+    if (b.orbit?.parentBody) {
+      b.orbit.parentBody = clonedByName.get(b.orbit.parentBody.name) ?? b.orbit.parentBody;
+    }
+  }
+  return clonedBodies;
+}

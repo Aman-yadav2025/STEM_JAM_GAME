@@ -1,38 +1,54 @@
-// import { Line } from '@react-three/drei';
-// import { useStore } from '../state/store';
+import { Line, Ring } from '@react-three/drei';
+import { useStore } from '../state/store';
+import { useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
+import type * as THREE from 'three';
 
-// // Renders the precomputed navigation route (see navigationPlanner.ts /
-// // store.ts's setNavigationTarget) as a distinct guide line, separate from
-// // TrajectoryLine's live gravity-only coast preview.
-// //
-// // Deliberately NOT recomputed here every frame the way TrajectoryLine
-// // recomputes its coast path — navigationPath is a snapshot computed once
-// // when the destination was chosen (or refreshed on demand via
-// // refreshNavigationRoute()), since a full route simulation can be
-// // thousands of physics ticks and isn't cheap enough to redo every render.
-// // This component just draws whatever's currently in the store.
-// export function NavigationLine() {
-//   const navigationPath = useStore((state) => state.navigationPath);
-//   const navigationReachable = useStore((state) => state.navigationReachable);
+// Renders the precomputed navigation route (see navigationPlanner.ts /
+// store.ts's setNavigationTarget) as a distinct guide line, separate from
+// TrajectoryLine's live gravity-only coast preview.
+export function NavigationLine() {
+  const navigationPath = useStore((state) => state.navigationPath);
+  const targetName = useStore((state) => state.navigationTargetName);
+  const bodies = useStore((state) => state.bodies);
+  
+  const targetBody = bodies.find((b) => b.name === targetName);
+  
+  const pointerRef = useRef<THREE.Mesh>(null);
 
-//   if (navigationPath.length < 2) return null;
+  useFrame(() => {
+    if (pointerRef.current && targetBody) {
+      pointerRef.current.position.set(targetBody.position.x, targetBody.position.y, targetBody.position.z);
+      // Make the ring slowly rotate or scale for a nice UI effect
+      pointerRef.current.rotation.x = Math.PI / 2;
+      pointerRef.current.rotation.z += 0.02;
+    }
+  });
 
-//   const points = navigationPath.map((p) => [p.x, p.y, p.z] as [number, number, number]);
+  if (navigationPath.length < 2) return null;
 
-//   // Green + solid when the plan actually reaches STABLE_ORBIT at the
-//   // destination; red + dashed when it stops short (out of fuel, crashed,
-//   // or hit the step cap) — a visual cue that this route isn't currently
-//   // achievable as planned, not just a cosmetic color choice.
-//   return (
-//     <Line
-//       points={points}
-//       color={navigationReachable ? '#4ade80' : '#f87171'}
-//       lineWidth={2}
-//       dashed={!navigationReachable}
-//       dashSize={2}
-//       gapSize={1.5}
-//       transparent
-//       opacity={0.85}
-//     />
-//   );
-// }
+  const points = navigationPath.map((p) => [p.x, p.y, p.z] as [number, number, number]);
+
+  return (
+    <>
+      <Line
+        points={points}
+        color="#4ade80"
+        lineWidth={2.5}
+        dashed={true}
+        dashSize={3}
+        gapSize={3}
+        transparent
+        opacity={0.85}
+      />
+      {targetBody && (
+        <Ring
+          ref={pointerRef}
+          args={[targetBody.radius * 1.5, targetBody.radius * 1.8, 32]}
+        >
+          <meshBasicMaterial color="#4ade80" transparent opacity={0.6} side={2} />
+        </Ring>
+      )}
+    </>
+  );
+}

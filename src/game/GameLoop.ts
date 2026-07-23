@@ -7,6 +7,7 @@ import { useStore } from '../state/store';
 export const useGameLoop = () => {
   const isPaused = useStore((state) => state.isPaused);
   const accumulator = useRef(0);
+  const ticks = useRef(0);
   const stepDt = CONSTANT_DT;
 
   useFrame((_, delta) => {
@@ -21,6 +22,13 @@ export const useGameLoop = () => {
     while (accumulator.current >= stepDt) {
       World.tick(stepDt);
       accumulator.current -= stepDt;
+      ticks.current++;
+      
+      // Re-evaluate navigation path periodically to keep the green line updated 
+      // as the ship manually flies toward the target. 30 ticks = 0.5s real time.
+      if (ticks.current % 30 === 0) {
+        useStore.getState().refreshNavigationPath();
+      }
     }
   });
 };

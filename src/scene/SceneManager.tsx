@@ -6,6 +6,7 @@ import { SpacecraftMesh } from './Spacecraft';
 import { useGameLoop } from '../game/GameLoop';
 import { useStore } from '../state/store';
 import { TrajectoryLine } from './TrajectoryLine';
+import { NavigationLine } from './NavigationLine';
 
 const SpaceDebris = () => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
@@ -302,6 +303,7 @@ const Simulation = () => {
         );
       })}
       <TrajectoryLine />
+      <NavigationLine />
     </>
   );
 };
@@ -340,7 +342,7 @@ const CameraRig = () => {
       domElement={gl.domElement}
       enableZoom={true}
       zoomSpeed={0.8}
-      minDistance={20}
+      minDistance={1}
       maxDistance={800}
       enablePan={false}
       enableDamping={true}
@@ -370,6 +372,7 @@ export const SceneManager = () => {
 // import { useGameLoop } from '../game/GameLoop';
 // import { useStore } from '../state/store';
 // import { TrajectoryLine } from './TrajectoryLine';
+// import { NavigationLine } from './NavigationLine';
 
 // // Turns on shadow-map rendering on the WebGL renderer. This has to happen
 // // imperatively via useThree() rather than a <Canvas shadows> prop, since
@@ -719,6 +722,7 @@ export const SceneManager = () => {
 //         );
 //       })}
 //       <TrajectoryLine />
+//       <NavigationLine />
 //     </>
 //   );
 // };

@@ -46,6 +46,8 @@ export const Minimap = () => {
       const ship = state.ship;
       const bodies = state.bodies || [];
       const trajectoryPath = state.trajectoryPath || [];
+      const navigationPath = state.navigationPath || [];
+      const targetName = state.navigationTargetName;
 
       if (!ship) {
         animationId = requestAnimationFrame(renderMinimap);
@@ -95,6 +97,21 @@ export const Minimap = () => {
         ctx.stroke();
       }
 
+      // 5b. Navigation Path
+      if (navigationPath.length > 0) {
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(74, 222, 128, 0.85)'; // Green
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 4]); // Dotted line
+        navigationPath.forEach((p, index) => {
+          const pos = toPixelSpace(p.x, p.z ?? 0);
+          if (index === 0) ctx.moveTo(pos.x, pos.y);
+          else ctx.lineTo(pos.x, pos.y);
+        });
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
       // 6. Bodies
       bodies.forEach((body) => {
         const pos = toPixelSpace(body.position.x, body.position.z ?? 0);
@@ -102,6 +119,17 @@ export const Minimap = () => {
         if (pos.x >= padding && pos.x <= canvas.width - padding && pos.y >= padding && pos.y <= canvas.height - padding) {
           ctx.beginPath();
           const dotRadius = Math.max(3, (body.radius ?? 1000) / (zoom * 0.6));
+
+          // Draw target pointer
+          if (body.name === targetName) {
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, dotRadius + 4, 0, Math.PI * 2);
+            ctx.strokeStyle = '#4ade80'; // Green
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+
+          ctx.beginPath();
           ctx.arc(pos.x, pos.y, dotRadius, 0, Math.PI * 2);
           ctx.fillStyle = body.color || '#ffffff';
           ctx.fill();

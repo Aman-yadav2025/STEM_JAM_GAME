@@ -28,8 +28,7 @@ export const SpacecraftMesh = () => {
     const thrusting = useStore.getState().flightInput.thrusting;
 
     groupRef.current.position.set(ship.position.x, ship.position.y, ship.position.z);
-    groupRef.current.rotation.set(ship.pitch, ship.yaw, ship.roll);
-
+    groupRef.current.quaternion.set(ship.orientation.x, ship.orientation.y, ship.orientation.z, ship.orientation.w);
     if (flameOuterRef.current) {
       const outer = flameOuterRef.current;
       outer.scale.set(1, thrusting ? 1 + 0.2 * Math.sin(state.clock.elapsedTime * 28) : 0.0001, 1);

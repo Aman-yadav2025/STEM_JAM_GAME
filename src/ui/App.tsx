@@ -10,6 +10,7 @@ import { PauseMenu } from './PauseMenu';
 import { CaptionBox, showGameCaption } from './components/hud/CaptionBox';
 import { Minimap } from './components/hud/Minimap';
 import { TimeWarpControls } from './TimeWarpControls';
+import { NavigationPanel } from './NavigationPanel';
 import { AutopilotPanel } from './AutopilotPanel';
 import { FastTravelPanel } from './components/hud/FastTravelPanel';
 import { MusicControls } from './components/hud/MusicControls';
@@ -242,6 +243,7 @@ export default function App() {
         <div className="col-start-1 row-start-2 pointer-events-auto flex flex-col gap-4">
           {isPaused && <MusicControls />}
           <TimeWarpControls />
+          <NavigationPanel />
           <AutopilotPanel />
           <FastTravelPanel />
         </div>
