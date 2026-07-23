@@ -10,6 +10,7 @@
 //   1 mass unit      = arbitrary, chosen so G * M gives sensible accelerations
 //   1 time unit       = 1 second of simulated time
 
+import type { quat } from 'gl-matrix';
 import type { Vector3 } from './vector3';
 
 export const G = 0.1; // tune this first when calibrating a new level
@@ -50,9 +51,22 @@ export interface Spacecraft {
   health?: number;       // current hull/health (optional to avoid surprises in older saves)
   maxHealth?: number;    // hull capacity
   heading: number;         // radians, cosmetic — align to velocity vector for sprite rotation
-  pitch: number;          // radians, local nose-up/nose-down attitude
-  yaw: number;            // radians, local left/right attitude
-  roll: number;           // radians, local roll attitude
+  orientation: { x: number; y: number; z: number; w: number };
+}
+
+
+export interface Spacecraft {
+  position: Vector3;
+  velocity: Vector3;
+  mass: number;
+  fuel: number;
+  maxFuel: number;
+  health?: number;
+  maxHealth?: number;
+  heading: number;   // derived from orientation each frame, cosmetic only
+  pitch: number;     // derived, cosmetic only — do not accumulate this directly
+  yaw: number;       // derived, cosmetic only
+  roll: number;      // derived, cosmetic only
 }
 
 /** Total current mass (dry + remaining fuel) — used by gravity/thrust accel calcs. */
@@ -101,3 +115,5 @@ export type BurnDirection =
 export function computeSOIRadius(d: number, mBody: number, mPrimary: number): number {
   return d * Math.pow(mBody / (3 * mPrimary), 1 / 3);
 }
+
+

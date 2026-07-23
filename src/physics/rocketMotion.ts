@@ -1,7 +1,10 @@
 import { CONSTANT_DT, G, type CelestialBody, type Spacecraft, type BurnDirection, type FlightInputState } from "./constants";
 import { STANDARD_g, type EngineSpec } from "./rocketEquation";
 import { Vector3 } from "./vector3";
-import { getDominantBody, DominantAccel } from "./gravity";import { getBurnDirectionVector } from "./burn";import { updateBodyPositions, type OrbitPath } from "./orbitPath";
+import { getDominantBody, DominantAccel } from "./gravity";
+import { getBurnDirectionVector } from "./burn";
+import { updateBodyPositions, type OrbitPath } from "./orbitPath";
+import * as THREE from "three";
 
 type MovingBody = CelestialBody & { orbit?: OrbitPath };
 
@@ -10,12 +13,25 @@ export interface RocketMotionResult {
   t: number;
 }
 
+// Ship's local "nose" direction in model space. Flip to (0,0,1) if the
+// ship visually flies backwards once this is running.
+const LOCAL_FORWARD = new THREE.Vector3(0, 0, -1);
+
+function toThreeQuat(o: Spacecraft["orientation"]): THREE.Quaternion {
+  return new THREE.Quaternion(o.x, o.y, o.z, o.w);
+}
+
+function fromThreeQuat(q: THREE.Quaternion): Spacecraft["orientation"] {
+  return { x: q.x, y: q.y, z: q.z, w: q.w };
+}
+
+// Derives the ship's world-space forward vector by rotating the local
+// forward axis by the ship's current orientation quaternion — replaces
+// the old cosPitch/sinYaw Euler reconstruction entirely.
 function getShipForwardVector(ship: Spacecraft): Vector3 {
-  const cosPitch = Math.cos(ship.pitch);
-  const sinPitch = Math.sin(ship.pitch);
-  const cosYaw = Math.cos(ship.yaw);
-  const sinYaw = Math.sin(ship.yaw);
-  return new Vector3(cosPitch * cosYaw, sinPitch, cosPitch * sinYaw);
+  const q = toThreeQuat(ship.orientation);
+  const forward = LOCAL_FORWARD.clone().applyQuaternion(q);
+  return new Vector3(forward.x, forward.y, forward.z);
 }
 
 // Rough local Kepler period around whichever body currently dominates,
@@ -28,16 +44,8 @@ function localOrbitalPeriod(shipPos: Vector3, bodies: MovingBody[]): number {
 }
 
 const MIN_SUBSTEPS = 1;
-// Hard cap so a near-singular r can't blow up perf. Raised from 64 -> 256:
-// a hot, close first pass near a massive body (e.g. arriving at Saturn or
-// Uranus with significant residual closing speed) can have a local orbital
-// period short enough that 64 substeps under-resolves it, letting the
-// integrator's energy drift destabilize what should be a capturable orbit.
-// 256 gives real headroom for that case; MIN_SUBSTEPS/typical cruise still
-// only spends a handful of substeps, so this only costs extra work exactly
-// when it's needed (deep, fast encounters).
 const MAX_SUBSTEPS = 256;
-const SAMPLES_PER_ORBIT = 60;   // resolution target: ~60 samples per local orbit
+const SAMPLES_PER_ORBIT = 60;
 
 function chooseSubstepCount(shipPos: Vector3, bodies: MovingBody[], stepDt: number): number {
   const period = localOrbitalPeriod(shipPos, bodies);
@@ -56,11 +64,6 @@ export function updateShipPhysics(
   t: number,
   dt: number = CONSTANT_DT,
   flightInput?: FlightInputState,
-  // NEW: name of the body the autopilot is currently steering toward, if
-  // any. Only meaningful when _activeBurnDirection === 'intercept' — every
-  // other direction ignores it. Resolved to a live body reference once per
-  // call (not per-substep) since updateBodyPositions mutates bodies
-  // in-place, so the reference stays current across substeps automatically.
   autopilotTargetName?: string | null
 ): RocketMotionResult {
   const stepDt = dt;
@@ -75,11 +78,30 @@ export function updateShipPhysics(
     ? bodies.find((b) => b.name === autopilotTargetName) ?? null
     : null;
 
-  // Orientation and fuel burn are integrated once over the full frame —
-  // only the orbital mechanics needs the finer substep.
-  const newPitch = ship.pitch + inputPitch * 2.2 * stepDt;
-  const newYaw = ship.yaw + inputYaw * 2.2 * stepDt;
-  const newRoll = ship.roll + inputRoll * 2.4 * stepDt;
+  // --- Orientation integration (quaternion, local-space) ---
+  // Build a small delta rotation from this frame's stick input, expressed
+  // in the ship's OWN local axes (pitch about local X, yaw about local Y,
+  // roll about local Z), then POST-multiply it onto the current
+  // orientation. Post-multiplication (current.multiply(delta)) is what
+  // applies the delta in the object's local frame rather than world
+  // space — this is the actual fix: W always means "nose up relative to
+  // wherever the nose currently points," regardless of prior rotation.
+  const currentOrientation = toThreeQuat(ship.orientation);
+
+  const deltaEuler = new THREE.Euler(
+    inputPitch * 2.2 * stepDt,
+    inputYaw * 2.2 * stepDt,
+    inputRoll * 2.4 * stepDt,
+    "XYZ"
+  );
+  const localDelta = new THREE.Quaternion().setFromEuler(deltaEuler);
+
+  const newOrientationQ = currentOrientation.clone().multiply(localDelta).normalize();
+  const newOrientation = fromThreeQuat(newOrientationQ);
+
+  // Cosmetic-only Euler decomposition, kept for any HUD/minimap code that
+  // still reads ship.pitch/yaw/roll/heading. Never fed back into physics.
+  const displayEuler = new THREE.Euler().setFromQuaternion(newOrientationQ, "YXZ");
 
   let thrustAcceleration = Vector3.zero();
   let totalFuelBurned = 0;
@@ -93,7 +115,6 @@ export function updateShipPhysics(
   let subT = t;
 
   for (let i = 0; i < numSubsteps; i++) {
-
     const usingAutopilot = autopilotActive && fuel > 0;
     const usingManualThrust = !usingAutopilot && manualThrusting && fuel > 0;
 
@@ -108,7 +129,7 @@ export function updateShipPhysics(
             _activeBurnDirection!,
             interceptTarget
           )
-        : getShipForwardVector({ ...ship, pitch: newPitch, yaw: newYaw, roll: newRoll });
+        : getShipForwardVector({ ...ship, orientation: newOrientation });
       thrustAcceleration = directionVector.scale(engineAccMagnitude);
 
       const vE = engine.specificImpulse * STANDARD_g;
@@ -120,7 +141,6 @@ export function updateShipPhysics(
       thrustAcceleration = Vector3.zero();
     }
 
-    // Replace DominantAccel with totalAccelNBody
     const a0Gravity = DominantAccel(position, bodies);
     const a0Total = a0Gravity.add(thrustAcceleration);
 
@@ -146,10 +166,11 @@ export function updateShipPhysics(
       position,
       velocity,
       fuel,
-      pitch: newPitch,
-      yaw: newYaw,
-      roll: newRoll,
-      heading: newYaw,
+      orientation: newOrientation,
+      pitch: displayEuler.x,
+      yaw: displayEuler.y,
+      roll: displayEuler.z,
+      heading: displayEuler.y,
     },
     t: t + stepDt,
   };

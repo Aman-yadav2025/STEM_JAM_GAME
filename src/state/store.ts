@@ -316,6 +316,7 @@ const createInitialShip = (bodies: MovingBody[] = initialBodies): Spacecraft => 
       pitch: 0,
       yaw: 0,
       roll: 0,
+      orientation: { x: 0, y: 0, z: 0, w: 1 }, // NEW
     };
   }
 
@@ -363,6 +364,7 @@ const createInitialShip = (bodies: MovingBody[] = initialBodies): Spacecraft => 
     pitch: 0,
     yaw: 0,
     roll: 0,
+    orientation: { x: 0, y: 0, z: 0, w: 1 }
   };
 };
 
@@ -748,6 +750,7 @@ export const useStore = create<GameState>((set, get) => {
           ...data.ship,
           position: deserializeVector3(data.ship.position),
           velocity: deserializeVector3(data.ship.velocity),
+          orientation: data.ship.orientation ?? { x: 0, y: 0, z: 0, w: 1 }
         },
         engine: data.engine,
         time: data.time,
@@ -763,6 +766,7 @@ export const useStore = create<GameState>((set, get) => {
         autopilotEnabled: false,
         autopilotTargetName: null,
         autopilotStatus: 'IDLE',
+        
       });
     },
 
