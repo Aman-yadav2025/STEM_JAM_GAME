@@ -142,6 +142,48 @@ export function getBurnDirectionVector(
       const relSpeed = relativeVelocity.magnitude();
       return relSpeed > 0 ? relativeVelocity.scale(-1 / relSpeed) : Vector3.zero();
     }
+    case 'avoid': {
+      if (!interceptTarget) {
+        return Vector3.zero();
+      }
+      const toTarget = interceptTarget.position.subtract(ship.position);
+      const targetVel = velocityOf(interceptTarget);
+      const relVel = ship.velocity.subtract(targetVel);
+      const relSpeed = relVel.magnitude();
+      if (relSpeed === 0) {
+        return toTarget.normalize().scale(-1);
+      }
+      const relVelDir = relVel.scale(1 / relSpeed);
+      const closingDist = toTarget.dot(relVelDir);
+      const transverse = toTarget.subtract(relVelDir.scale(closingDist));
+      if (transverse.magnitude() > 1e-6) {
+        // Thrust in opposite direction of target's relative transverse position
+        return transverse.normalize().scale(-1);
+      } else {
+        // Heading dead center, thrust perpendicular
+        const arbitraryPerp = relVelDir.cross(new Vector3(0, 1, 0));
+        if (arbitraryPerp.magnitude() < 1e-6) {
+          return relVelDir.cross(new Vector3(1, 0, 0)).normalize();
+        }
+        return arbitraryPerp.normalize();
+      }
+    }
+    case 'orbitTangent': {
+      const body = interceptTarget || getDominantBody(ship.position, bodies);
+      const relPos = ship.position.subtract(body.position);
+      const radialOut = relPos.magnitude() > 0 ? relPos.normalize() : new Vector3(1, 0, 0);
+      const up = new Vector3(0, 1, 0);
+      let tangent = radialOut.cross(up).normalize();
+      if (tangent.magnitude() === 0) {
+        tangent = new Vector3(0, 0, 1);
+      }
+      
+      const relVel = ship.velocity.subtract(velocityOf(body));
+      if (relVel.dot(tangent) < -0.1) {
+        return tangent.scale(-1);
+      }
+      return tangent;
+    }
   }
 }
 

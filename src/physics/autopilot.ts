@@ -11,12 +11,14 @@ export type AutopilotStatus =
   | 'CRUISING'
   | 'ESCAPING'
   | 'CAPTURING'
-  | 'STABLE_ORBIT';
+  | 'STABLE_ORBIT'
+  | 'AVOIDING';
 
 export interface AutopilotOutput {
   direction: BurnDirection | null;
   throttle: number;
   status: AutopilotStatus;
+  overrideTargetName?: string;
 }
 
 /**
@@ -178,6 +180,45 @@ export function computeAutopilot(
   }
 
   // -----------------------------------------------------------------
+  // PHASE 0.5: OBSTACLE AVOIDANCE
+  // Check if we are on a direct collision course with any body that
+  // is NOT our target. If so, steer away before we crash.
+  // -----------------------------------------------------------------
+  for (const body of bodies) {
+    if (body === target) continue;
+    const bodyVel = body.velocity || Vector3.zero();
+    const relVelToBody = ship.velocity.subtract(bodyVel);
+    const relPosToBody = body.position.subtract(ship.position);
+    const distToBody = relPosToBody.magnitude();
+    const relSpeedToBody = relVelToBody.magnitude();
+    
+    if (relSpeedToBody === 0 || distToBody === 0) continue;
+
+    const relVelDirToBody = relVelToBody.scale(1 / relSpeedToBody);
+    const closingSpeedToBody = relVelToBody.dot(relPosToBody.normalize());
+
+    // Only care if we are approaching it
+    if (closingSpeedToBody > 0) {
+      const timeToImpact = distToBody / closingSpeedToBody;
+      const closingDistToBody = relPosToBody.dot(relVelDirToBody);
+      const transverseToBody = relPosToBody.subtract(relVelDirToBody.scale(closingDistToBody));
+      const missDistance = transverseToBody.magnitude();
+      
+      const safeMissDistance = body.radius * 2.5; // give some margin
+      const warningTime = 15.0; // react 15 seconds before impact
+
+      if (timeToImpact < warningTime && missDistance < safeMissDistance) {
+        return { 
+          direction: 'avoid', 
+          throttle: 1.0, 
+          status: 'AVOIDING', 
+          overrideTargetName: body.name 
+        };
+      }
+    }
+  }
+
+  // -----------------------------------------------------------------
   // From here on, ship is either in deep space, already inside the
   // target's own SOI, or navigating toward a target nested inside the
   // current parent's SOI (e.g. a moon) — original logic applies, with
@@ -255,86 +296,81 @@ export function computeAutopilot(
   // PHASE 2 & 3: CAPTURE & CIRCULARIZATION (Inside target's SOI)
   // -----------------------------------------------------------------
 
-  // BUG FIX (fails to orbit the target): circularSpeed used to be computed
-  // from a fixed `targetOrbitRadius = target.radius * 2.2`, but nothing
-  // ever actually pushed the ship's distance toward that radius — only the
-  // tangential SPEED was checked against it. Since the ship almost never
-  // sits at exactly 2.2x the body's radius, `idealVelocity` was chasing a
-  // speed that didn't match reality, so `velocityError` rarely dropped
-  // below the stability threshold and the orbit never circularized.
-  // Fix: compute circularSpeed from the ship's ACTUAL current distance —
-  // clamped so it can't divide by near-zero or target an absurd speed if
-  // the ship is right at/inside the surface — so the tangential target is
-  // always consistent with wherever the ship actually is, and it settles
-  // into a real stable orbit at that radius instead of chasing a fixed one.
   const orbitRadius = Math.max(distance, target.radius * 1.05);
   const circularSpeed = Math.sqrt((G * target.mass) / orbitRadius);
 
-  // Radial direction: ship relative to target (points away from target).
-  // Tangent direction: matches orbitPath.ts convention (parent->body, +90°),
-  // built the same way here as (target->ship) since that IS parent->body
-  // from the target's perspective.
   const shipRelToTarget = ship.position.subtract(target.position);
   const radialDir = shipRelToTarget.magnitude() > 0
     ? shipRelToTarget.normalize()
     : new Vector3(1, 0, 0);
 
   const up = new Vector3(0, 1, 0);
-  let tangentDir = shipRelToTarget.cross(up).normalize();
-  if (tangentDir.magnitude() === 0) {
-    tangentDir = new Vector3(0, 0, 1);
+  let baseTangentDir = shipRelToTarget.cross(up).normalize();
+  if (baseTangentDir.magnitude() === 0) {
+    baseTangentDir = new Vector3(0, 0, 1);
   }
 
-  // Decompose the ship's relative velocity into radial and tangential
-  // components against that basis, rather than just diffing against a
-  // single idealVelocity vector — this is what lets us tell "too fast/slow"
-  // apart from "falling in/flying out" and choose the right burn.
   const radialComponent = relVel.dot(radialDir);
-  const tangentialComponent = relVel.dot(tangentDir);
-  const tangentialError = tangentialComponent - circularSpeed;
-
-  const idealVelocity = tangentDir.scale(circularSpeed);
+  const rawTangentialComponent = relVel.dot(baseTangentDir);
+  
+  const isRetrograde = rawTangentialComponent < -0.1;
+  const currentTangentDir = isRetrograde ? baseTangentDir.scale(-1) : baseTangentDir;
+  const currentTangentialSpeed = Math.abs(rawTangentialComponent);
+  
+  const tangentialError = currentTangentialSpeed - circularSpeed;
+  const idealVelocity = currentTangentDir.scale(circularSpeed);
   const velocityError = relVel.subtract(idealVelocity).magnitude();
 
-  // Stable circular orbit achieved!
   if (velocityError < STABLE_VELOCITY_TOLERANCE) {
     return { direction: null, throttle: 0, status: 'STABLE_ORBIT' };
   }
 
-  // Radial mismatch dominates: ship is drifting toward/away from the body
-  // faster than its tangential speed is off. A prograde/retrograde burn
-  // can't fix this — only a radial burn can.
+  // Crash Prevention (Suicide Burn logic for radial descent)
+  const maxAccel = engine.maxThrust / totalMass(ship);
+  const stoppingDist = maxAccel > 0 ? (radialComponent * radialComponent) / (2 * maxAccel) : Infinity;
+  const surfaceDist = distance - target.radius;
+  const safetyMargin = target.radius * 0.5 + 20; 
+  
+  if (radialComponent < 0 && (surfaceDist - safetyMargin) < stoppingDist) {
+    return {
+      direction: 'radialOut',
+      throttle: 1.0, 
+      status: 'CAPTURING',
+    };
+  }
+
+  // Radial mismatch dominates
   if (Math.abs(radialComponent) > Math.abs(tangentialError) &&
       Math.abs(radialComponent) > STABLE_VELOCITY_TOLERANCE) {
-    const direction: BurnDirection =
-      radialComponent > 0 ? 'radialIn' : 'radialOut'; // moving out -> burn in, and vice versa
     return {
-      direction,
+      direction: radialComponent > 0 ? 'radialIn' : 'radialOut',
       throttle: computeRequiredThrottle(radialComponent, ship, engine, throttleMode),
       status: 'CAPTURING',
     };
   }
 
-  // Too fast for a circular orbit at the current radius -> shed excess speed
+  // Too fast -> retrograde sheds speed fastest
   if (relSpeed > circularSpeed * 1.05) {
-    const throttle = computeRequiredThrottle(relSpeed - circularSpeed, ship, engine, throttleMode);
-    return { direction: 'retrograde', throttle, status: 'CAPTURING' };
+    return { 
+      direction: 'retrograde', 
+      throttle: computeRequiredThrottle(relSpeed - circularSpeed, ship, engine, throttleMode), 
+      status: 'CAPTURING' 
+    };
   }
 
-  // Too slow -> need to add speed, not remove it
+  // Tangential speed is too low -> build it
   if (tangentialError < 0) {
     return {
-      direction: 'prograde',
-      throttle: computeRequiredThrottle(velocityError, ship, engine, throttleMode),
+      direction: 'orbitTangent',
+      throttle: computeRequiredThrottle(-tangentialError, ship, engine, throttleMode),
       status: 'CAPTURING',
     };
   }
 
-  // Tangential speed slightly too high but not enough to trip the 1.05x
-  // check above — trim it.
+  // Tangential speed is slightly too high -> trim it
   return {
     direction: 'retrograde',
-    throttle: computeRequiredThrottle(velocityError, ship, engine, throttleMode),
+    throttle: computeRequiredThrottle(tangentialError, ship, engine, throttleMode),
     status: 'CAPTURING',
   };
 }

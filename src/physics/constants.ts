@@ -83,7 +83,9 @@ export type BurnDirection =
   | 'normal'
   | 'antinormal'
   | 'intercept'
-  | 'velocityMatch';
+  | 'velocityMatch'
+  | 'avoid'
+  | 'orbitTangent';
 
   
 /**

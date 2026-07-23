@@ -37,7 +37,8 @@ export class World {
       // single World.tick() can span many substeps. Re-computing each
       // substep keeps the burn direction/throttle from going stale across
       // that span, same as a player's manual input would only ever cover
-      // one substep's worth of "current" state at a time.
+      let activeAutopilotTarget = state.autopilotEnabled ? state.autopilotTargetName : null;
+
       if (state.autopilotEnabled && state.autopilotTargetName) {
         const autopilotOutput = computeAutopilot(
           currentShip,
@@ -48,6 +49,7 @@ export class World {
         burnDirection = autopilotOutput.direction;
         throttle = autopilotOutput.throttle;
         latestAutopilotStatus = autopilotOutput.status;
+        activeAutopilotTarget = autopilotOutput.overrideTargetName || state.autopilotTargetName;
 
         // Mirror autopilot outputs into the (hidden) active controls so
         // other systems that expect `activeBurnDirection`/`throttle`
@@ -78,7 +80,7 @@ export class World {
         currentTime,
         subDt,
         state.flightInput,
-        state.autopilotEnabled ? state.autopilotTargetName : null
+        activeAutopilotTarget
       );
 
       currentShip = nextShip;
