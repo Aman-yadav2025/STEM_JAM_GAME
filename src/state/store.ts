@@ -11,7 +11,7 @@ import { type EngineSpec, DEFAULT_ENGINE } from '../physics/rocketEquation';
 import { Vector3 } from '../physics/vector3';
 import { buildSolarSystem } from '../scene/celestialFactory';
 import type { AutopilotStatus } from '../physics/autopilot';
-
+import * as THREE from 'three';
 
 export const WARP_STEPS = [0,1,3, 2, 5, 10, 25, 50, 75, 100] as const;
 export type WarpStep = (typeof WARP_STEPS)[number];
@@ -20,7 +20,12 @@ export const DEFAULT_WARP_STEP: WarpStep = 3;
 
 export const getDisplayWarpValue = (step: WarpStep): number => Number((step * 10).toFixed(10));
 
-
+function quaternionFromForward(forward: Vector3): { x: number; y: number; z: number; w: number } {
+  const threeForward = new THREE.Vector3(forward.x, forward.y, forward.z).normalize();
+  const localForward = new THREE.Vector3(0, 0, -1); // must match LOCAL_FORWARD in rocketMotion.ts
+  const q = new THREE.Quaternion().setFromUnitVectors(localForward, threeForward);
+  return { x: q.x, y: q.y, z: q.z, w: q.w };
+}
 export type CodexEntry = {
   id: string;
   title: string;
@@ -364,8 +369,7 @@ const createInitialShip = (bodies: MovingBody[] = initialBodies): Spacecraft => 
     pitch: 0,
     yaw: 0,
     roll: 0,
-    orientation: { x: 0, y: 0, z: 0, w: 1 }
-  };
+  orientation: quaternionFromForward(totalVelocity),  };
 };
 
 type Debris = { id: string; position: Vector3; radius: number; damage: number };

@@ -311,7 +311,7 @@ const CameraRig = () => {
   const { camera, gl } = useThree();
   const controlsRef = useRef<any>(null);
   const previousTarget = useRef<THREE.Vector3 | null>(null);
-  const offset = new THREE.Vector3(0, 25, 120);
+  const offset = new THREE.Vector3(0, 5, -10);
 
   useFrame(() => {
     if (!ship) return;
