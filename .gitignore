@@ -23,4 +23,5 @@ dist-ssr
 *.sln
 *.sw?
 *.mp4
-public\earth.mp4
+public/earth.mp4
+src-tauri/target/release

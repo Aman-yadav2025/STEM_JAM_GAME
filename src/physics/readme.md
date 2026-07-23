@@ -11,7 +11,7 @@ Files, in the order you'd read them if you were new to the codebase:
 2. [`constants.ts`](#constantsts) — shared types, tuning constants, small helpers
 3. [`gravity.ts`](#gravityts) — Newtonian gravity + dominant-body switching
 4. [`orbitPath.ts`](#orbitpaths) — circular orbits for moving bodies (moons, planets)
-5. [`rocketEquation.ts`](#rocketequationts) — Tsiolkovsky rocket equation / fuel math
+5. [`rocketEquation.ts`](#rocketEquationts) — Tsiolkovsky rocket equation / fuel math
 6. [`burn.ts`](#burnts) — instant delta-v burns (secondary mechanism)
 7. [`rocketMotion.ts`](#rocketmotionts) — **primary** per-frame ship integrator (continuous thrust)
 8. [`trajectoryPredictor.ts`](#trajectorypredictorts) — coast-path forecasting for the UI's trajectory line

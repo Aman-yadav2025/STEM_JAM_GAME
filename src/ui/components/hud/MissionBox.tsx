@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useStore } from '../../../state/store';
 import { CornerFrame } from './CornerFrame';
 
@@ -31,7 +31,7 @@ export function MissionBox() {
   const ship = useStore((state) => state.ship);
   const bodies = useStore((state) => state.bodies);
 
-  const [missions, setMissions] = useState<Mission[]>([
+  const [missions, _] = useState<Mission[]>([
     {
       id: 'm1',
       tab: 'primary',

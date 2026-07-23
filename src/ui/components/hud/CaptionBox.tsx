@@ -190,7 +190,7 @@ export function CaptionBox({
     }
   ]);
 
-  const [classifiedGoals, setClassifiedGoals] = useState<MissionObjective[]>([
+  const [classifiedGoals, _] = useState<MissionObjective[]>([
     {
       id: 'zero_vel',
       title: 'Anomaly: Zero-Velocity Hover',
