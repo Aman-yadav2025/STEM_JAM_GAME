@@ -28,7 +28,7 @@ export interface EngineSpec {
 }
 
 export const DEFAULT_ENGINE: EngineSpec = {
-  specificImpulse: 3200, // Isp in seconds (typical chemical engine)
+  specificImpulse: 3200000, // Isp in seconds (typical chemical engine)
   // Sized against the ship's actual loaded mass (dry + fuel, ~5x10^8 given
   // the default fuel load in store.ts), not an arbitrary "doubled" figure.
   // Target: at normal throttle-response timing (see autopilot.ts's
