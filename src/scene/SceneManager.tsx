@@ -340,7 +340,7 @@ const CameraRig = () => {
       domElement={gl.domElement}
       enableZoom={true}
       zoomSpeed={0.8}
-      minDistance={20}
+      minDistance={1}
       maxDistance={800}
       enablePan={false}
       enableDamping={true}
