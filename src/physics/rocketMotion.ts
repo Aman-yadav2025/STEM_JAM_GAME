@@ -14,7 +14,7 @@ import * as THREE from "three";
 
 function getShipForwardVector(ship: Spacecraft): Vector3 {
   const q = new THREE.Quaternion(ship.orientation.x, ship.orientation.y, ship.orientation.z, ship.orientation.w);
-  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(q); // -Z is local forward in WebGL/Three.js
+  const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(q); // -Z is local forward in WebGL/Three.js
   return new Vector3(forward.x, forward.y, forward.z);
 }
 
