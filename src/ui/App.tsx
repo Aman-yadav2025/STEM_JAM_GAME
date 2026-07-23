@@ -19,8 +19,35 @@ import { MainMenu } from './MainMenu';
 import MusicManager from './MusicManager';
 import GameOverModal from './GameOverModal';
 
-// Temporary fallback constants if defined elsewhere in your codebase
-const EDUCATIONAL_ORBITAL_FACTS: { category: string; fact: string }[] = [];
+const EDUCATIONAL_ORBITAL_FACTS: { category: string; fact: string }[] = [
+  { category: 'Orbital Mechanics', fact: 'Kepler’s second law states that a line segment joining a planet and the Sun sweeps out equal areas during equal intervals of time.' },
+  { category: 'Orbital Mechanics', fact: 'The Oberth effect makes rocket burns much more efficient when performed at high speeds (periapsis) near a massive body.' },
+  { category: 'Physics', fact: 'In a vacuum, all objects fall at the exact same rate regardless of their mass.' },
+  { category: 'Orbital Mechanics', fact: 'To catch up to a target ahead of you in the same orbit, you must actually slow down to drop into a lower, faster orbit.' },
+  { category: 'Astrophysics', fact: 'Escape velocity is the speed needed to break free from a gravitational field without further propulsion. For Earth, it is ~11.2 km/s.' },
+  { category: 'Astrophysics', fact: 'The Lagrange points are positions in space where the gravitational pull of two large masses precisely equals the centripetal force required for a small object to move with them.' },
+  { category: 'Spaceflight', fact: 'A Hohmann transfer orbit is an elliptical orbit used to transfer between two circular orbits of different radii in the same plane.' },
+];
+
+const DEEP_SPACE_LORE: string[] = [
+  'Brown dwarfs are failed stars in the cold dark, lacking the mass to sustain hydrogen fusion but glowing faintly in infrared.',
+  'Myth: The asteroid belt is crowded. Fact: If you stood on an asteroid in the main belt, you likely could not see another one with the naked eye.',
+  'Myth: Space is completely empty. Fact: Interstellar space contains gas, dust, and cosmic rays, though at an extremely low density.',
+  'Perspective tricks make distant objects appear close in space due to the lack of atmospheric haze.',
+  'Micrometeoroids mean hull checks matter in every mission. Even a grain of sand at orbital velocities can cause catastrophic damage.',
+  'Neutron stars are so dense that a teaspoon of their material would weigh about 6 billion tons on Earth.',
+  'Myth: There is no gravity in space. Fact: Microgravity is freefall. The ISS experiences about 90% of Earth’s surface gravity, but it is falling around the Earth!',
+  'Space smells like seared steak, hot metal, and welding fumes, according to astronauts who have stepped outside the ISS.',
+  'The speed of light is roughly 300,000 kilometers per second, meaning sunlight takes about 8 minutes to reach Earth.',
+  'Rogue planets wander the galaxy unbound to any star, cast out of their home systems in the chaotic early days of planet formation.',
+  'A day on Venus is longer than a year on Venus. It rotates extremely slowly on its axis.',
+  'Dark matter makes up about 27% of the universe, yet it interacts with ordinary matter only through gravity.',
+  'Myth: Black holes suck everything in. Fact: Black holes do not suck. They exert gravity just like any other mass. If the Sun were replaced by a black hole of equal mass, Earth would orbit it normally.',
+  'There is a giant cloud of alcohol in Sagittarius B2, near the center of our galaxy.',
+  'Neutrinos are ghost particles that pass through almost all matter undisturbed. Trillions of them pass through your body every second.',
+  'The coldest place in the universe found so far is the Boomerang Nebula, at 1 Kelvin (-272°C), just one degree above absolute zero.',
+];
+
 const PLANET_HAZARDS: { id: string; name: string; description: string; severity: string; evaluator: (data: { altitude: number; velocity: number }) => boolean }[] = [];
 
 /**
@@ -77,19 +104,16 @@ export default function App() {
           {
             label: 'Planet Hazards & Facts',
             handler: () => {
-              const randomFact = EDUCATIONAL_ORBITAL_FACTS.length > 0 
-                ? EDUCATIONAL_ORBITAL_FACTS[Math.floor(Math.random() * EDUCATIONAL_ORBITAL_FACTS.length)]
-                : { category: 'Orbital Mechanics', fact: 'Kepler’s second law states that a line segment joining a planet and the Sun sweeps out equal areas during equal intervals of time.' };
+              const randomFact = EDUCATIONAL_ORBITAL_FACTS[Math.floor(Math.random() * EDUCATIONAL_ORBITAL_FACTS.length)];
               showGameCaption(`[${randomFact.category}] ${randomFact.fact}`, 'tip');
             },
           },
           {
             label: 'Deep-Space Lore',
-            handler: () =>
-              showGameCaption(
-                'Brown dwarfs are failed stars in the cold dark. Perspective tricks make distant objects appear close, and micrometeoroids mean hull checks matter in every mission.',
-                'tip'
-              ),
+            handler: () => {
+              const randomLore = DEEP_SPACE_LORE[Math.floor(Math.random() * DEEP_SPACE_LORE.length)];
+              showGameCaption(randomLore, 'tip');
+            },
           },
           {
             label: 'Star Navigation',

@@ -47,6 +47,16 @@ export type Achievement = {
   category: 'efficiency' | 'risk';
 };
 
+export interface Mission {
+  id: string;
+  type: 'primary' | 'exploration' | 'classified';
+  title: string;
+  description: string;
+  status: 'locked' | 'available' | 'active' | 'completed' | 'reward_claimed';
+  progressText: string;
+  rewardDescription?: string;
+}
+
 export interface GameState {
   cancelAutopilot: () => void;
   ship: Spacecraft;
@@ -116,6 +126,12 @@ export interface GameState {
   unlockAchievement: (id: string) => boolean;
   updateAchievementProgress: (id: string, progress: number) => void;
 
+  missions: Mission[];
+  acceptMission: (id: string) => void;
+  decryptMission: (id: string) => void;
+  claimMissionReward: (id: string) => void;
+  evaluateMissions: (telemetry: any) => void;
+
   setShip: (ship: Spacecraft) => void;
   setBodies: (bodies: MovingBody[]) => void;
   setControls: (direction: BurnDirection | null, throttle: number) => void;
@@ -148,6 +164,7 @@ type SaveData = {
   time: number;
   codexEntries: CodexEntry[];
   achievements: Achievement[];
+  missions: Mission[];
 };
 
 const serializeVector3 = (v: Vector3): SerializedVector3 => ({ x: v.x, y: v.y, z: v.z });
@@ -523,6 +540,81 @@ export const useStore = create<GameState>((set, get) => {
     },
   ];
 
+  const createInitialMissions = (): Mission[] => [
+    {
+      id: 'sys_calib',
+      type: 'primary',
+      title: 'Phase I: Systems Calibration',
+      description: 'Central Command requires a nominal engine burn to verify thrust telemetry. Engage the main drive and exceed $50\\text{ m/s}$ relative velocity to complete calibration.',
+      status: 'active',
+      progressText: 'Awaiting ignition...',
+      rewardDescription: '+100 Fuel',
+    },
+    {
+      id: 'circ_orbit',
+      type: 'primary',
+      title: 'Phase II: Stable Circular Orbit',
+      description: 'Navigation computers require a stable parking orbit before deep-space transit. Achieve an eccentricity $\\epsilon < 0.05$ and a periapsis altitude $> 400\\text{ km}$ above the planetary surface.',
+      status: 'active',
+      progressText: 'Evaluating orbital parameters...',
+      rewardDescription: '+500 Fuel, Codex: Orbits',
+    },
+    {
+      id: 'apo_raise',
+      type: 'primary',
+      title: 'Phase III: Apoapsis Elevation',
+      description: 'To prepare for transit to the outer colonies, perform a prograde burn at periapsis to extend your apoapsis (highest point) distance past $3200\\text{ km}$.',
+      status: 'active',
+      progressText: 'Waiting for altitude target...',
+      rewardDescription: 'Codex: Advanced Orbits',
+    },
+    {
+      id: 'escape_traj',
+      type: 'primary',
+      title: 'Phase IV: Escape Velocity',
+      description: 'We are cleared for departure. Ignite the main drive and accelerate until your orbit becomes hyperbolic (eccentricity $\\epsilon > 1.0$), permanently escaping the planet\'s gravity well.',
+      status: 'active',
+      progressText: 'Monitoring trajectory shape...',
+      rewardDescription: '+1500 Fuel, FTL Drive Schematics',
+    },
+    {
+      id: 'luna_flyby',
+      type: 'exploration',
+      title: 'Luna Minor Proximity',
+      description: 'Execute a close gravitational pass within the sphere of influence of Luna Minor to scan for pre-collapse artifacts.',
+      status: 'available',
+      progressText: 'Contract pending acquisition.',
+      rewardDescription: 'Sensor Upgrade Data',
+    },
+    {
+      id: 'high_speed',
+      type: 'exploration',
+      title: 'Orbital Velocity Milestone',
+      description: 'Exceed orbital velocity thresholds above $8000\\text{ m/s}$.',
+      status: 'available',
+      progressText: 'Monitoring telemetry speed...',
+      rewardDescription: '+250 Fuel',
+    },
+    {
+      id: 'zero_vel',
+      type: 'classified',
+      title: 'Anomaly: Zero-Velocity Hover',
+      description: 'Temporarily cancel all relative momentum inside deep space without collapsing into a body.',
+      status: 'locked',
+      progressText: 'Encrypted objective locked.',
+      rewardDescription: 'Unknown Anomalous Data',
+    },
+    {
+      id: 'atmos_graze',
+      type: 'classified',
+      title: 'Atmospheric Friction Test',
+      description: 'Graze the upper fringe threshold of a celestial body solid radius safely.',
+      status: 'locked',
+      progressText: 'Encrypted objective locked.',
+      rewardDescription: 'Unknown Anomalous Data',
+    }
+  ];
+
   return {
     ship: createInitialShip(initialBodies),
     bodies: initialBodies,
@@ -697,6 +789,97 @@ export const useStore = create<GameState>((set, get) => {
       });
     },
 
+    missions: createInitialMissions(),
+    acceptMission: (id) => {
+      set((state) => ({
+        missions: state.missions.map(m => m.id === id && m.status === 'available' ? { ...m, status: 'active' } : m)
+      }));
+    },
+    decryptMission: (id) => {
+      set((state) => ({
+        missions: state.missions.map(m => m.id === id && m.status === 'locked' ? { ...m, status: 'active' } : m)
+      }));
+    },
+    claimMissionReward: (id) => {
+      set((state) => {
+        const mission = state.missions.find(m => m.id === id);
+        if (!mission || mission.status !== 'completed') return state;
+
+        let newShip = { ...state.ship };
+        if (mission.id === 'sys_calib') newShip.fuel = Math.min(newShip.maxFuel, newShip.fuel + 100);
+        if (mission.id === 'circ_orbit') newShip.fuel = Math.min(newShip.maxFuel, newShip.fuel + 500);
+        if (mission.id === 'escape_traj') newShip.fuel = Math.min(newShip.maxFuel, newShip.fuel + 1500);
+        if (mission.id === 'high_speed') newShip.fuel = Math.min(newShip.maxFuel, newShip.fuel + 250);
+
+        return {
+          missions: state.missions.map(m => m.id === id ? { ...m, status: 'reward_claimed' } : m),
+          ship: newShip
+        };
+      });
+    },
+    evaluateMissions: (tel) => {
+      set((state) => {
+        let changed = false;
+        const newMissions = state.missions.map(m => {
+          if (m.status !== 'active') return m;
+          
+          if (m.id === 'sys_calib') {
+            const highVel = (tel.velocity ?? 0) >= 50;
+            if (highVel) {
+              changed = true;
+              return { ...m, status: 'completed', progressText: 'Status: Completed' };
+            }
+            const newText = `Vel: ${Math.round(tel.velocity ?? 0)}m/s / 50m/s`;
+            if (m.progressText !== newText) { changed = true; return { ...m, progressText: newText }; }
+          }
+
+          if (m.id === 'circ_orbit') {
+            const isCirc = (tel.eccentricity ?? 1) < 0.05 && (tel.periapsisAltitude ?? 0) > 400;
+            if (isCirc) {
+              changed = true;
+              return { ...m, status: 'completed', progressText: 'Status: Completed' };
+            }
+            const newText = `Ecc: ${(tel.eccentricity ?? 0).toFixed(3)}, Pe: ${Math.round(tel.periapsisAltitude ?? 0)}km`;
+            if (m.progressText !== newText) { changed = true; return { ...m, progressText: newText }; }
+          }
+          
+          if (m.id === 'apo_raise') {
+            const highApo = (tel.apoapsis ?? 0) >= 3200;
+            if (highApo) {
+              changed = true;
+              return { ...m, status: 'completed', progressText: 'Status: Completed' };
+            }
+            const newText = `Apoapsis: ${Math.round(tel.apoapsis ?? 0)}km / 3200km`;
+            if (m.progressText !== newText) { changed = true; return { ...m, progressText: newText }; }
+          }
+
+          if (m.id === 'escape_traj') {
+            const escaping = (tel.eccentricity ?? 0) > 1.0;
+            if (escaping) {
+              changed = true;
+              return { ...m, status: 'completed', progressText: 'Status: Hyperbolic Trajectory Confirmed' };
+            }
+            const newText = `Eccentricity: ${(tel.eccentricity ?? 0).toFixed(3)} / 1.000`;
+            if (m.progressText !== newText) { changed = true; return { ...m, progressText: newText }; }
+          }
+
+          if (m.id === 'high_speed') {
+            const fast = (tel.velocity ?? 0) >= 8000;
+            if (fast) {
+              changed = true;
+              return { ...m, status: 'completed', progressText: 'Contract Fulfilled' };
+            }
+            const newText = `Vel: ${Math.round(tel.velocity ?? 0)}m/s`;
+            if (m.progressText !== newText) { changed = true; return { ...m, progressText: newText }; }
+          }
+
+          return m;
+        });
+
+        return changed ? { missions: newMissions } : state;
+      });
+    },
+
     setShip: (ship) => set({ ship }),
     setBodies: (bodies) => set({ bodies }),
     setControls: (direction, throttle) => set({ activeBurnDirection: direction, throttle }),
@@ -727,6 +910,7 @@ export const useStore = create<GameState>((set, get) => {
         time: state.time,
         codexEntries: state.codexEntries,
         achievements: state.achievements,
+        missions: state.missions,
       };
       writeSave(data);
       set({ hasSave: true });
@@ -770,6 +954,7 @@ export const useStore = create<GameState>((set, get) => {
         aerobrakeTime: 0,
         isPaused: false,
         gamePhase: 'Playing',
+        missions: createInitialMissions(),
         autopilotEnabled: false,
         autopilotTargetName: null,
         autopilotStatus: 'IDLE',
@@ -796,6 +981,7 @@ export const useStore = create<GameState>((set, get) => {
         time: data.time,
         codexEntries: data.codexEntries,
         achievements: data.achievements,
+        missions: data.missions ?? createInitialMissions(),
         debris: createInitialDebris(initialBodies),
         activeBurnDirection: null,
         throttle: 0,

@@ -95,6 +95,7 @@ export class World {
         const dist = rel.magnitude();
         if (dist <= Math.max(1, body.radius)) {
           // Crash into a planetary surface => game over
+          try { new Audio('/man-screaming-aaaah.mp3').play().catch(() => {}); } catch(e) {}
           useStore.setState({ ship: { ...currentShip, health: 0 }, gamePhase: 'GameOver' });
           return; // stop ticking
         }
@@ -110,6 +111,7 @@ export class World {
           currentShip = { ...currentShip, health: Math.max(0, newHealth) };
           useStore.setState({ ship: currentShip, debris: debrisList.filter((x: any) => x.id !== d.id) });
           if ((currentShip.health ?? 0) <= 0) {
+            try { new Audio('/man-screaming-aaaah.mp3').play().catch(() => {}); } catch(e) {}
             useStore.setState({ gamePhase: 'GameOver' });
             return;
           }

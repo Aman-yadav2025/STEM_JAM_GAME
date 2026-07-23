@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { CornerFrame } from './CornerFrame';
+import { useStore } from '../../../state/store';
 
 export type CaptionType = 'info' | 'warning' | 'success' | 'tip';
 
@@ -25,14 +26,7 @@ type CaptionPayload = {
 
 type MissionTab = 'comms' | 'primary' | 'exploration' | 'classified';
 
-interface MissionObjective {
-  id: string;
-  title: string;
-  description: string;
-  completed: boolean;
-  progressText?: string;
-  evaluator?: () => boolean;
-}
+
 
 declare global {
   interface Window {
@@ -158,57 +152,15 @@ export function CaptionBox({
   const [rollingHex, setRollingHex] = useState('0xF4A2');
   const [flickerValue, setFlickerValue] = useState('99.8%');
 
-  // Structured Mission States linked to Physics Telemetry
-  const [primaryMissions, setPrimaryMissions] = useState<MissionObjective[]>([
-    {
-      id: 'circ_orbit',
-      title: 'Stable Circular Orbit',
-      description: 'Achieve stable circular orbit parameters: eccentricity $\\epsilon < 0.05$ and periapsis altitude $> 400\\text{ km}$.',
-      completed: false,
-      progressText: 'Evaluating orbital parameters...',
-    },
-    {
-      id: 'apo_raise',
-      title: 'Apoapsis Elevation',
-      description: 'Perform a prograde burn to extend your apoapsis distance past $3200\\text{ km}$.',
-      completed: false,
-      progressText: 'Waiting for altitude target...',
-    }
-  ]);
+  const missions = useStore((state) => state.missions);
+  const acceptMission = useStore((state) => state.acceptMission);
+  const decryptMission = useStore((state) => state.decryptMission);
+  const claimMissionReward = useStore((state) => state.claimMissionReward);
+  const evaluateMissions = useStore((state) => state.evaluateMissions);
 
-  const [explorationContracts, setExplorationContracts] = useState<MissionObjective[]>([
-    {
-      id: 'luna_flyby',
-      title: 'Luna Minor Proximity',
-      description: 'Execute a close gravitational pass within the sphere of influence of Luna Minor.',
-      completed: false,
-      progressText: 'Contract pending acquisition.',
-    },
-    {
-      id: 'high_speed',
-      title: 'Orbital Velocity Milestone',
-      description: 'Exceed orbital velocity thresholds above $8000\\text{ m/s}$.',
-      completed: false,
-      progressText: 'Monitoring telemetry speed...',
-    }
-  ]);
-
-  const [classifiedGoals, _] = useState<MissionObjective[]>([
-    {
-      id: 'zero_vel',
-      title: 'Anomaly: Zero-Velocity Hover',
-      description: 'Temporarily cancel all relative momentum inside deep space without collapsing into a body.',
-      completed: false,
-      progressText: 'Encrypted objective locked.',
-    },
-    {
-      id: 'atmos_graze',
-      title: 'Atmospheric Friction Test',
-      description: 'Graze the upper fringe threshold of a celestial body solid radius safely.',
-      completed: false,
-      progressText: 'Encrypted objective locked.',
-    }
-  ]);
+  const primaryMissions = missions.filter(m => m.type === 'primary');
+  const explorationContracts = missions.filter(m => m.type === 'exploration');
+  const classifiedGoals = missions.filter(m => m.type === 'classified');
 
   const typingTimeoutRef = useRef<number | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -279,42 +231,13 @@ export function CaptionBox({
           'warning'
         );
       }
-
-      setPrimaryMissions(prev => prev.map(m => {
-        if (m.id === 'circ_orbit' && !m.completed) {
-          const isCirc = (tel.eccentricity ?? 1) < 0.05 && (tel.periapsisAltitude ?? 0) > 400;
-          if (isCirc) {
-            showGameCaption('Primary Objective Met: Stable circular orbit achieved!', 'success');
-            return { ...m, completed: true, progressText: 'Status: Completed' };
-          }
-          return { ...m, progressText: `Ecc: ${(tel.eccentricity ?? 0).toFixed(3)}, Pe: ${Math.round(tel.periapsisAltitude ?? 0)}km` };
-        }
-        if (m.id === 'apo_raise' && !m.completed) {
-          const highApo = (tel.apoapsis ?? 0) >= 3200;
-          if (highApo) {
-            showGameCaption('Primary Objective Met: Target apoapsis elevation reached!', 'success');
-            return { ...m, completed: true, progressText: 'Status: Completed' };
-          }
-          return { ...m, progressText: `Apoapsis: ${Math.round(tel.apoapsis ?? 0)}km / 3200km` };
-        }
-        return m;
-      }));
-
-      setExplorationContracts(prev => prev.map(m => {
-        if (m.id === 'high_speed' && !m.completed) {
-          const fast = (tel.velocity ?? 0) >= 8000;
-          if (fast) {
-            return { ...m, completed: true, progressText: 'Contract Fulfilled' };
-          }
-          return { ...m, progressText: `Vel: ${Math.round(tel.velocity ?? 0)}m/s` };
-        }
-        return m;
-      }));
+      
+      evaluateMissions(tel);
 
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [evaluateMissions]);
 
   // Global event listener
   useEffect(() => {
@@ -483,15 +406,21 @@ export function CaptionBox({
                 <div key={m.id} className="p-2.5 rounded-xl border border-white/10 bg-white/5 text-xs">
                   <div className="flex justify-between items-center mb-1">
                     <span className="font-bold text-white flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${m.completed ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`} />
+                      <span className={`w-2 h-2 rounded-full ${m.status === 'completed' || m.status === 'reward_claimed' ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`} />
                       {m.title}
                     </span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded ${m.completed ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                      {m.completed ? 'COMPLETED' : 'ACTIVE'}
+                    <span className={`text-[10px] px-2 py-0.5 rounded ${m.status === 'completed' || m.status === 'reward_claimed' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                      {m.status.toUpperCase()}
                     </span>
                   </div>
                   <p className="text-white/80 leading-snug mb-1">{m.description}</p>
                   <div className="text-[10px] text-cyan-400/80 font-mono">Telemetry: {m.progressText}</div>
+                  
+                  {m.status === 'completed' && (
+                    <button onClick={() => claimMissionReward(m.id)} className="mt-2 w-full py-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 text-[10px] tracking-widest uppercase hover:bg-emerald-500/20 transition active:scale-95 pointer-events-auto">
+                      Claim Reward: {m.rewardDescription}
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -503,15 +432,33 @@ export function CaptionBox({
                 <div key={m.id} className="p-2.5 rounded-xl border border-white/10 bg-white/5 text-xs">
                   <div className="flex justify-between items-center mb-1">
                     <span className="font-bold text-white flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${m.completed ? 'bg-emerald-400' : 'bg-cyan-400'}`} />
+                      <span className={`w-2 h-2 rounded-full ${m.status === 'completed' || m.status === 'reward_claimed' ? 'bg-emerald-400' : 'bg-cyan-400'}`} />
                       {m.title}
                     </span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded ${m.completed ? 'bg-emerald-500/20 text-emerald-400' : 'bg-cyan-500/20 text-cyan-400'}`}>
-                      {m.completed ? 'FULFILLED' : 'OPTIONAL'}
+                    <span className={`text-[10px] px-2 py-0.5 rounded ${m.status === 'completed' || m.status === 'reward_claimed' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-cyan-500/20 text-cyan-400'}`}>
+                      {m.status.toUpperCase()}
                     </span>
                   </div>
-                  <p className="text-white/80 leading-snug mb-1">{m.description}</p>
-                  <div className="text-[10px] text-cyan-400/80 font-mono">Status: {m.progressText}</div>
+                  
+                  {m.status === 'available' ? (
+                    <div className="mt-1">
+                      <p className="text-white/60 italic text-[10px] mb-2">New contract available for acquisition.</p>
+                      <button onClick={() => acceptMission(m.id)} className="w-full py-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 text-cyan-400 text-[10px] tracking-widest uppercase hover:bg-cyan-500/20 transition active:scale-95 pointer-events-auto">
+                        Accept Contract
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-white/80 leading-snug mb-1">{m.description}</p>
+                      <div className="text-[10px] text-cyan-400/80 font-mono">Status: {m.progressText}</div>
+                      
+                      {m.status === 'completed' && (
+                        <button onClick={() => claimMissionReward(m.id)} className="mt-2 w-full py-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 text-[10px] tracking-widest uppercase hover:bg-emerald-500/20 transition active:scale-95 pointer-events-auto">
+                          Claim Reward: {m.rewardDescription}
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
               ))}
             </div>
@@ -524,14 +471,33 @@ export function CaptionBox({
                   <div className="flex justify-between items-center mb-1">
                     <span className="font-bold text-purple-300 flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-purple-400 animate-ping" />
-                      {m.title}
+                      {m.status === 'locked' ? 'ENCRYPTED DATA' : m.title}
                     </span>
                     <span className="text-[10px] px-2 py-0.5 rounded bg-purple-500/20 text-purple-300">
                       CLASSIFIED
                     </span>
                   </div>
-                  <p className="text-white/80 leading-snug mb-1">{m.description}</p>
-                  <div className="text-[10px] text-purple-400/80 font-mono">{m.progressText}</div>
+                  
+                  {m.status === 'locked' ? (
+                    <div className="mt-1">
+                      <p className="text-purple-300/60 font-mono text-[10px] mb-2">0x4F 0xA1 0x99 ... Data requires decryption sequence.</p>
+                      <button onClick={() => decryptMission(m.id)} className="w-full py-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 text-purple-300 text-[10px] tracking-widest uppercase hover:bg-purple-500/30 transition active:scale-95 pointer-events-auto flex justify-center items-center gap-2">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                        Decrypt Protocol
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-white/80 leading-snug mb-1">{m.description}</p>
+                      <div className="text-[10px] text-purple-400/80 font-mono">{m.progressText}</div>
+                      
+                      {m.status === 'completed' && (
+                        <button onClick={() => claimMissionReward(m.id)} className="mt-2 w-full py-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 text-purple-300 text-[10px] tracking-widest uppercase hover:bg-purple-500/30 transition active:scale-95 pointer-events-auto">
+                          Extract Anomaly Data
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
               ))}
             </div>
