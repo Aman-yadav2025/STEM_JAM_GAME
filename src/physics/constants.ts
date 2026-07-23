@@ -40,6 +40,7 @@ export interface FlightInputState {
   yaw: number;    // -1..1, left/right tilt
   roll: number;   // -1..1, roll input
   thrusting: boolean;
+  manualThrottle?: number; // 0..100 percentage
 }
 
 export interface Spacecraft {
@@ -52,19 +53,7 @@ export interface Spacecraft {
   maxHealth?: number;    // hull capacity
   heading: number;         // radians, cosmetic — align to velocity vector for sprite rotation
   orientation: { x: number; y: number; z: number; w: number };
-}
-
-
-export interface Spacecraft {
-  position: Vector3;
-  velocity: Vector3;
-  mass: number;
-  fuel: number;
-  maxFuel: number;
-  health?: number;
-  maxHealth?: number;
-  heading: number;   // derived from orientation each frame, cosmetic only
-  pitch: number;     // derived, cosmetic only — do not accumulate this directly
+  pitch: number;     // derived, cosmetic only
   yaw: number;       // derived, cosmetic only
   roll: number;      // derived, cosmetic only
 }

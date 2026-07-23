@@ -8,6 +8,7 @@ export const SpacecraftMesh = () => {
   const groupRef = useRef<THREE.Group>(null);
   const flameOuterRef = useRef<THREE.Mesh>(null);
   const flameCoreRef = useRef<THREE.Mesh>(null);
+  const arrowRef = useRef<THREE.ArrowHelper>(null);
   const { scene } = useGLTF('/ship.glb');
   const shipModel = useMemo(() => scene.clone(true), [scene]);
   const flameGeo = useMemo(() => new THREE.ConeGeometry(0.18, 0.7, 8), []);
@@ -20,6 +21,8 @@ export const SpacecraftMesh = () => {
     () => new THREE.MeshBasicMaterial({ color: 0xfff0a8, transparent: true, opacity: 0.95, depthWrite: false }),
     []
   );
+  // Reused every frame to avoid allocating a new Vector3 each tick
+  const forwardVec = useMemo(() => new THREE.Vector3(), []);
 
   useFrame((state) => {
     if (!groupRef.current) return;
@@ -29,6 +32,17 @@ export const SpacecraftMesh = () => {
 
     groupRef.current.position.set(ship.position.x, ship.position.y, ship.position.z);
     groupRef.current.quaternion.set(ship.orientation.x, ship.orientation.y, ship.orientation.z, ship.orientation.w);
+
+    // DEBUG: visual forward-direction arrow. getWorldDirection() reads the
+    // group's actual current world-space orientation (whatever rotation
+    // was just applied above), so this stays correct no matter which
+    // rotation system (Euler or quaternion) is driving the group.
+    if (arrowRef.current) {
+      groupRef.current.getWorldDirection(forwardVec);
+      arrowRef.current.position.copy(groupRef.current.position);
+      arrowRef.current.setDirection(forwardVec);
+    }
+
     if (flameOuterRef.current) {
       const outer = flameOuterRef.current;
       outer.scale.set(1, thrusting ? 1 + 0.2 * Math.sin(state.clock.elapsedTime * 28) : 0.0001, 1);
@@ -51,12 +65,20 @@ export const SpacecraftMesh = () => {
   });
 
   return (
-    <group ref={groupRef} scale={0.35}>
-      <primitive object={shipModel} />
-      <group position={[0, 0.5, -1.7]}>
-        <mesh ref={flameOuterRef} geometry={flameGeo} material={flameMaterial} rotation={[Math.PI, 0, 0]} />
-        <mesh ref={flameCoreRef} geometry={flameCoreGeo} material={flameCoreMaterial} rotation={[Math.PI, 0, 0]} />
+    <>
+      <group ref={groupRef} scale={0.35}>
+        <primitive object={shipModel} />
+        <group position={[0, 0.5, -1.7]}>
+          <mesh ref={flameOuterRef} geometry={flameGeo} material={flameMaterial} rotation={[Math.PI, 0, 0]} />
+          <mesh ref={flameCoreRef} geometry={flameCoreGeo} material={flameCoreMaterial} rotation={[Math.PI, 0, 0]} />
+        </group>
       </group>
-    </group>
+      {/* DEBUG: red arrow shows the ship's current forward direction in world space.
+          Remove this <primitive> once you've confirmed orientation behaves correctly. */}
+      <primitive
+        // ref={arrowRef}
+        object={new THREE.ArrowHelper(new THREE.Vector3(0, 0, -1), new THREE.Vector3(0, 0, 0), 15, 0xff0000, 4, 2)}
+      />
+    </>
   );
 };

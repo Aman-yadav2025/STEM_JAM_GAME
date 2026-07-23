@@ -1,5 +1,8 @@
 import { useStore } from '../../../state/store';
 import { CornerFrame } from './CornerFrame';
+import { getDominantBody } from '../../../physics/gravity';
+import type { CelestialBody } from '../../../physics/constants';
+import { useMemo } from 'react';
 
 /** Top-left mission readout: propellant gauge + speed. Replaces the old plain-text banner. */
 export function StatusHUD() {
@@ -12,6 +15,27 @@ export function StatusHUD() {
   const low = fraction < 0.15;
   const health = useStore((state) => state.ship.health ?? 0);
   const maxHealth = useStore((state) => state.ship.maxHealth ?? 100);
+
+  const trajectoryPath = useStore((state) => state.trajectoryPath);
+  const bodies = useStore((state) => state.bodies);
+  const shipPosition = useStore((state) => state.ship.position);
+
+  const apsisData = useMemo(() => {
+    if (!trajectoryPath || trajectoryPath.length < 10) return null;
+    const dominantBody = getDominantBody(shipPosition, bodies as CelestialBody[]);
+    if (!dominantBody) return null;
+
+    let minDst = Infinity;
+    let maxDst = -Infinity;
+
+    for (const pt of trajectoryPath) {
+      const dst = pt.distanceTo(dominantBody.position);
+      if (dst < minDst) minDst = dst;
+      if (dst > maxDst) maxDst = dst;
+    }
+    
+    return { periapsis: minDst, apoapsis: maxDst };
+  }, [trajectoryPath, shipPosition, bodies]);
 
   return (
     <CornerFrame accent={low ? '#F87171' : '#4FB4E8'} className="font-mono text-[#E6E9EF] w-64">
@@ -42,6 +66,20 @@ export function StatusHUD() {
         <span>VELOCITY</span>
         <span className="text-white/70">{speed.toFixed(2)} U/S</span>
       </div>
+
+      {apsisData && (
+        <div className="mt-2 space-y-1">
+          <div className="flex justify-between text-[10px] tracking-widest text-white/50">
+            <span>PERIGEE (Pe)</span>
+            <span className="text-green-400 font-bold">{Math.round(apsisData.periapsis)} m</span>
+          </div>
+          <div className="flex justify-between text-[10px] tracking-widest text-white/50">
+            <span>APOGEE (Ap)</span>
+            <span className="text-red-400 font-bold">{Math.round(apsisData.apoapsis)} m</span>
+          </div>
+        </div>
+      )}
+
       <div className="mt-3">
         <div className="flex justify-between text-[10px] tracking-widest text-white/50 mb-1">
           <span>HULL</span>

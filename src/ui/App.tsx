@@ -145,6 +145,7 @@ export default function App() {
         yaw: (pressedKeys.has('d') ? 1 : 0) - (pressedKeys.has('a') ? 1 : 0),
         roll: (pressedKeys.has('e') ? 1 : 0) - (pressedKeys.has('q') ? 1 : 0),
         thrusting: pressedKeys.has('space'),
+        manualThrottle: useStore.getState().manualThrottle,
       });
     };
 
