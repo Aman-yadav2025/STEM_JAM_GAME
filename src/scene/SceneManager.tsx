@@ -324,12 +324,14 @@ const CameraRig = () => {
   }, []);
 
   useEffect(() => {
-    virtualCamera.copy(camera);
+    if ((camera as THREE.PerspectiveCamera).isPerspectiveCamera) {
+      virtualCamera.copy(camera as THREE.PerspectiveCamera);
+    }
   }, [camera, virtualCamera]);
 
   const isStorySequenceActive = useStore((s) => s.isStorySequenceActive);
 
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     if (!ship) return;
 
     if (controlsRef.current) {

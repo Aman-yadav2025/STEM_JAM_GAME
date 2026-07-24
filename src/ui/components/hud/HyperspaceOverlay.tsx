@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useStore, type Mission } from '../../../state/store';
+import { useStore } from '../../../state/store';
 
 export const HyperspaceOverlay: React.FC = () => {
   const [isJumping, setIsJumping] = useState(false);

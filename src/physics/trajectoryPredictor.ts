@@ -1,18 +1,4 @@
-// physics/trajectoryPredictor.ts
-//
-// Forward-simulates the ship's future COASTING path (gravity only, no
-// thrust) — this is what draws the live trajectory line, and doubles as
-// the "burn preview" by being re-run each frame off the ship's current
-// (possibly mid-burn) velocity.
-//
-// Uses VELOCITY VERLET here, not the semi-implicit Euler used in
-// rocketMotion.ts. Why the difference: rocketMotion integrates the LIVE
-// ship, where player-controlled thrust can change direction mid-step, so a
-// second acceleration sample at the step's end isn't reliably knowable —
-// Euler is the right tool there. This predictor is pure coast, no player
-// input mid-prediction, so there's no reason to accept Euler's worse energy
-// conservation — Verlet is strictly better here and the lookahead can run
-// hundreds of steps, where Euler's error visibly compounds.
+
 
 import { CONSTANT_DT } from './constants';
 import { Vector3 } from './vector3';
@@ -20,12 +6,7 @@ import { updateBodyPositions, type MovingBody } from './orbitPath';
 import { G } from './constants';
 import { getDominantBody } from './gravity';
 
-/**
- * Number of physics ticks needed to complete exactly one orbit, based on
- * the ship's CURRENT velocity (i.e. what its orbit would be if it stopped
- * thrusting right now). Returns `maxSteps` for unbound (parabolic/
- * hyperbolic) trajectories, since those have no finite period.
- */
+
 export function estimateOrbitSteps(
   position: Vector3,
   velocity: Vector3,
@@ -62,18 +43,6 @@ export function predictPath(
 ): Vector3[] {
   const dt = CONSTANT_DT;
 
-  // Clone every body (with its own cloned position) so prediction never
-  // mutates live game state. Critically, also remap each clone's
-  // `orbit.parentBody` to point at its SIBLING inside this cloned array,
-  // not the original live body. updateBodyPositions() only advances
-  // objects that are actually IN the array it's given — if a moon's
-  // parentBody still pointed at the original live planet, the finite-
-  // difference velocity probe below would read that live planet's frozen,
-  // un-shifted position at every probe time, so the planet's own orbital
-  // velocity around the sun would never show up in the moon's computed
-  // "dominant body velocity" — only the moon's own spin around a
-  // stationary point. That's what was making trajectories drawn around a
-  // moon balloon out to solar-orbit scale.
   const predictedBodies: MovingBody[] = bodies.map((b) => ({
     ...b,
     position: b.position.clone(),

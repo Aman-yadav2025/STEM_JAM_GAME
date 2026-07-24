@@ -1,13 +1,3 @@
-// physics/lagrange.ts
-//
-// Computes the five Lagrange points for a two-body system (e.g. planet +
-// moon). Points are where gravitational + centrifugal forces balance in the
-// rotating reference frame of the two-body system.
-//
-//   L4, L5 — STABLE equilibria. Form an equilateral triangle with the two
-//            bodies. Closed-form, no solver needed.
-//   L1, L2, L3 — UNSTABLE saddle points on the line through both bodies.
-//                No closed form; solved via Newton's method.
 
 import type { CelestialBody } from './constants';
 import { Vector3 } from './vector3';
