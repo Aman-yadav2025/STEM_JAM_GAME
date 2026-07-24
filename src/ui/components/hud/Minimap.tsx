@@ -6,8 +6,8 @@ export const Minimap: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const largeCanvasRef = useRef<HTMLCanvasElement>(null);
-  const [zoom, setZoom] = useState<number>(15);
-  const [largeZoom, setLargeZoom] = useState<number>(35);
+  const [zoom, setZoom] = useState<number>(200);
+  const [largeZoom, setLargeZoom] = useState<number>(15000);
   const [selectedBodyName, setSelectedBodyName] = useState<string | null>(null);
 
   const setNavigationTarget = useStore(s => s.setNavigationTarget);
@@ -15,8 +15,8 @@ export const Minimap: React.FC = () => {
   const setAutopilotTarget = useStore(s => s.setAutopilotTarget);
   const setAutopilotEnabled = useStore(s => s.setAutopilotEnabled);
 
-  const zoomIn = () => setZoom((prev) => Math.max(2, prev - 2));
-  const zoomOut = () => setZoom((prev) => Math.min(150, prev + 5));
+  const zoomIn = () => setZoom((prev) => Math.max(20, prev - 200));
+  const zoomOut = () => setZoom((prev) => Math.min(50000, prev + 500));
 
   // Keyboard controls
   useEffect(() => {

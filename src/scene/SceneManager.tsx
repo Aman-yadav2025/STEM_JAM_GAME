@@ -1,7 +1,7 @@
 import { useFrame, useLoader, useThree } from '@react-three/fiber';
-import { OrbitControls, Stars } from '@react-three/drei';
+import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 import { SpacecraftMesh } from './Spacecraft';
 import { useGameLoop } from '../game/GameLoop';
 import { useStore } from '../state/store';
@@ -311,45 +311,51 @@ const Simulation = () => {
 };
 
 const CameraRig = () => {
-  const ship = useStore((state) => state.ship);
   const { camera, gl } = useThree();
+  const ship = useStore((s) => s.ship);
   const controlsRef = useRef<any>(null);
-  const previousTarget = useRef<THREE.Vector3 | null>(null);
-  const offset = new THREE.Vector3(0, 5, -10);
+  
+  // A virtual camera that orbits (0,0,0) in local space
+  const virtualCamera = useMemo(() => {
+    const vCam = new THREE.PerspectiveCamera();
+    vCam.position.set(0, 10, -40); // Start behind and slightly above the ship
+    vCam.lookAt(0, 0, 0);
+    return vCam;
+  }, []);
+
+  useEffect(() => {
+    virtualCamera.copy(camera);
+  }, [camera, virtualCamera]);
 
   useFrame(() => {
     if (!ship) return;
-    const target = new THREE.Vector3(ship.position.x, ship.position.y, ship.position.z);
-
-    if (!previousTarget.current) {
-      camera.position.copy(target.clone().add(offset));
-      camera.lookAt(target);
-    } else {
-      const delta = target.clone().sub(previousTarget.current);
-      camera.position.add(delta);
-    }
-
-    previousTarget.current = target;
 
     if (controlsRef.current) {
-      controlsRef.current.target.copy(target);
       controlsRef.current.update();
     }
+
+    const shipPos = new THREE.Vector3(ship.position.x, ship.position.y, ship.position.z);
+    const shipQuat = new THREE.Quaternion(ship.orientation.x, ship.orientation.y, ship.orientation.z, ship.orientation.w);
+
+    // Apply ship's world transform to the virtual camera's local offset
+    camera.position.copy(virtualCamera.position).applyQuaternion(shipQuat).add(shipPos);
+    camera.quaternion.copy(shipQuat).multiply(virtualCamera.quaternion);
   });
 
   return (
     <OrbitControls
       ref={controlsRef}
-      camera={camera}
+      camera={virtualCamera}
       domElement={gl.domElement}
       enableZoom={true}
       zoomSpeed={0.8}
-      minDistance={1}
+      minDistance={2}
       maxDistance={800}
       enablePan={false}
       enableDamping={true}
       dampingFactor={0.05}
       rotateSpeed={0.7}
+      target={[0, 0, 0]}
     />
   );
 };
@@ -359,7 +365,6 @@ export const SceneManager = () => {
     <>
       <ambientLight intensity={0.4} />
       <pointLight position={[0, 0, 0]} intensity={2} />
-      <Stars radius={12000} depth={50} count={2000} factor={4} />
       <Simulation />
       <CameraRig />
     </>

@@ -210,124 +210,124 @@ const deleteSave = () => {
 // numbers that don't track volume (which was also throwing off the Hill-sphere
 // SOI calculations). Sun mass is still explicit since it's the fixed reference body.
 const initialBodies = buildSolarSystem(
-  // Central Sun
-  { name: 'Sun', mass: 27192370, radius: 140, color: 'yellow' },
+  // Central Sun (Recalibrated mass to prevent overpowering gravity)
+  { name: 'Sun', mass: 10000000000, radius: 1400, color: 'yellow' },
 
-  // Planetary Systems
+  // Planetary Systems (Radius x10, Distance x10)
   [
     {
       name: 'Mercury',
-      radius: 18,
-      sunDistance: 550,
+      radius: 180,
+      sunDistance: 39000,
       color: 'gray',
       initialAngle: 0,
     },
     {
       name: 'Venus',
-      radius: 30,
-      sunDistance: 950,
+      radius: 300,
+      sunDistance: 72000,
       color: 'orange',
       initialAngle: Math.PI / 4,
     },
     {
       name: 'Earth',
-      radius: 35,
-      sunDistance: 1500,
+      radius: 350,
+      sunDistance: 100000,
       color: 'blue',
       initialAngle: 0,
       moons: [
-        { name: 'Moon', radius: 8, color: 'lightgray'},
+        { name: 'Moon', radius: 80, color: 'lightgray'},
       ],
     },
     {
       name: 'Mars',
-      radius: 24,
-      sunDistance: 2200,
+      radius: 240,
+      sunDistance: 152000,
       color: 'red',
       initialAngle: Math.PI / 2,
       moons: [
-        { name: 'Phobos', radius: 3, color: 'gray' },
-        { name: 'Deimos', radius: 2, color: 'gray', initialAngle: 2.5 },
+        { name: 'Phobos', radius: 30, color: 'gray' },
+        { name: 'Deimos', radius: 20, color: 'gray', initialAngle: 2.5 },
       ],
     },
     {
       name: 'Jupiter',
-      radius: 65,
-      sunDistance: 3400,
+      radius: 3920,
+      sunDistance: 520000,
       color: 'brown',
       density: 0.8, // gas giant — lighter per unit volume than rocky planets
       initialAngle: Math.PI,
       moons: [
-        { name: 'Amalthea', radius: 2, color: 'red'},
-        { name: 'Io', radius: 6, color: 'yellow'},
-        { name: 'Europa', radius: 5, color: 'white'},
-        { name: 'Ganymede', radius: 8, color: 'gray'},
-        { name: 'Callisto', radius: 7, color: 'darkgray'},
-        { name: 'Himalia', radius: 2, color: 'gray'},
-        { name: 'Elara', radius: 2, color: 'gray'},
-        { name: 'Pasiphae', radius: 1, color: 'darkgray'},
-        { name: 'Sinope', radius: 1, color: 'darkgray'},
-        { name: 'Carme', radius: 1, color: 'darkgray'},
+        { name: 'Amalthea', radius: 20, color: 'red'},
+        { name: 'Io', radius: 60, color: 'yellow'},
+        { name: 'Europa', radius: 50, color: 'white'},
+        { name: 'Ganymede', radius: 80, color: 'gray'},
+        { name: 'Callisto', radius: 70, color: 'darkgray'},
+        { name: 'Himalia', radius: 20, color: 'gray'},
+        { name: 'Elara', radius: 20, color: 'gray'},
+        { name: 'Pasiphae', radius: 10, color: 'darkgray'},
+        { name: 'Sinope', radius: 10, color: 'darkgray'},
+        { name: 'Carme', radius: 10, color: 'darkgray'},
       ],
     },
     {
       name: 'Saturn',
-      radius: 52,
-      sunDistance: 4800,
+      radius: 3290,
+      sunDistance: 950000,
       color: 'khaki',
       density: 0.6, // least dense gas giant
       initialAngle: Math.PI * 1.2,
       moons: [
-        { name: 'Atlas', radius: 1, color: 'gray'},
-        { name: 'Janus', radius: 1, color: 'gray'},
-        { name: 'Epimetheus', radius: 1, color: 'gray'},
-        { name: 'Mimas', radius: 2, color: 'lightgray'},
-        { name: 'Enceladus', radius: 3, color: 'white'},
-        { name: 'Tethys', radius: 3, color: 'lightgray',},
-        { name: 'Telesto', radius: 1, color: 'gray',},
-        { name: 'Calypso', radius: 1, color: 'gray',},
-        { name: 'Dione', radius: 4, color: 'lightgray',},
-        { name: 'Helene', radius: 1, color: 'gray',},
-        { name: 'Rhea', radius: 5, color: 'lightgray',},
-        { name: 'Titan', radius: 9, color: 'orange',},
-        { name: 'Hyperion', radius: 2, color: 'tan',},
-        { name: 'Iapetus', radius: 4, color: 'brown',},
-        { name: 'Phoebe', radius: 2, color: 'darkgray',},
+        { name: 'Atlas', radius: 10, color: 'gray'},
+        { name: 'Janus', radius: 10, color: 'gray'},
+        { name: 'Epimetheus', radius: 10, color: 'gray'},
+        { name: 'Mimas', radius: 20, color: 'lightgray'},
+        { name: 'Enceladus', radius: 30, color: 'white'},
+        { name: 'Tethys', radius: 30, color: 'lightgray',},
+        { name: 'Telesto', radius: 10, color: 'gray',},
+        { name: 'Calypso', radius: 10, color: 'gray',},
+        { name: 'Dione', radius: 40, color: 'lightgray',},
+        { name: 'Helene', radius: 10, color: 'gray',},
+        { name: 'Rhea', radius: 50, color: 'lightgray',},
+        { name: 'Titan', radius: 90, color: 'orange',},
+        { name: 'Hyperion', radius: 20, color: 'tan',},
+        { name: 'Iapetus', radius: 40, color: 'brown',},
+        { name: 'Phoebe', radius: 20, color: 'darkgray',},
       ],
     },
     {
       name: 'Uranus',
-      radius: 40,
-      sunDistance: 6200,
+      radius: 1400,
+      sunDistance: 1920000,
       color: 'lightblue',
       density: 0.9, // ice giant
       initialAngle: Math.PI * 1.5,
       moons: [
-        { name: 'Miranda', radius: 2, color: 'lightgray'},
-        { name: 'Ariel', radius: 3, color: 'lightblue',},
-        { name: 'Umbriel', radius: 3, color: 'gray',},
-        { name: 'Titania', radius: 5, color: 'tan',},
-        { name: 'Oberon', radius: 5, color: 'gray',},
+        { name: 'Miranda', radius: 20, color: 'lightgray'},
+        { name: 'Ariel', radius: 30, color: 'lightblue',},
+        { name: 'Umbriel', radius: 30, color: 'gray',},
+        { name: 'Titania', radius: 50, color: 'tan',},
+        { name: 'Oberon', radius: 50, color: 'gray',},
       ],
     },
     {
       name: 'Neptune',
-      radius: 38,
-      sunDistance: 7500,
+      radius: 1365,
+      sunDistance: 3010000,
       color: 'darkblue',
       density: 1.1, // ice giant, slightly denser than Uranus
       initialAngle: Math.PI * 1.8,
       moons: [
-        { name: 'Larissa', radius: 2, color: 'gray'},
-        { name: 'Proteus', radius: 3, color: 'darkgray'},
-        { name: 'Triton', radius: 6, color: 'lightblue'},
-        { name: 'Nereid', radius: 2, color: 'gray'},
+        { name: 'Larissa', radius: 20, color: 'gray'},
+        { name: 'Proteus', radius: 30, color: 'darkgray'},
+        { name: 'Triton', radius: 60, color: 'lightblue'},
+        { name: 'Nereid', radius: 20, color: 'gray'},
       ],
     },
     {
       name: 'Pluto',
-      radius: 6,
-      sunDistance: 8600,
+      radius: 60,
+      sunDistance: 3950000,
       color: 'tan',
       initialAngle: Math.PI * 0.6,
     },
@@ -545,7 +545,7 @@ export const useStore = create<GameState>((set, get) => {
       id: 'sys_calib',
       type: 'primary',
       title: 'Phase I: Systems Calibration',
-      description: 'Central Command requires a nominal engine burn to verify thrust telemetry. Engage the main drive and exceed $50\\text{ m/s}$ relative velocity to complete calibration.',
+      description: 'Central Command requires a nominal engine burn to verify thrust telemetry. Engage the main drive and exceed $200\\text{ m/s}$ relative velocity to complete calibration.',
       status: 'active',
       progressText: 'Awaiting ignition...',
       rewardDescription: '+100 Fuel',
@@ -554,7 +554,7 @@ export const useStore = create<GameState>((set, get) => {
       id: 'circ_orbit',
       type: 'primary',
       title: 'Phase II: Stable Circular Orbit',
-      description: 'Navigation computers require a stable parking orbit before deep-space transit. Achieve an eccentricity $\\epsilon < 0.05$ and a periapsis altitude $> 400\\text{ km}$ above the planetary surface.',
+      description: 'Navigation computers require a stable parking orbit before deep-space transit. Achieve an eccentricity $\\epsilon < 0.05$ and a periapsis altitude $> 300\\text{ km}$ above the planetary surface.',
       status: 'active',
       progressText: 'Evaluating orbital parameters...',
       rewardDescription: '+500 Fuel, Codex: Orbits',
@@ -563,7 +563,7 @@ export const useStore = create<GameState>((set, get) => {
       id: 'apo_raise',
       type: 'primary',
       title: 'Phase III: Apoapsis Elevation',
-      description: 'To prepare for transit to the outer colonies, perform a prograde burn at periapsis to extend your apoapsis (highest point) distance past $3200\\text{ km}$.',
+      description: 'To prepare for transit to the outer colonies, perform a prograde burn at periapsis to extend your apoapsis (highest point) distance past $2500\\text{ km}$.',
       status: 'active',
       progressText: 'Waiting for altitude target...',
       rewardDescription: 'Codex: Advanced Orbits',
@@ -590,7 +590,7 @@ export const useStore = create<GameState>((set, get) => {
       id: 'high_speed',
       type: 'exploration',
       title: 'Orbital Velocity Milestone',
-      description: 'Exceed orbital velocity thresholds above $8000\\text{ m/s}$.',
+      description: 'Exceed orbital velocity thresholds above $500\\text{ m/s}$.',
       status: 'available',
       progressText: 'Monitoring telemetry speed...',
       rewardDescription: '+250 Fuel',
@@ -824,17 +824,17 @@ export const useStore = create<GameState>((set, get) => {
           if (m.status !== 'active') return m;
           
           if (m.id === 'sys_calib') {
-            const highVel = (tel.velocity ?? 0) >= 50;
+            const highVel = (tel.velocity ?? 0) >= 200;
             if (highVel) {
               changed = true;
               return { ...m, status: 'completed', progressText: 'Status: Completed' };
             }
-            const newText = `Vel: ${Math.round(tel.velocity ?? 0)}m/s / 50m/s`;
+            const newText = `Vel: ${Math.round(tel.velocity ?? 0)}m/s / 200m/s`;
             if (m.progressText !== newText) { changed = true; return { ...m, progressText: newText }; }
           }
 
           if (m.id === 'circ_orbit') {
-            const isCirc = (tel.eccentricity ?? 1) < 0.05 && (tel.periapsisAltitude ?? 0) > 400;
+            const isCirc = (tel.eccentricity ?? 1) < 0.05 && (tel.periapsisAltitude ?? 0) > 300;
             if (isCirc) {
               changed = true;
               return { ...m, status: 'completed', progressText: 'Status: Completed' };
@@ -844,12 +844,12 @@ export const useStore = create<GameState>((set, get) => {
           }
           
           if (m.id === 'apo_raise') {
-            const highApo = (tel.apoapsis ?? 0) >= 3200;
+            const highApo = (tel.apoapsis ?? 0) >= 2500;
             if (highApo) {
               changed = true;
               return { ...m, status: 'completed', progressText: 'Status: Completed' };
             }
-            const newText = `Apoapsis: ${Math.round(tel.apoapsis ?? 0)}km / 3200km`;
+            const newText = `Apoapsis: ${Math.round(tel.apoapsis ?? 0)}km / 2500km`;
             if (m.progressText !== newText) { changed = true; return { ...m, progressText: newText }; }
           }
 
@@ -864,7 +864,7 @@ export const useStore = create<GameState>((set, get) => {
           }
 
           if (m.id === 'high_speed') {
-            const fast = (tel.velocity ?? 0) >= 8000;
+            const fast = (tel.velocity ?? 0) >= 500;
             if (fast) {
               changed = true;
               return { ...m, status: 'completed', progressText: 'Contract Fulfilled' };

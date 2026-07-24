@@ -28,8 +28,8 @@ export interface EngineSpec {
 }
 
 export const DEFAULT_ENGINE: EngineSpec = {
-  specificImpulse: 320,
-  maxThrust: 340000000000, // 3.4e11 — matches the calibration math above (5e8 * 1000 / 1.5 ≈ 3.33e11)
+  specificImpulse: 10000000,
+  maxThrust: 10000000000,
 };
 
 /** Converts specific impulse (seconds) to exhaust velocity (game distance units / s). */

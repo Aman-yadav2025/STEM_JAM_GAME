@@ -17,7 +17,7 @@ export const StarfieldBackground: React.FC = () => {
 
     for (let i = 0; i < count; i++) {
       // Distribute stars on a large sphere radius around the camera/scene
-      const radius = 3000 + Math.random() * 2000;
+      const radius = 15000000 + Math.random() * 5000000;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos((Math.random() * 2) - 1);
 
@@ -74,11 +74,11 @@ export const StarfieldBackground: React.FC = () => {
           />
         </bufferGeometry>
         <pointsMaterial
-          size={6}
+          size={1.5}
           vertexColors={true}
           transparent={true}
           opacity={0.9}
-          sizeAttenuation={true}
+          sizeAttenuation={false}
           depthWrite={false} // Crucial: prevents stars from occluding planets/Sun
           blending={THREE.AdditiveBlending}
         />
@@ -86,7 +86,7 @@ export const StarfieldBackground: React.FC = () => {
 
       {/* Milky Way Galactic Band Dome */}
       <mesh ref={milkyWayRef} rotation={[0.4, 0, 0.2]}>
-        <sphereGeometry args={[4000, 64, 64]} />
+        <sphereGeometry args={[18000000, 64, 64]} />
         <meshBasicMaterial
           color="#0b0f19"
           side={THREE.BackSide}
