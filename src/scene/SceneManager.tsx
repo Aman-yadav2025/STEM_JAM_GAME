@@ -318,7 +318,7 @@ const CameraRig = () => {
   // A virtual camera that orbits (0,0,0) in local space
   const virtualCamera = useMemo(() => {
     const vCam = new THREE.PerspectiveCamera();
-    vCam.position.set(0, 10, -40); // Start behind and slightly above the ship
+    vCam.position.set(0, 4, -15); // Start closer behind the ship
     vCam.lookAt(0, 0, 0);
     return vCam;
   }, []);
@@ -327,11 +327,27 @@ const CameraRig = () => {
     virtualCamera.copy(camera);
   }, [camera, virtualCamera]);
 
-  useFrame(() => {
+  const isStorySequenceActive = useStore((s) => s.isStorySequenceActive);
+
+  useFrame((state, delta) => {
     if (!ship) return;
 
     if (controlsRef.current) {
-      controlsRef.current.update();
+      controlsRef.current.enabled = !isStorySequenceActive;
+      if (!isStorySequenceActive) {
+        controlsRef.current.update();
+      }
+    }
+
+    if (isStorySequenceActive) {
+      // Smoothly lerp camera to a cinematic front-facing view, much closer to the ship
+      const targetPos = new THREE.Vector3(0, 1.5, 8);
+      virtualCamera.position.lerp(targetPos, delta * 1.5);
+      virtualCamera.lookAt(0, 0, 0);
+      if (controlsRef.current) {
+        // Keep OrbitControls target zeroed out so it resumes smoothly
+        controlsRef.current.target.set(0, 0, 0);
+      }
     }
 
     const shipPos = new THREE.Vector3(ship.position.x, ship.position.y, ship.position.z);

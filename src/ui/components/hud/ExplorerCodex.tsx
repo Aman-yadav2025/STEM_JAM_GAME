@@ -3,6 +3,7 @@ import { G } from '../../../physics/constants';
 import { useStore } from '../../../state/store';
 import { CornerFrame } from './CornerFrame';
 import { ROBOTIC_FACTS, type RoboticFact } from '../../../state/codexFacts';
+import { PlanetIcon } from './PlanetIcon';
 
 function calculateTelemetry(body: { name: string; mass: number; radius: number; position: { x: number; y: number; z: number } }, ship: { position: { x: number; y: number; z: number }; velocity: { magnitude: () => number } }) {
   const distance = Math.hypot(body.position.x - ship.position.x, body.position.y - ship.position.y, body.position.z - ship.position.z);
@@ -150,7 +151,13 @@ export function ExplorerCodex() {
                       return (
                         <div key={entry.id} className="rounded-2xl border border-white/15 bg-white/5 p-3 transition hover:border-[#A78BFA]/50 hover:bg-white/10">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs uppercase tracking-[0.2em] text-[#EDE9FE] font-bold">{entry.title}</span>
+                            <div className="flex items-center gap-2">
+                              {(() => {
+                                const planetStr = ['earth', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'].find(p => entry.id.toLowerCase().includes(p));
+                                return planetStr ? <PlanetIcon planet={planetStr as any} size={28} className="shrink-0" /> : null;
+                              })()}
+                              <span className="text-xs uppercase tracking-[0.2em] text-[#EDE9FE] font-bold">{entry.title}</span>
+                            </div>
                             <span className="text-[9px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Verified</span>
                           </div>
                           <p className="mt-2 text-[12px] leading-relaxed text-white/80">{entry.description}</p>

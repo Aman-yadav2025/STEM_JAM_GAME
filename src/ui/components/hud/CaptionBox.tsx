@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { CornerFrame } from './CornerFrame';
 import { useStore } from '../../../state/store';
+import { PlanetIcon } from './PlanetIcon';
 
 export type CaptionType = 'info' | 'warning' | 'success' | 'tip';
 
@@ -413,6 +414,13 @@ export function CaptionBox({
                       {m.status.toUpperCase()}
                     </span>
                   </div>
+                  
+                  <div className="flex gap-3 items-center mb-2">
+                    {(() => {
+                      const planetStr = ['earth', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'].find(p => m.id.includes(p));
+                      return planetStr ? <PlanetIcon planet={planetStr as any} size={48} className="shrink-0" /> : null;
+                    })()}
+                    <div className="flex-1">
                   <p className="text-white/80 leading-snug mb-1">{m.description}</p>
                   <div className="text-[10px] text-cyan-400/80 font-mono">Telemetry: {m.progressText}</div>
                   
@@ -421,6 +429,8 @@ export function CaptionBox({
                       Claim Reward: {m.rewardDescription}
                     </button>
                   )}
+                  </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -623,7 +633,27 @@ export function CaptionBox({
                 </div>
 
                 <div className="text-white text-sm leading-relaxed min-h-14 pr-2 font-mono" style={{ wordBreak: 'break-word' }}>
-                  {displayedText || 'Mission control online.'}
+                  {(() => {
+                    const text = displayedText || 'Mission control online.';
+                    const match = text.match(/^\[(.*?)\]:?\s*(.*)$/); // Match [Name]: or just [Name]
+                    if (match) {
+                      const character = match[1];
+                      const speech = match[2];
+                      let charColor = 'text-cyan-400';
+                      if (character.includes('Modi')) charColor = 'text-emerald-400';
+                      else if (character.includes('Broadcast') || character.includes('Alert') || character.includes('Failure') || character.includes('Critical')) charColor = 'text-red-400';
+                      else if (character.includes('Log') || character.includes('Complete') || character.includes('Sequence') || character.includes('Telemetry')) charColor = 'text-purple-400';
+                      else charColor = 'text-amber-400'; // Default for the Player
+                      
+                      return (
+                        <>
+                          <span className={`${charColor} font-bold mr-2`}>[{character}]{speech ? ':' : ''}</span>
+                          <span className="text-white/90">{speech}</span>
+                        </>
+                      );
+                    }
+                    return text;
+                  })()}
                   {!isTypingComplete && (
                     <span 
                       className="inline-block w-2.5 h-4 ml-1 align-middle" 

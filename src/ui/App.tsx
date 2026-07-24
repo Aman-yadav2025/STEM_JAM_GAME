@@ -8,6 +8,9 @@ import { CodexUnlocker } from './components/hud/CodexUnlocker';
 import { BurnControls } from './components/controls/BurnControls';
 import { PauseMenu } from './PauseMenu';
 import { CaptionBox, showGameCaption } from './components/hud/CaptionBox';
+import { MissionCompleteAnimation } from './components/hud/MissionCompleteAnimation';
+import { MissionBadgeOverlay } from './components/hud/MissionBadgeOverlay';
+import { HyperspaceOverlay } from './components/hud/HyperspaceOverlay';
 import { Minimap } from './components/hud/Minimap';
 import { TimeWarpControls } from './TimeWarpControls';
 import { NavigationPanel } from './NavigationPanel';
@@ -18,6 +21,7 @@ import { useEffect, useRef } from 'react';
 import { MainMenu } from './MainMenu';
 import MusicManager from './MusicManager';
 import GameOverModal from './GameOverModal';
+import { StoryManager } from '../game/StoryManager';
 
 const EDUCATIONAL_ORBITAL_FACTS: { category: string; fact: string }[] = [
   { category: 'Orbital Mechanics', fact: 'Kepler’s second law states that a line segment joining a planet and the Sun sweeps out equal areas during equal intervals of time.' },
@@ -219,6 +223,7 @@ export default function App() {
   return (
     <div className="relative w-screen h-screen bg-black overflow-hidden select-none font-mono">
       <MusicManager />
+      <StoryManager />
       
       {/* 3D Render Layer with Canvas, Starfield Background, and Scene Manager */}
       <div className="absolute inset-0 z-0">
@@ -237,6 +242,9 @@ export default function App() {
       </div>
 
       {/* UI Overlay - grid to avoid panel overlap */}
+      <MissionCompleteAnimation />
+      <MissionBadgeOverlay />
+      <HyperspaceOverlay />
       <div className="absolute inset-0 z-10 pointer-events-none p-6 grid grid-cols-[minmax(320px,40vw)_1fr_320px] grid-rows-[1fr_auto] gap-6">
         {/* Left column: HUD + Codex */}
         <div className=" pointer-events-auto flex flex-col justify-between gap-4">

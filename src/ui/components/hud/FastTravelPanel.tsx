@@ -32,7 +32,7 @@ export const FastTravelPanel: React.FC = () => {
               <button
                 key={body.name}
                 onClick={() => {
-                  fastTravelToTarget(body.name);
+                  window.dispatchEvent(new CustomEvent('trigger-hyperspace', { detail: { target: body.name } }));
                   setIsOpen(false);
                 }}
                 className="text-left px-3 py-2 bg-slate-900 hover:bg-slate-800 border border-purple-500/20 hover:border-purple-500/60 rounded-lg text-xs font-mono transition text-slate-200 flex items-center justify-between gap-2 w-full"

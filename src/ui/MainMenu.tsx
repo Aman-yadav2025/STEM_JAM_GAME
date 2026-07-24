@@ -6,9 +6,12 @@ export const MainMenu: React.FC = () => {
   const hasSave = useStore((state) => state.hasSave);
   const continueGame = useStore((state) => state.continueGame);
   const startNewGame = useStore((state) => state.startNewGame);
+  const setPlayerName = useStore((state) => state.setPlayerName);
   
   const [showSettings, setShowSettings] = useState(false);
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
+  const [showNameInput, setShowNameInput] = useState(false);
+  const [inputName, setInputName] = useState('');
   const [musicVolume, setMusicVolume] = useState(30);
   const [sfxVolume, setSfxVolume] = useState(70);
   const [isMuted, setIsMuted] = useState(false);
@@ -124,7 +127,14 @@ export const MainMenu: React.FC = () => {
   };
 
   const handleContinue = () => continueGame();
-  const handleNewGame = () => startNewGame();
+  const handleNewGame = () => setShowNameInput(true);
+  
+  const confirmNewGame = () => {
+    const finalName = inputName.trim() || 'Commander';
+    setPlayerName(finalName);
+    setShowNameInput(false);
+    startNewGame();
+  };
   const handleQuit = () => {
     try {
       window.close();
@@ -363,6 +373,51 @@ export const MainMenu: React.FC = () => {
                   className="flex-1 py-3 bg-slate-800 text-slate-200 border border-slate-700 rounded font-bold uppercase tracking-wider hover:bg-slate-700 transition-all"
                 >
                   No
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Name Input Modal Overlay */}
+      <AnimatePresence>
+        {showNameInput && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md"
+          >
+            <div className="bg-slate-950 border border-cyan-500/50 p-8 rounded-lg max-w-sm w-full shadow-[0_0_40px_rgba(34,211,238,0.2)] text-center">
+              <h2 className="text-xl font-bold text-cyan-400 mb-4 uppercase tracking-wider">// ENTER OPERATIVE NAME</h2>
+              <p className="text-xs text-slate-400 mb-6">Identify yourself before launching.</p>
+              
+              <input
+                type="text"
+                maxLength={20}
+                value={inputName}
+                onChange={(e) => setInputName(e.target.value)}
+                placeholder="Commander"
+                className="w-full bg-black border border-cyan-500/30 text-cyan-200 px-4 py-2 rounded focus:outline-none focus:border-cyan-400 mb-6 text-center tracking-widest font-mono"
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === 'Enter') confirmNewGame();
+                }}
+              />
+
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => { playSfx('click'); confirmNewGame(); }}
+                  className="flex-1 py-3 bg-cyan-500/20 text-cyan-200 border border-cyan-400/60 rounded font-bold uppercase tracking-wider hover:bg-cyan-400/30 transition-all"
+                >
+                  Launch
+                </button>
+                <button 
+                  onClick={() => { playSfx('click'); setShowNameInput(false); }}
+                  className="flex-1 py-3 bg-slate-800 text-slate-200 border border-slate-700 rounded font-bold uppercase tracking-wider hover:bg-slate-700 transition-all"
+                >
+                  Cancel
                 </button>
               </div>
             </div>

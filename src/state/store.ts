@@ -55,6 +55,7 @@ export interface Mission {
   status: 'locked' | 'available' | 'active' | 'completed' | 'reward_claimed';
   progressText: string;
   rewardDescription?: string;
+  meta?: any;
 }
 
 export interface GameState {
@@ -132,6 +133,16 @@ export interface GameState {
   claimMissionReward: (id: string) => void;
   evaluateMissions: (telemetry: any) => void;
 
+  storyProgress: number;
+  setStoryProgress: (chapter: number) => void;
+  isStorySequenceActive: boolean;
+  setStorySequenceActive: (active: boolean) => void;
+  playerName: string;
+  setPlayerName: (name: string) => void;
+
+  activeCompletedMission: string | null;
+  setActiveCompletedMission: (id: string | null) => void;
+
   setShip: (ship: Spacecraft) => void;
   setBodies: (bodies: MovingBody[]) => void;
   setControls: (direction: BurnDirection | null, throttle: number) => void;
@@ -165,6 +176,8 @@ type SaveData = {
   codexEntries: CodexEntry[];
   achievements: Achievement[];
   missions: Mission[];
+  storyProgress: number;
+  playerName: string;
 };
 
 const serializeVector3 = (v: Vector3): SerializedVector3 => ({ x: v.x, y: v.y, z: v.z });
@@ -540,80 +553,143 @@ export const useStore = create<GameState>((set, get) => {
     },
   ];
 
-  const createInitialMissions = (): Mission[] => [
-    {
-      id: 'sys_calib',
-      type: 'primary',
-      title: 'Phase I: Systems Calibration',
-      description: 'Central Command requires a nominal engine burn to verify thrust telemetry. Engage the main drive and exceed $200\\text{ m/s}$ relative velocity to complete calibration.',
-      status: 'active',
-      progressText: 'Awaiting ignition...',
-      rewardDescription: '+100 Fuel',
-    },
-    {
-      id: 'circ_orbit',
-      type: 'primary',
-      title: 'Phase II: Stable Circular Orbit',
-      description: 'Navigation computers require a stable parking orbit before deep-space transit. Achieve an eccentricity $\\epsilon < 0.05$ and a periapsis altitude $> 300\\text{ km}$ above the planetary surface.',
-      status: 'active',
-      progressText: 'Evaluating orbital parameters...',
-      rewardDescription: '+500 Fuel, Codex: Orbits',
-    },
-    {
-      id: 'apo_raise',
-      type: 'primary',
-      title: 'Phase III: Apoapsis Elevation',
-      description: 'To prepare for transit to the outer colonies, perform a prograde burn at periapsis to extend your apoapsis (highest point) distance past $2500\\text{ km}$.',
-      status: 'active',
-      progressText: 'Waiting for altitude target...',
-      rewardDescription: 'Codex: Advanced Orbits',
-    },
-    {
-      id: 'escape_traj',
-      type: 'primary',
-      title: 'Phase IV: Escape Velocity',
-      description: 'We are cleared for departure. Ignite the main drive and accelerate until your orbit becomes hyperbolic (eccentricity $\\epsilon > 1.0$), permanently escaping the planet\'s gravity well.',
-      status: 'active',
-      progressText: 'Monitoring trajectory shape...',
-      rewardDescription: '+1500 Fuel, FTL Drive Schematics',
-    },
-    {
-      id: 'luna_flyby',
+  const createInitialMissions = (): Mission[] => {
+    const mainMissions: Mission[] = [
+      {
+        id: 'pz_act1_earth',
+        type: 'primary',
+        title: 'Act I: The Patient Zero Pathogen',
+        description: 'Extract the unmutated base of the virus from Earth orbit.',
+        status: 'active',
+        progressText: '0/1 Pathogen Secured',
+      },
+      {
+        id: 'pz_act2_mercury',
+        type: 'primary',
+        title: 'Act II: The Solar Catalyst',
+        description: 'Acquire solar-forged isotopes from Mercury.',
+        status: 'locked',
+        progressText: 'Locked. Awaiting Act I completion.',
+      },
+      {
+        id: 'pz_act3_venus',
+        type: 'primary',
+        title: 'Act III: The Sulfuric Solvent',
+        description: 'Dive into the clouds of Venus for sulfuric enzymes.',
+        status: 'locked',
+        progressText: 'Locked.',
+      },
+      {
+        id: 'pz_act4_mars',
+        type: 'primary',
+        title: 'Act IV: The Oxidized Binding Agent',
+        description: 'Retrieve oxidized salts from Olympus Mons.',
+        status: 'locked',
+        progressText: 'Locked.',
+      },
+      {
+        id: 'pz_act5_jupiter',
+        type: 'primary',
+        title: 'Act V: The High-Pressure Stabilizer',
+        description: 'Extract metallic hydrogen from Jupiter.',
+        status: 'locked',
+        progressText: 'Locked.',
+      },
+      {
+        id: 'pz_act6_saturn',
+        type: 'primary',
+        title: 'Act VI: The Electro-Magnetic Polarizer',
+        description: 'Harvest charged aerosols from Saturn’s north pole.',
+        status: 'locked',
+        progressText: 'Locked.',
+      },
+      {
+        id: 'pz_act7_uranus',
+        type: 'primary',
+        title: 'Act VII: The Cryo-Ammonia Matrix',
+        description: 'Mine cryo-ammonia from Uranus’s mantle ice.',
+        status: 'locked',
+        progressText: 'Locked.',
+      },
+      {
+        id: 'pz_act8_neptune',
+        type: 'primary',
+        title: 'Act VIII: The Supersonic Dispersant',
+        description: 'Capture hyper-kinetic methane isotopes from Neptune.',
+        status: 'locked',
+        progressText: 'Locked.',
+      },
+      {
+        id: 'pz_act9_pluto',
+        type: 'primary',
+        title: 'Act IX: The Final Sacrifice',
+        description: 'Fuse the precursors with primordial nitrogen ice on Pluto.',
+        status: 'locked',
+        progressText: 'Locked.',
+      }
+    ];
+
+    const majorMoons = [
+      { id: 'opt_moon_moon', name: 'Moon', desc: "Scan Earth's Moon for abandoned evacuation fleets." },
+      { id: 'opt_moon_phobos', name: 'Phobos', desc: 'Investigate the Martian monolith on Phobos.' },
+      { id: 'opt_moon_europa', name: 'Europa', desc: 'Search for the deep-ice quarantine facility on Europa.' },
+      { id: 'opt_moon_ganymede', name: 'Ganymede', desc: 'Analyze the magnetic anomalies on Ganymede.' },
+      { id: 'opt_moon_titan', name: 'Titan', desc: 'Check the methane lakes on Titan for sunken supply drops.' },
+      { id: 'opt_moon_enceladus', name: 'Enceladus', desc: 'Trace the looping distress signal on Enceladus.' },
+      { id: 'opt_moon_miranda', name: 'Miranda', desc: 'Survey the shattered ice canyons of Miranda.' },
+      { id: 'opt_moon_triton', name: 'Triton', desc: 'Observe the cryovolcanoes on Triton.' }
+    ];
+
+    const moonMissions: Mission[] = majorMoons.map(m => ({
+      id: m.id,
       type: 'exploration',
-      title: 'Luna Minor Proximity',
-      description: 'Execute a close gravitational pass within the sphere of influence of Luna Minor to scan for pre-collapse artifacts.',
+      title: `Optional: Explore ${m.name}`,
+      description: m.desc,
       status: 'available',
-      progressText: 'Contract pending acquisition.',
-      rewardDescription: 'Sensor Upgrade Data',
-    },
-    {
-      id: 'high_speed',
-      type: 'exploration',
-      title: 'Orbital Velocity Milestone',
-      description: 'Exceed orbital velocity thresholds above $500\\text{ m/s}$.',
-      status: 'available',
-      progressText: 'Monitoring telemetry speed...',
-      rewardDescription: '+250 Fuel',
-    },
-    {
-      id: 'zero_vel',
-      type: 'classified',
-      title: 'Anomaly: Zero-Velocity Hover',
-      description: 'Temporarily cancel all relative momentum inside deep space without collapsing into a body.',
-      status: 'locked',
-      progressText: 'Encrypted objective locked.',
-      rewardDescription: 'Unknown Anomalous Data',
-    },
-    {
-      id: 'atmos_graze',
-      type: 'classified',
-      title: 'Atmospheric Friction Test',
-      description: 'Graze the upper fringe threshold of a celestial body solid radius safely.',
-      status: 'locked',
-      progressText: 'Encrypted objective locked.',
-      rewardDescription: 'Unknown Anomalous Data',
-    }
-  ];
+      progressText: `Visit ${m.name}`
+    }));
+
+    const classifiedMissions: Mission[] = [
+      {
+        id: 'cls_icarus_run',
+        type: 'classified',
+        title: 'The Icarus Run',
+        description: "A legendary pre-pandemic smuggler's route. Follow it to unlock its myth.",
+        status: 'available',
+        progressText: 'Waypoint: Venus (0/3)',
+        meta: {
+          path: ['venus', 'mercury', 'sun'],
+          step: 0
+        }
+      },
+      {
+        id: 'cls_jovian_gauntlet',
+        type: 'classified',
+        title: 'The Jovian Gauntlet',
+        description: "A military endurance test through Jupiter's radiation belts.",
+        status: 'available',
+        progressText: 'Waypoint: Jupiter (0/3)',
+        meta: {
+          path: ['jupiter', 'europa', 'ganymede'],
+          step: 0
+        }
+      },
+      {
+        id: 'cls_deep_dark',
+        type: 'classified',
+        title: 'The Deep Dark',
+        description: 'The rumored flight path of the first rogue AI probes.',
+        status: 'available',
+        progressText: 'Waypoint: Uranus (0/3)',
+        meta: {
+          path: ['uranus', 'neptune', 'pluto'],
+          step: 0
+        }
+      }
+    ];
+
+    return [...mainMissions, ...moonMissions, ...classifiedMissions];
+  };
 
   return {
     ship: createInitialShip(initialBodies),
@@ -789,6 +865,16 @@ export const useStore = create<GameState>((set, get) => {
       });
     },
 
+    storyProgress: 0,
+    setStoryProgress: (chapter) => set({ storyProgress: chapter }),
+    isStorySequenceActive: false,
+    setStorySequenceActive: (active) => set({ isStorySequenceActive: active }),
+    playerName: 'Commander',
+    setPlayerName: (name) => set({ playerName: name }),
+
+    activeCompletedMission: null,
+    setActiveCompletedMission: (id) => set({ activeCompletedMission: id }),
+
     missions: createInitialMissions(),
     acceptMission: (id) => {
       set((state) => ({
@@ -806,10 +892,6 @@ export const useStore = create<GameState>((set, get) => {
         if (!mission || mission.status !== 'completed') return state;
 
         let newShip = { ...state.ship };
-        if (mission.id === 'sys_calib') newShip.fuel = Math.min(newShip.maxFuel, newShip.fuel + 100);
-        if (mission.id === 'circ_orbit') newShip.fuel = Math.min(newShip.maxFuel, newShip.fuel + 500);
-        if (mission.id === 'escape_traj') newShip.fuel = Math.min(newShip.maxFuel, newShip.fuel + 1500);
-        if (mission.id === 'high_speed') newShip.fuel = Math.min(newShip.maxFuel, newShip.fuel + 250);
 
         return {
           missions: state.missions.map(m => m.id === id ? { ...m, status: 'reward_claimed' } : m),
@@ -820,61 +902,74 @@ export const useStore = create<GameState>((set, get) => {
     evaluateMissions: (tel) => {
       set((state) => {
         let changed = false;
-        const newMissions = state.missions.map(m => {
+        const newMissions = state.missions.map((m, index) => {
           if (m.status !== 'active') return m;
           
-          if (m.id === 'sys_calib') {
-            const highVel = (tel.velocity ?? 0) >= 200;
-            if (highVel) {
-              changed = true;
-              return { ...m, status: 'completed', progressText: 'Status: Completed' };
-            }
-            const newText = `Vel: ${Math.round(tel.velocity ?? 0)}m/s / 200m/s`;
-            if (m.progressText !== newText) { changed = true; return { ...m, progressText: newText }; }
+          let completed = false;
+          let newText = m.progressText;
+
+          if (m.id === 'tour_1_drive') {
+            const highVel = (tel.velocity ?? 0) >= 10000;
+            if (highVel) completed = true;
+            else newText = `Velocity: ${Math.round(tel.velocity ?? 0)} / 10000 m/s`;
+          }
+          else if (m.id === 'tour_2_escape') {
+            const escaping = tel.dominantBody === 'Earth' && (tel.eccentricity ?? 0) > 1.0;
+            if (escaping) completed = true;
+            else newText = tel.dominantBody === 'Earth' ? `Eccentricity: ${(tel.eccentricity ?? 0).toFixed(3)} / 1.000` : 'Not orbiting Earth';
+          }
+          else if (m.id === 'tour_3_mars') {
+            if (tel.dominantBody === 'Mars') completed = true;
+            else newText = 'En route to Mars...';
+          }
+          else if (m.id === 'tour_4_jupiter_intercept') {
+            if (tel.dominantBody === 'Jupiter') completed = true;
+            else newText = 'En route to Jupiter...';
+          }
+          else if (m.id === 'tour_5_jupiter_capture') {
+            const captured = tel.dominantBody === 'Jupiter' && (tel.eccentricity ?? 1) < 1.0;
+            if (captured) completed = true;
+            else newText = tel.dominantBody === 'Jupiter' ? `Eccentricity: ${(tel.eccentricity ?? 1).toFixed(3)} / 1.000` : 'Not orbiting Jupiter';
+          }
+          else if (m.id === 'tour_6_saturn') {
+            if (tel.dominantBody === 'Saturn') completed = true;
+            else newText = 'En route to Saturn...';
+          }
+          else if (m.id === 'tour_7_ice_giants') {
+            if (tel.dominantBody === 'Uranus' || tel.dominantBody === 'Neptune') completed = true;
+            else newText = 'En route to Uranus/Neptune...';
+          }
+          else if (m.id === 'tour_8_pluto') {
+            if (tel.dominantBody === 'Pluto') completed = true;
+            else newText = 'En route to Pluto...';
+          }
+          else if (m.id === 'tour_9_interstellar') {
+            const escaping = tel.dominantBody === 'Sun' && (tel.eccentricity ?? 0) > 1.0;
+            if (escaping) completed = true;
+            else newText = tel.dominantBody === 'Sun' ? `Eccentricity: ${(tel.eccentricity ?? 0).toFixed(3)} / 1.000` : 'Not in solar orbit';
           }
 
-          if (m.id === 'circ_orbit') {
-            const isCirc = (tel.eccentricity ?? 1) < 0.05 && (tel.periapsisAltitude ?? 0) > 300;
-            if (isCirc) {
-              changed = true;
-              return { ...m, status: 'completed', progressText: 'Status: Completed' };
-            }
-            const newText = `Ecc: ${(tel.eccentricity ?? 0).toFixed(3)}, Pe: ${Math.round(tel.periapsisAltitude ?? 0)}km`;
-            if (m.progressText !== newText) { changed = true; return { ...m, progressText: newText }; }
+          if (completed) {
+            changed = true;
+            return { ...m, status: 'completed', progressText: 'Objective Complete!' };
           }
-          
-          if (m.id === 'apo_raise') {
-            const highApo = (tel.apoapsis ?? 0) >= 2500;
-            if (highApo) {
-              changed = true;
-              return { ...m, status: 'completed', progressText: 'Status: Completed' };
-            }
-            const newText = `Apoapsis: ${Math.round(tel.apoapsis ?? 0)}km / 2500km`;
-            if (m.progressText !== newText) { changed = true; return { ...m, progressText: newText }; }
+          if (m.progressText !== newText) {
+            changed = true;
+            return { ...m, progressText: newText };
           }
-
-          if (m.id === 'escape_traj') {
-            const escaping = (tel.eccentricity ?? 0) > 1.0;
-            if (escaping) {
-              changed = true;
-              return { ...m, status: 'completed', progressText: 'Status: Hyperbolic Trajectory Confirmed' };
-            }
-            const newText = `Eccentricity: ${(tel.eccentricity ?? 0).toFixed(3)} / 1.000`;
-            if (m.progressText !== newText) { changed = true; return { ...m, progressText: newText }; }
-          }
-
-          if (m.id === 'high_speed') {
-            const fast = (tel.velocity ?? 0) >= 500;
-            if (fast) {
-              changed = true;
-              return { ...m, status: 'completed', progressText: 'Contract Fulfilled' };
-            }
-            const newText = `Vel: ${Math.round(tel.velocity ?? 0)}m/s`;
-            if (m.progressText !== newText) { changed = true; return { ...m, progressText: newText }; }
-          }
-
           return m;
         });
+
+        // Auto-unlock next mission if one was just completed
+        for (let i = 0; i < newMissions.length; i++) {
+          if (newMissions[i].status === 'completed' && state.missions[i].status === 'active') {
+             // A mission just completed this frame. Unlock the next one if it's locked.
+             if (i + 1 < newMissions.length && newMissions[i+1].status === 'locked') {
+               newMissions[i+1] = { ...newMissions[i+1], status: 'active', progressText: 'Objective assigned.' };
+               changed = true;
+             }
+          }
+        }
 
         return changed ? { missions: newMissions } : state;
       });
@@ -970,6 +1065,13 @@ export const useStore = create<GameState>((set, get) => {
         return;
       }
 
+      const initialMissions = createInitialMissions();
+      const savedMissions = data.missions || [];
+      const mergedMissions = initialMissions.map(initialMission => {
+        const savedMission = savedMissions.find((m: any) => m.id === initialMission.id);
+        return savedMission ? savedMission : initialMission;
+      });
+
       set({
         ship: {
           ...data.ship,
@@ -981,7 +1083,7 @@ export const useStore = create<GameState>((set, get) => {
         time: data.time,
         codexEntries: data.codexEntries,
         achievements: data.achievements,
-        missions: data.missions ?? createInitialMissions(),
+        missions: mergedMissions,
         debris: createInitialDebris(initialBodies),
         activeBurnDirection: null,
         throttle: 0,
