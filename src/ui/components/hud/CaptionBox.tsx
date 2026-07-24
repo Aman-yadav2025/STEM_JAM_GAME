@@ -2,8 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { CornerFrame } from './CornerFrame';
 import { useStore } from '../../../state/store';
 import { PlanetIcon } from './PlanetIcon';
-// @ts-ignore
-import astronautAvatar from '@uploaded/media__1784923306345.jpg';
+const astronautAvatar = '/assets/media__1784923306345.jpg';
 
 export type CaptionType = 'info' | 'warning' | 'success' | 'tip';
 
