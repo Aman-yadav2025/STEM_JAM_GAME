@@ -1,13 +1,13 @@
 # STEM Jam Game - "The Hail Mary Protocol"
 
-A 2.5D space exploration and puzzle game built for STEM Jam.
+A 3D space exploration and simulation game built for STEM Jam.
 
 ## Story
 Humanity is on the brink of collapse due to a deadly Earth-strain pathogen. You are the Commander of the last launch—the Hail Mary protocol. Accompanied by your robotic companion Modi, you must navigate the solar system, extract environmental precursors from all major celestial bodies, and synthesize the ultimate cure before the window of human survival closes.
 
 ## Features
-- **Realistic Orbital Mechanics:** Navigate using a customized 2.5D physics engine. Manage your orbital velocity, eccentricity, and periapsis to achieve stable orbits.
-- **Dynamic Solar System:** Explore Mercury's Caloris Basin, brave Venus's crushing atmosphere, and dive into Jupiter's massive gravity well.
+- **Realistic Orbital Mechanics:** Navigate using a customized 3D physics engine. Manage your orbital velocity, eccentricity, and periapsis to achieve stable orbits.
+
 - **Explorer's Codex:** Discover hidden lore, scan planets for telemetry, and unlock robotic facts and achievements.
 - **Classified Paths:** Uncover myths like the Icarus Run and the Jovian Gauntlet by following legendary flight paths.
 
