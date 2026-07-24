@@ -1,8 +1,6 @@
 import React from 'react';
-// @ts-ignore
-import sprite1 from '@uploaded/media__1784921637176.png';
-// @ts-ignore
-import sprite2 from '@uploaded/media__1784922267446.jpg';
+const sprite1 = '/assets/media__1784921637176.png';
+const sprite2 = '/assets/media__1784922267446.jpg';
 
 export type PlanetName = 'mercury' | 'venus' | 'earth' | 'mars' | 'jupiter' | 'saturn' | 'uranus' | 'neptune' | 'pluto' | 'moon';
 

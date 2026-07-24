@@ -4,7 +4,6 @@ import { useStore } from '../../../state/store';
 export const FastTravelPanel: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const bodies = useStore((state) => state.bodies);
-  const fastTravelToTarget = useStore((state) => state.fastTravelToTarget);
 
   return (
     <div className="relative w-full min-w-[220px] max-w-[280px]">

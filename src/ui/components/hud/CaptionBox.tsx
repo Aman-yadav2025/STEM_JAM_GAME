@@ -2,10 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { CornerFrame } from './CornerFrame';
 import { useStore } from '../../../state/store';
 import { PlanetIcon } from './PlanetIcon';
-// @ts-ignore
-import astronautAvatar from '@uploaded/media__1784923306345.jpg';
+const astronautAvatar = '/assets/media__1784923306345.jpg';
 
-export type CaptionType = 'info' | 'warning' | 'success' | 'tip';
+export type CaptionType = 'info' | 'warning' | 'success' | 'tip' | 'critical';
 
 export type CaptionAction = {
   label: string;
@@ -46,7 +45,7 @@ declare global {
   }
 }
 
-const TYPE_CONFIG = {
+const TYPE_CONFIG: Record<CaptionType, { label: string; color: string; textStyle: string; border: string; glow: string }> = {
   info: { 
     label: 'MISSION CONTROL / DATA', 
     color: '#4FB4E8', 
@@ -74,6 +73,13 @@ const TYPE_CONFIG = {
     textStyle: 'text-amber-500',
     border: 'border-amber-500/50',
     glow: '0 0 35px rgba(245, 158, 11, 0.3)'
+  },
+  critical: {
+    label: 'SYSTEM CRITICAL / ALERT',
+    color: '#DC2626',
+    textStyle: 'text-red-500',
+    border: 'border-red-500/70',
+    glow: '0 0 40px rgba(220, 38, 38, 0.35)',
   },
 };
 
@@ -169,7 +175,7 @@ export function CaptionBox({
   const audioCtxRef = useRef<AudioContext | null>(null);
   const lunaWarningTriggeredRef = useRef<boolean>(false);
 
-  const config = TYPE_CONFIG[currentType] || TYPE_CONFIG.info;
+  const config = TYPE_CONFIG[currentType as CaptionType] || TYPE_CONFIG.info;
 
   // Web Audio API procedural text click synthesizer
   const playCommsTick = () => {
@@ -518,7 +524,7 @@ export function CaptionBox({
           {activeTab === 'comms' && (
             <div className="space-y-2.5 relative z-10">
               {historyLogs.map((log, logIdx) => {
-                const logConf = TYPE_CONFIG[log.type] || TYPE_CONFIG.info;
+                const logConf = TYPE_CONFIG[log.type as CaptionType] || TYPE_CONFIG.info;
                 return (
                   <div 
                     key={log.id} 
@@ -592,7 +598,7 @@ export function CaptionBox({
                 </button>
                 
                 <span className="text-[11px] font-mono tracking-widest text-cyan-400 uppercase">
-                  {TYPE_CONFIG[currentType]?.label || 'COMM_FEED'}
+                  {TYPE_CONFIG[currentType as CaptionType]?.label || 'COMM_FEED'}
                 </span>
               </div>
 

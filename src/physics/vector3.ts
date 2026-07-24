@@ -1,8 +1,4 @@
-// physics/vector3.ts
-//
-// The project's actual vector type — used by every other physics file.
-// z is carried through for API consistency (e.g. orbit normals from cross
-// products need it), even though gameplay is 2D and z generally stays 0.
+
 
 export class Vector3 {
   x: number;
@@ -65,8 +61,6 @@ export class Vector3 {
     return new Vector3(this.x, this.y, this.z);
   }
 
-  // Rotates around the Z axis — used for 2D-plane rotations (e.g. radial
-  // burn direction, perifocal basis construction).
   Rotation(angle: number): Vector3 {
     return new Vector3(
       this.x * Math.cos(angle) - this.y * Math.sin(angle),

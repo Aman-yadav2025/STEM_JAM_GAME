@@ -31,7 +31,7 @@ export function CodexUnlocker() {
       }
     });
 
-    if (!currentBodyId || currentBodyId.toLowerCase() === 'sun') {
+    if (currentBodyId === null || currentBodyId === 'sun' || currentBodyId === 'Sun') {
       return;
     }
 

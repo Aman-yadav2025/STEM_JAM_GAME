@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useStore } from '../state/store';
 import { showGameCaption } from '../ui/components/hud/CaptionBox';
+import { Vector3 } from '../physics/vector3';
 import * as THREE from 'three';
 
 // Helper to calculate distance
@@ -272,12 +273,11 @@ export const StoryManager: React.FC = () => {
           // Set velocity to 0 to ground the ship on Pluto
           useStore.setState((s) => {
             if (s.ship) {
-              return { 
-                ship: { 
-                  ...s.ship, 
-                  velocity: { x: 0, y: 0, z: 0 },
-                  angularVelocity: 0 
-                } 
+              return {
+                ship: {
+                  ...s.ship,
+                  velocity: new Vector3(0, 0, 0),
+                },
               };
             }
             return s;

@@ -1,16 +1,6 @@
-// physics/constants.ts
-//
-// SCALED UNIT SYSTEM — do not use real-world SI values (real G, kg, meters).
-// Real-world numbers produce orbital velocities in the thousands and distances
-// in the millions, which wrecks both floating-point precision and on-screen
-// readability. Instead we define our own consistent unit system, tuned for
-// gameplay feel rather than physical accuracy:
-//
-//   1 distance unit ≈ "game units" on screen (tune to your camera/zoom)
-//   1 mass unit      = arbitrary, chosen so G * M gives sensible accelerations
-//   1 time unit       = 1 second of simulated time
 
-import type { quat } from 'gl-matrix';
+
+// import type { quat } from 'gl-matrix';
 import type { Vector3 } from './vector3';
 
 export const G = 0.1; // tune this first when calibrating a new level
@@ -69,11 +59,7 @@ export function fuelFraction(ship: Spacecraft): number {
   return ship.fuel / ship.maxFuel;
 }
 
-/**
- * Adds fuel to the ship, clamped so it never exceeds maxFuel. Use this for
- * any refuel mechanic (pickup, docking) rather than setting ship.fuel
- * directly, so the cap is enforced in exactly one place.
- */
+
 export function addFuel(ship: Spacecraft, amount: number): Spacecraft {
   return { ...ship, fuel: Math.min(ship.maxFuel, ship.fuel + amount) };
 }
@@ -91,18 +77,7 @@ export type BurnDirection =
   | 'orbitTangent';
 
   
-/**
- * Hill-sphere approximation of a sphere of influence radius.
- * d = distance between the two bodies, mPrimary = mass of the body being
- * orbited (e.g. planet), mBody = mass of the smaller body (e.g. moon).
- *
- * r_Hill = d * (mBody / (3 * mPrimary)) ^ (1/3)
- *
- * Previously this used `Math.pow(mBody / mPrimary, 2 / 5)` with no factor
- * of 3 — wrong exponent (2/5 instead of 1/3) and missing the /3, which
- * threw off every SOI radius in the game (and the safety margins built on
- * top of them elsewhere, e.g. in celestialFactory.ts).
- */
+
 export function computeSOIRadius(d: number, mBody: number, mPrimary: number): number {
   return d * Math.pow(mBody / (3 * mPrimary), 1 / 3);
 }

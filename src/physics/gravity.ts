@@ -1,16 +1,3 @@
-// physics/gravity.ts
-//
-// Pure Newtonian gravity (F = G*M*m/r², a = G*M/r²). No relativistic
-// corrections — at this scale (ordinary planet/moon masses, sub-relativistic
-// velocities, minutes-long play sessions) relativistic effects are not just
-// negligible but undetectable in principle.
-//
-// For multi-body levels (gravity assist, Lagrange), we use the "patched
-// conic" approximation: the ship is under the gravitational influence of
-// exactly ONE body at a time — whichever body's sphere of influence (SOI)
-// it currently occupies. This is what real mission planners use for a
-// reason: it's simpler, numerically stable, and predictable for players,
-// unlike full n-body simulation which is chaotic and hard to reason about.
 
 import { G } from './constants';
 import type { CelestialBody } from './constants';
@@ -30,13 +17,6 @@ export function accelFromBody(position: Vector3, body: CelestialBody): Vector3 {
   return delta.normalize().scale(aMag);
 }
 
-/**
- * Determines which body's sphere of influence the ship currently occupies.
- * Bodies should be ordered from smallest-to-largest SOI (moon before planet)
- * so the ship is assigned to the most locally dominant body when SOIs overlap.
- * Falls back to the first body in the array (treated as primary) if the ship
- * is outside every defined SOI.
- */
 export function getDominantBody(shipPosition: Vector3, bodies: CelestialBody[]): CelestialBody {
   let dominantBody: CelestialBody | null = null;
   let smallestSOI = Infinity;
@@ -61,23 +41,7 @@ export function getDominantBody(shipPosition: Vector3, bodies: CelestialBody[]):
   // 4. Fallback safeguard: If something goes horribly wrong, return the first body
   return dominantBody || bodies[0];
 }
-/**
- * Total acceleration on the ship, using patched-conic dominant-body gravity.
- * This is the function every integrator (rocketMotion, trajectoryPredictor)
- * should call for gravity.
- *
- * BUG FIX: this used to add `accelFromBody(dominant.position, bodies[0])`
- * whenever `dominant.name !== 'sun'` — i.e. it assumed the dominant body's
- * parent was ALWAYS the Sun (bodies[0]). That's true for planets, but false
- * for moons — a moon's parent is its planet, not the Sun. So a ship
- * captured by, say, the Moon was getting the Sun's (much weaker,
- * wrong-direction) pull added instead of Earth's — the actual force that
- * curves the Moon's own path — which corrupted orbital dynamics for any
- * ship near a moon and made stable capture there effectively impossible.
- * Fix: walk the REAL parent chain (moon -> planet -> sun, however deep),
- * adding each ancestor's pull on the previous body's position, so the
- * reference frame is correct at every level of nesting, not just one.
- */
+
 export function DominantAccel(position: Vector3, bodies: MovingBody[]): Vector3 {
   const dominant = getDominantBody(position, bodies) as MovingBody;
   let accel = accelFromBody(position, dominant);

@@ -215,13 +215,6 @@ const deleteSave = () => {
 };
 
 
-
-// ---- DYNAMIC CELESTIAL SYSTEM GENERATION ----------------------------
-// NOTE: mass is intentionally NOT specified for planets/moons below.
-// Leaving it out lets celestialFactory.ts compute mass from radius^3 * density,
-// so mass scales consistently with size instead of being arbitrary hand-picked
-// numbers that don't track volume (which was also throwing off the Hill-sphere
-// SOI calculations). Sun mass is still explicit since it's the fixed reference body.
 const initialBodies = buildSolarSystem(
   // Central Sun (Recalibrated mass to prevent overpowering gravity)
   { name: 'Sun', mass: 10000000000, radius: 1400, color: 'yellow' },
@@ -365,21 +358,13 @@ const createInitialShip = (bodies: MovingBody[] = initialBodies): Spacecraft => 
     };
   }
 
-  // 1. Calculate Earth's heliocentric velocity vector at t = 0.
-  // IMPORTANT: this must match the XZ orbital plane used by
-  // orbitPath.ts's bodyPositionAtTime() (Y is up, sin(angle) goes into Z),
-  // since that function is what actually moves Earth every frame. For a
-  // position (x, y, z) on that circular path, the tangential velocity is
-  // (-omega*z, 0, omega*x) — NOT (-omega*y, omega*x, 0), which was the
-  // previous (wrong) XY-plane formula and is what caused the ship to fly
-  // out of Earth's SOI and end up orbiting the Sun instead.
+
   let earthVelocity = Vector3.zero();
   if (earth.orbit) {
     earthVelocity = bodyVelocityAtTime(earth.orbit, 0);
   }
 
-  // 2. Position ship in Low Earth Orbit (12 units above Earth's surface),
-  // offset along +X relative to Earth.
+
   const orbitAltitude = 70;
   const orbitRadius = earth.radius + orbitAltitude; // 35 + 12 = 47 units from Earth center
 
@@ -902,7 +887,7 @@ export const useStore = create<GameState>((set, get) => {
     evaluateMissions: (tel) => {
       set((state) => {
         let changed = false;
-        const newMissions = state.missions.map((m, index) => {
+        const newMissions: Mission[] = state.missions.map((m, _index) => {
           if (m.status !== 'active') return m;
           
           let completed = false;
@@ -965,7 +950,7 @@ export const useStore = create<GameState>((set, get) => {
           if (newMissions[i].status === 'completed' && state.missions[i].status === 'active') {
              // A mission just completed this frame. Unlock the next one if it's locked.
              if (i + 1 < newMissions.length && newMissions[i+1].status === 'locked') {
-               newMissions[i+1] = { ...newMissions[i+1], status: 'active', progressText: 'Objective assigned.' };
+               newMissions[i+1] = { ...newMissions[i+1], status: 'active', progressText: 'Objective assigned.' } as Mission;
                changed = true;
              }
           }
@@ -1006,6 +991,8 @@ export const useStore = create<GameState>((set, get) => {
         codexEntries: state.codexEntries,
         achievements: state.achievements,
         missions: state.missions,
+        storyProgress: state.storyProgress,
+        playerName: state.playerName,
       };
       writeSave(data);
       set({ hasSave: true });

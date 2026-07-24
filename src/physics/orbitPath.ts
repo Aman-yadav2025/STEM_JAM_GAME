@@ -1,17 +1,4 @@
-// physics/orbitPath.ts
-//
-// Simple circular orbit model for moving bodies (moons orbiting planets,
-// planets orbiting a sun). Deliberately NOT full Keplerian/elliptical —
-// circular is easier to design levels around and easier for players to
-// reason about, and matches the "assume circular for simplicity" spec.
-//
-// IMPORTANT ordering requirement: bodyPositionAtTime() reads
-// `orbit.parentBody.position` directly off the live CelestialBody object
-// (not a snapshot/copy). Since JS objects are passed by reference, this
-// means: as long as updateBodyPositions() processes bodies in
-// parent-before-child order, a moon will automatically see its parent
-// planet's ALREADY-UPDATED position for this frame, with no extra plumbing.
-// Bodies must be sorted that way when the level is set up.
+
 
 import { Vector3 } from "./vector3";
 import { type CelestialBody } from "./constants";
@@ -39,9 +26,6 @@ export function bodyPositionAtTime(orbit: OrbitPath, time: number): Vector3 {
   const angle = orbit.initialAngle + (2 * Math.PI * time) / orbit.orbitalPeriod;
   const parentPos = orbit.parentBody.position;
 
-  // Align orbits on the horizontal XZ plane (y is up). This places bodies
-  // around the parent using X (cos) and Z (sin) so all planets lie roughly
-  // on the same horizontal plane, like the ecliptic.
   return new Vector3(
     parentPos.x + orbit.orbitalRadius * Math.cos(angle),
     parentPos.y,
@@ -71,15 +55,6 @@ export function bodyVelocityAtTime(orbit: OrbitPath, time: number): Vector3 {
   );
 }
 
-/**
- * Updates position (mutating) for every body in the array, IN ORDER.
- * `bodies` MUST be sorted parent-before-child (e.g. [sun, planet, moon])
- * so that when a moon's position is computed, its parent planet's
- * position field has already been updated to this frame's value.
- *
- * Bodies with no `orbit` (static bodies, or the orbit's own root/sun)
- * are left untouched.
- */
 export function updateBodyPositions(bodies: MovingBody[], time: number): void {
   for (const body of bodies) {
     if (body.orbit) {
