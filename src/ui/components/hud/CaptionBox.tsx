@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { CornerFrame } from './CornerFrame';
 import { useStore } from '../../../state/store';
 import { PlanetIcon } from './PlanetIcon';
+// @ts-ignore
+import astronautAvatar from '@uploaded/media__1784923306345.jpg';
 
 export type CaptionType = 'info' | 'warning' | 'success' | 'tip';
 
@@ -646,13 +648,18 @@ export function CaptionBox({
                       else charColor = 'text-amber-400'; // Default for the Player
                       
                       return (
-                        <>
-                          <span className={`${charColor} font-bold mr-2`}>[{character}]{speech ? ':' : ''}</span>
-                          <span className="text-white/90">{speech}</span>
-                        </>
+                        <div className="flex items-start gap-3">
+                          {charColor === 'text-amber-400' && (
+                            <img src={astronautAvatar} alt="Commander Avatar" className="w-8 h-8 rounded border border-amber-400/30 object-cover mt-0.5 shrink-0" />
+                          )}
+                          <div className="flex-1">
+                            <span className={`${charColor} font-bold mr-2`}>[{character}]{speech ? ':' : ''}</span>
+                            <span className="text-white/90">{speech}</span>
+                          </div>
+                        </div>
                       );
                     }
-                    return text;
+                    return <span>{text}</span>;
                   })()}
                   {!isTypingComplete && (
                     <span 

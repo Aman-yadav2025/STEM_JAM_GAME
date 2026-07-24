@@ -32,24 +32,10 @@ export const PlanetIcon: React.FC<PlanetIconProps> = ({ planet, size = 64, class
   
   const bgImage = data.source === 1 ? sprite1 : sprite2;
   
-  // The sprite sheet has 4 columns and 2 rows.
-  // Each cell is 256x512. The planet itself is centered in the top ~256x256 area of the cell.
-  // We want to scale the 256x256 area down to `size` x `size`.
-  
-  // Total background size should be scaled based on the cell size.
-  // We are viewing a window of `size` x `size`.
-  // The whole image width should be 4 * size.
-  // The whole image height should be 2 * (size * 2) = 4 * size, because the cell is twice as tall as it is wide.
   const bgSizeX = size * 4;
   const bgSizeY = size * 4;
 
-  // Calculate pixel offsets.
-  // Column offset: col * size
-  // Row offset: row * (size * 2)
-  // We might need to tweak the row offset slightly if the planet isn't perfectly at the top of the cell.
-  // Typically, there's a small border. We can add a Y offset if needed.
   const xOffset = -(data.col * size);
-  // Add a small Y offset because the planets are slightly padded from the top edge in the image
   const yOffset = -(data.row * size * 2) - (size * 0.05);
 
   return (

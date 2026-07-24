@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useStore } from '../../../state/store';
-import { PlanetIcon, PlanetName } from './PlanetIcon';
+import { PlanetIcon, type PlanetName } from './PlanetIcon';
 
 export const MissionCompleteAnimation: React.FC = () => {
   const activeCompletedMissionId = useStore((s) => s.activeCompletedMission);
