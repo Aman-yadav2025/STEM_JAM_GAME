@@ -19,7 +19,7 @@ export const StoryManager: React.FC = () => {
   const progressRef = useRef(storyProgress);
   const isSequenceActive = useRef(false);
   const isSequenceActiveState = useStore((s) => s.isStorySequenceActive);
-  const timeoutIds = useRef<NodeJS.Timeout[]>([]);
+  const timeoutIds = useRef<ReturnType<typeof setTimeout>[]>([]);
   const currentOnComplete = useRef<(() => void) | null>(null);
 
   const skipSequence = () => {

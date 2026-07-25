@@ -365,9 +365,9 @@ const CameraRig = () => {
     }
   }, [camera, virtualCamera]);
 
-  const isStorySequenceActive = useStore((s) => s.isStorySequenceActive);
+  // const isStorySequenceActive = useStore((s) => s.isStorySequenceActive);
 
-  useFrame((_, delta) => {
+  useFrame(() => {
     const ship = useStore.getState().ship;
     if (!ship) return;
 

@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useRef } from 'react';
 import { World } from './World';
-import { CONSTANT_DT, SIMULATION_TIME_SCALE } from '../physics/constants';
+import { SIMULATION_TIME_SCALE } from '../physics/constants';
 import { useStore } from '../state/store';
 
 export const useGameLoop = () => {
