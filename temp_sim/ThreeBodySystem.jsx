@@ -1,37 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 
-/* ============================================================================
- * PHYSICS LAYER
- *
- * Same foundation as the two-body version: each planet is a Spacecraft-
- * shaped object { position, velocity, mass, fuel: 0, maxFuel: 0, heading },
- * because CelestialBody (constants.ts) has no velocity field and can't
- * mutually orbit anything on its own.
- *
- * Gravity is still exactly gravity.ts's accelFromBody/totalAccelNBody,
- * unmodified — it already sums over an arbitrary bodies[] array, so going
- * from two planets to three needed zero changes there. `stepNBody` (the
- * live mutual integrator, velocity-Verlet, same reasoning as
- * trajectoryPredictor.ts) is also unchanged — it was already written for N
- * bodies, not hardcoded to two.
- *
- * The one new piece is the *initial condition*: three comparable masses
- * don't have a generic stable starting configuration the way a two-body
- * circular orbit does — most three-body setups are chaotic from t=0. So
- * this uses Lagrange's own exact equilateral-triangle solution: three
- * masses (any masses) at the corners of an equilateral triangle, each
- * moving in a circle around the common barycenter at the same angular
- * rate ω = sqrt(G * M_total / s^3), stay in that rigid rotating triangle
- * forever — in principle. It's the same "equilateral triangle" geometry
- * as the L4/L5 points in lagrange.ts, just generalized from "two heavy
- * bodies + one massless test point" to "three bodies that are all
- * dynamically real." One honest caveat: unlike L4/L5 in a restricted
- * (test-mass) system, this three-comparable-mass equilateral solution is
- * dynamically UNSTABLE — it's an exact solution, but tiny numerical drift
- * compounds over time, so don't be surprised if the triangle slowly
- * deforms after a bunch of orbits. That's real physics, not a bug.
- * ==========================================================================*/
+
 
 // ---- vector3.ts -----------------------------------------------------------
 class Vector3 {
@@ -94,10 +64,7 @@ function forecastOrbits(bodies, steps, dt) {
   return paths;
 }
 
-/* ============================================================================
- * LEVEL SETUP — three planets in Lagrange's exact equilateral-triangle
- * three-body configuration.
- * ==========================================================================*/
+
 
 function buildLevel() {
   const masses = [
@@ -143,9 +110,7 @@ function buildLevel() {
   return { bodies, period, s };
 }
 
-/* ============================================================================
- * REACT + THREE.JS COMPONENT
- * ==========================================================================*/
+
 
 const FOCUS_OPTIONS = [['barycenter', 'barycenter'], ['body0', 'aurun'], ['body1', 'vesper'], ['body2', 'nyxara']];
 

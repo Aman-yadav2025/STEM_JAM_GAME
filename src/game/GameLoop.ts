@@ -8,7 +8,6 @@ export const useGameLoop = () => {
   const isPaused = useStore((state) => state.isPaused);
   const accumulator = useRef(0);
   const ticks = useRef(0);
-  const stepDt = CONSTANT_DT;
 
   useFrame((_, delta) => {
     if (isPaused) {
@@ -17,15 +16,14 @@ export const useGameLoop = () => {
     }
 
     const safeDelta = Math.min(delta, 0.1);
-    accumulator.current += safeDelta * SIMULATION_TIME_SCALE;
-
-    while (accumulator.current >= stepDt) {
-      World.tick(stepDt);
-      accumulator.current -= stepDt;
+    const dt = safeDelta * SIMULATION_TIME_SCALE;
+    
+    if (dt > 0) {
+      World.tick(dt);
       ticks.current++;
       
       // Re-evaluate navigation path periodically to keep the green line updated 
-      // as the ship manually flies toward the target. 30 ticks = 0.5s real time.
+      // as the ship manually flies toward the target.
       if (ticks.current % 30 === 0) {
         useStore.getState().refreshNavigationPath();
       }

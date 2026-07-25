@@ -28,8 +28,7 @@ export function TrajectoryLine({
   recomputeEveryNFrames = 1,
   color = '#F0E1CE',
 }: TrajectoryLineProps) {
-  const bodies = useStore((state) => state.bodies) as MovingBody[];
-
+  // Removed React subscriptions for bodies and ship to prevent 144Hz re-renders
   const capacity = maxSteps + 1;
   const positions = useMemo(() => new Float32Array(capacity * 3), [capacity]);
   const geometryRef = useRef<THREE.BufferGeometry>(null);
@@ -40,7 +39,8 @@ export function TrajectoryLine({
     frameCount.current++;
     if (frameCount.current % recomputeEveryNFrames !== 0) return;
 
-    const { ship, time, setTrajectoryPath } = useStore.getState();
+    const { ship, time, setTrajectoryPath, bodies: storeBodies } = useStore.getState();
+    const bodies = storeBodies as MovingBody[];
 
     const dynamicSteps = estimateOrbitSteps(ship.position, ship.velocity, bodies, maxSteps, minSteps);
     const path = predictPath(ship.position, ship.velocity, bodies, dynamicSteps, time);

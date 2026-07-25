@@ -228,7 +228,7 @@ export default function App() {
       {/* 3D Render Layer with Canvas, Starfield Background, and Scene Manager */}
       <div className="absolute inset-0 z-0">
         <Canvas
-          camera={{ position: [0, 50, 150], fov: 60, near: 0.1, far: 10000000 }}
+          camera={{ position: [0, 4, -15], fov: 60, near: 0.1, far: 10000000 }}
           className="w-full h-full"
         >
           <color attach="background" args={['#020408']} />

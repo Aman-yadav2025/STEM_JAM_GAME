@@ -30,7 +30,8 @@ export const SpacecraftMesh = () => {
     const ship = useStore.getState().ship;
     const thrusting = useStore.getState().flightInput.thrusting;
 
-    groupRef.current.position.set(ship.position.x, ship.position.y, ship.position.z);
+    // Floating Origin: The ship stays at (0,0,0) to prevent Float32 precision jitter at large distances.
+    // We only update its rotation. The rest of the universe moves around it.
     groupRef.current.quaternion.set(ship.orientation.x, ship.orientation.y, ship.orientation.z, ship.orientation.w);
 
     // DEBUG: visual forward-direction arrow. getWorldDirection() reads the
@@ -76,8 +77,8 @@ export const SpacecraftMesh = () => {
       {/* DEBUG: red arrow shows the ship's current forward direction in world space.
           Remove this <primitive> once you've confirmed orientation behaves correctly. */}
       <primitive
-        // ref={arrowRef}
-        object={new THREE.ArrowHelper(new THREE.Vector3(0, 0, -1), new THREE.Vector3(0, 0, 0), 15, 0xff0000, 4, 2)}
+        ref={arrowRef}
+        object={new THREE.ArrowHelper(new THREE.Vector3(0, 0, -1), new THREE.Vector3(0, 0, 0), 3, 0xff0000, 0.8, 0.4)}
       />
     </>
   );

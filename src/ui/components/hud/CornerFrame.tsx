@@ -6,10 +6,7 @@ interface CornerFrameProps {
   accent?: string; // hex color for corner brackets
 }
 
-/**
- * Bracket-cornered instrument panel frame — the shared visual signature
- * used by both the status HUD and the burn control pad.
- */
+
 export function CornerFrame({ children, className = '', accent = '#4FB4E8' }: CornerFrameProps) {
   const bracket = 'absolute w-3 h-3 border-solid';
   return (

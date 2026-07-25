@@ -227,10 +227,79 @@ const RoamingAsteroids = () => {
     </instancedMesh>
   );
 };
+const FloatingOriginGroup = ({ children }: { children: React.ReactNode }) => {
+  const groupRef = useRef<THREE.Group>(null);
+  
+  useFrame(() => {
+    const ship = useStore.getState().ship;
+    if (ship && groupRef.current) {
+      groupRef.current.position.set(-ship.position.x, -ship.position.y, -ship.position.z);
+    }
+  });
+
+  return <group ref={groupRef}>{children}</group>;
+};
+
+const PlanetBody = ({ index, initialBody, textures, saturnRingsTexture }: any) => {
+  const groupRef = useRef<THREE.Group>(null);
+  
+  useFrame(() => {
+    if (!groupRef.current) return;
+    const b = useStore.getState().bodies[index];
+    if (b) {
+      groupRef.current.position.set(b.position.x, b.position.y, b.position.z);
+    }
+  });
+
+  const mapTexture = textures[initialBody.name as keyof typeof textures];
+  const isSun = initialBody.name === 'Sun';
+
+  return (
+    <group ref={groupRef}>
+      <mesh>
+        <sphereGeometry args={[initialBody.radius, 32, 32]} />
+        <meshStandardMaterial 
+          map={mapTexture || null}
+          color={!mapTexture ? initialBody.color : '#ffffff'}
+          emissive={isSun ? '#ffff88' : '#000000'}
+          emissiveMap={isSun ? mapTexture : null}
+          emissiveIntensity={isSun ? 1.5 : 0}
+          roughness={isSun ? 0.2 : 1}
+          metalness={0}
+        />
+        {initialBody.name === 'Saturn' && (
+          <mesh rotation={[Math.PI / 3, 0, 0]}>
+            <ringGeometry args={[initialBody.radius * 1.4, initialBody.radius * 2.3, 64]} />
+            <meshStandardMaterial 
+              map={saturnRingsTexture}
+              side={THREE.DoubleSide} 
+              transparent 
+              opacity={0.9} 
+              roughness={0.9} 
+              toneMapped={false}
+            />
+          </mesh>
+        )}
+      </mesh>
+
+      {initialBody.soiRadius < Infinity && (
+        <mesh>
+          <sphereGeometry args={[initialBody.soiRadius, 32, 32]} />
+          <meshBasicMaterial
+            color={initialBody.color}
+            transparent
+            opacity={0.06}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
+    </group>
+  );
+};
 
 const Simulation = () => {
   useGameLoop();
-  const bodies = useStore((state) => state.bodies);
+  const initialBodies = useMemo(() => useStore.getState().bodies, []);
 
   const textures = {
     Earth: useLoader(THREE.TextureLoader, '/textures/earth.jpg'),
@@ -251,68 +320,35 @@ const Simulation = () => {
 
   return (
     <>
+      {/* Spacecraft is NOT in the floating origin group. It stays at (0,0,0) */}
       <SpacecraftMesh />
-      <AsteroidBelt />
-      <RoamingAsteroids />
-      <SpaceDebris />
-      <InstancedComets />
-      {bodies.map((body, i) => {
-        const mapTexture = textures[body.name as keyof typeof textures];
-        const isSun = body.name === 'Sun';
-
-        return (
-          <group key={i}>
-            <mesh position={[body.position.x, body.position.y, body.position.z]}>
-              <sphereGeometry args={[body.radius, 32, 32]} />
-              <meshStandardMaterial 
-                map={mapTexture || null}
-                color={!mapTexture ? body.color : '#ffffff'}
-                emissive={isSun ? '#ffff88' : '#000000'}
-                emissiveMap={isSun ? mapTexture : null}
-                emissiveIntensity={isSun ? 1.5 : 0}
-                roughness={isSun ? 0.2 : 1}
-                metalness={0}
-              />
-
-              {body.name === 'Saturn' && (
-                <mesh rotation={[Math.PI / 3, 0, 0]}>
-                  <ringGeometry args={[body.radius * 1.4, body.radius * 2.3, 64]} />
-                  <meshStandardMaterial 
-                    map={saturnRingsTexture}
-                    side={THREE.DoubleSide} 
-                    transparent 
-                    opacity={0.9} 
-                    roughness={0.9} 
-                    toneMapped={false}
-                  />
-                </mesh>
-              )}
-            </mesh>
-
-            {body.soiRadius < Infinity && (
-              <mesh position={[body.position.x, body.position.y, body.position.z]}>
-                <sphereGeometry args={[body.soiRadius, 32, 32]} />
-                <meshBasicMaterial
-                  color={body.color}
-                  transparent
-                  opacity={0.06}
-                  depthWrite={false}
-                />
-              </mesh>
-            )}
-          </group>
-        );
-      })}
+      
+      {/* Everything else moves relative to the spacecraft */}
+      <FloatingOriginGroup>
+        <pointLight position={[0, 0, 0]} intensity={2} />
+        <AsteroidBelt />
+        <RoamingAsteroids />
+        <SpaceDebris />
+        <InstancedComets />
+      {initialBodies.map((body, i) => (
+        <PlanetBody 
+          key={i} 
+          index={i} 
+          initialBody={body} 
+          textures={textures} 
+          saturnRingsTexture={saturnRingsTexture} 
+        />
+      ))}
       <TrajectoryLine />
-      <ApsisMarkers />
-      <NavigationLine />
+        <ApsisMarkers />
+        <NavigationLine />
+      </FloatingOriginGroup>
     </>
   );
 };
 
 const CameraRig = () => {
   const { camera, gl } = useThree();
-  const ship = useStore((s) => s.ship);
   const controlsRef = useRef<any>(null);
   
   // A virtual camera that orbits (0,0,0) in local space
@@ -332,32 +368,18 @@ const CameraRig = () => {
   const isStorySequenceActive = useStore((s) => s.isStorySequenceActive);
 
   useFrame((_, delta) => {
+    const ship = useStore.getState().ship;
     if (!ship) return;
 
     if (controlsRef.current) {
-      controlsRef.current.enabled = !isStorySequenceActive;
-      if (!isStorySequenceActive) {
-        controlsRef.current.update();
-      }
+      // Always allow controls to update
+      controlsRef.current.update();
     }
 
-    if (isStorySequenceActive) {
-      // Smoothly lerp camera to a cinematic front-facing view, much closer to the ship
-      const targetPos = new THREE.Vector3(0, 1.5, 8);
-      virtualCamera.position.lerp(targetPos, delta * 1.5);
-      virtualCamera.lookAt(0, 0, 0);
-      if (controlsRef.current) {
-        // Keep OrbitControls target zeroed out so it resumes smoothly
-        controlsRef.current.target.set(0, 0, 0);
-      }
-    }
-
-    const shipPos = new THREE.Vector3(ship.position.x, ship.position.y, ship.position.z);
-    const shipQuat = new THREE.Quaternion(ship.orientation.x, ship.orientation.y, ship.orientation.z, ship.orientation.w);
-
-    // Apply ship's world transform to the virtual camera's local offset
-    camera.position.copy(virtualCamera.position).applyQuaternion(shipQuat).add(shipPos);
-    camera.quaternion.copy(shipQuat).multiply(virtualCamera.quaternion);
+    // Floating Origin: the ship is always at (0,0,0).
+    // Update camera position to orbit the origin.
+    camera.position.copy(virtualCamera.position);
+    camera.quaternion.copy(virtualCamera.quaternion);
   });
 
   return (
@@ -382,7 +404,6 @@ export const SceneManager = () => {
   return (
     <>
       <ambientLight intensity={0.4} />
-      <pointLight position={[0, 0, 0]} intensity={2} />
       <Simulation />
       <CameraRig />
     </>

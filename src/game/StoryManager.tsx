@@ -18,6 +18,20 @@ export const StoryManager: React.FC = () => {
 
   const progressRef = useRef(storyProgress);
   const isSequenceActive = useRef(false);
+  const isSequenceActiveState = useStore((s) => s.isStorySequenceActive);
+  const timeoutIds = useRef<NodeJS.Timeout[]>([]);
+  const currentOnComplete = useRef<(() => void) | null>(null);
+
+  const skipSequence = () => {
+    timeoutIds.current.forEach(clearTimeout);
+    timeoutIds.current = [];
+    isSequenceActive.current = false;
+    useStore.getState().setStorySequenceActive(false);
+    if (currentOnComplete.current) {
+      currentOnComplete.current();
+      currentOnComplete.current = null;
+    }
+  };
 
   useEffect(() => {
     progressRef.current = storyProgress;
@@ -29,23 +43,29 @@ export const StoryManager: React.FC = () => {
   ) => {
     isSequenceActive.current = true;
     useStore.getState().setStorySequenceActive(true);
+    currentOnComplete.current = onComplete || null;
     let accumulatedDelay = 0;
 
     captions.forEach((cap, index) => {
       accumulatedDelay += cap.delay;
-      setTimeout(() => {
+      const tId = setTimeout(() => {
         // Replace {playerName} with actual player name
         const text = cap.text.replace(/\{playerName\}/g, playerName);
         showGameCaption(text, cap.type || 'info');
         
         if (index === captions.length - 1) {
-          setTimeout(() => {
+          const tId2 = setTimeout(() => {
             isSequenceActive.current = false;
             useStore.getState().setStorySequenceActive(false);
-            if (onComplete) onComplete();
+            if (currentOnComplete.current) {
+              currentOnComplete.current();
+              currentOnComplete.current = null;
+            }
           }, 4000);
+          timeoutIds.current.push(tId2);
         }
       }, accumulatedDelay);
+      timeoutIds.current.push(tId);
     });
   };
 
@@ -457,5 +477,18 @@ export const StoryManager: React.FC = () => {
     return () => clearInterval(interval);
   }, [playerName]);
 
-  return null;
+  return (
+    <>
+      {isSequenceActiveState && (
+        <div className="absolute top-24 right-8 z-50 pointer-events-auto">
+          <button
+            onClick={skipSequence}
+            className="px-4 py-2 bg-black/60 hover:bg-black/90 text-slate-300 hover:text-white border border-slate-700 hover:border-slate-500 rounded font-mono text-sm uppercase tracking-widest backdrop-blur-md transition-all shadow-lg"
+          >
+            Skip Dialog ⏭
+          </button>
+        </div>
+      )}
+    </>
+  );
 };
